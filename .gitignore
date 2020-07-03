@@ -1,0 +1,17 @@
+*.tkc
+*.hcs
+*.ini
+*.log
+*.dat
+*.chr
+*.hcc
+*.hc
+*.opt
+*.tst
+*.welcome
+*.png
+*.html
+/Scripts
+/Profiles
+/Include/*
+!Original
