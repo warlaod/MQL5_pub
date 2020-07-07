@@ -64,7 +64,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnTick()
   {
-   if(isTooBigSpread(spread) && tradable == false)
+   if(isTooBigSpread(spread) || tradable == false)
      {
       return;
      }
@@ -125,6 +125,7 @@ void OnTick()
 //+------------------------------------------------------------------+
 void OnTimer()
   {
+
    tradable  = true;
    //lot =SetLot(denom);
    if(isNotEnoughMoney())
@@ -148,6 +149,8 @@ void OnTimer()
       tradable = false;
       return;
      }
+   
+
   }
   
 double OnTester()
@@ -157,7 +160,7 @@ double OnTester()
      {
       return -99999999;
      }
-   return testingScalpMoreTrade();
+   return testingScalp();
 
   }
 //+------------------------------------------------------------------+
