@@ -21,13 +21,15 @@ CTrade trade;
 MqlDateTime dt;
 MqlRates Price[];
 input int MIN;
-input int positions,denom;
+input int positions,denom,spread;
 double lot = 0.10;
 double  Bid,Ask;
+bool tradable = true;
 
 int IchimokuIndicator;
 double Tenkan[],Kijun[],Senkou1[],Senkou2[],Chikou[];
-input int IchimokuPeriod,MomiaiRange,MomiaiCri;
+input int IchimokuPeriod,SenkouCri,KijunCri;
+input double TPCoef;
 
 string signal,lasttrade;
 int tradesignal;
@@ -36,6 +38,7 @@ int tradesignal;
 //+------------------------------------------------------------------+
 int OnInit()
   {
+   EventSetTimer(300);
    IchimokuIndicator = iIchimoku(_Symbol,Timeframe(IchimokuPeriod),9,26,52);
 
    ArraySetAsSeries(Tenkan,true);
@@ -50,58 +53,58 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnTick()
   {
+   
    Bid=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_BID),_Digits);
    Ask=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_ASK),_Digits);
 
    lot =SetLot(denom);
 
    CopyBuffer(IchimokuIndicator, 0,0,2, Tenkan);
-   CopyBuffer(IchimokuIndicator, 1,0,MomiaiRange, Kijun);
-//CopyBuffer(IchimokuIndicator, 2,0,1, Senkou1);
-//CopyBuffer(IchimokuIndicator, 3,0,1, Senkou2);
-  //CopyRates(_Symbol,_Period,0,26,Price);
+   CopyBuffer(IchimokuIndicator, 1,0,2, Kijun);
+   CopyBuffer(IchimokuIndicator, 2,0,2, Senkou1);
+   CopyBuffer(IchimokuIndicator, 3,0,2, Senkou2);
+   CopyRates(_Symbol,_Period,0,26,Price);
+   
+   
 
 
-
-   if(isUntradable())
+   if(tradable == false || isTooBigSpread(spread))
      {
       return;
      }
-     
-   if(MathAbs(Kijun[0] - Kijun[MomiaiRange-1]) <= MomiaiCri*_Point){
-      return;
-   }
    
 
    signal = "";
 
-   if(Kijun[0] > Tenkan[0] && Tenkan[1] > Tenkan[0])
-     {
-      signal = "sell";
-     }
+if( MathAbs(Senkou1[1] - Senkou2[1]) < SenkouCri*_Point || MathAbs(Senkou1[1] - Kijun[1]) < KijunCri*_Point){
+   return;
+}
 
-   if(Kijun[0] < Tenkan[0] && Tenkan[1] < Tenkan[0])
+   if(Tenkan[1] > Kijun[1] && Kijun[1] > Senkou1[1] && Senkou1[1] > Senkou2[1])
      {
       signal = "buy";
      }
-
+  else if(Tenkan[1] < Kijun[1] && Kijun[1] < Senkou1[1] && Senkou1[1] < Senkou2[1])
+     {
+      signal = "sell";
+     }
 
 
    double TPSLline = MathAbs(Tenkan[0]-Kijun[0]);
 
    if(EachPositionsTotal("buy") < positions/2 && signal=="buy")
      {
-      if(isNotInvalidTrade(Kijun[0], Ask+TPSLline, Ask,true))
+      if(isNotInvalidTrade(Senkou1[1], Ask+TPSLline*TPCoef, Ask,true))
         {
-         trade.Buy(lot,NULL,Ask,Kijun[0],Ask+TPSLline,NULL);
+         trade.Buy(lot,NULL,Ask,Senkou1[1],Ask+TPSLline*TPCoef,NULL);
         }
      }
 
    if(EachPositionsTotal("sell") < positions/2 && signal=="sell")
      {
-      if(isNotInvalidTrade(Kijun[0],Bid-TPSLline, Bid,false))
+      if(isNotInvalidTrade(Senkou1[1],Bid-TPSLline*TPCoef, Bid,false))
         {
-         trade.Sell(lot,NULL,Bid,Kijun[0],Bid-TPSLline,NULL);
+         trade.Sell(lot,NULL,Bid,Senkou1[1],Bid-TPSLline*TPCoef,NULL);
         }
      }
   }
@@ -116,30 +119,33 @@ double OnTester()
 
   }
 //+------------------------------------------------------------------+
-bool isUntradable()
+void OnTimer()
   {
+   tradable  = true;
+//lot =SetLot(denom);
+   if(isNotEnoughMoney())
+     {
+      tradable = false;
+      return;
+     }
+
    TimeToStruct(TimeCurrent(),dt);
    if(dt.day_of_week == FRIDAY)
      {
-      if((dt.hour == 22 && dt.min > MIN) || dt.hour == 23)
+      if((dt.hour == 22 && dt.min > 0) || dt.hour == 23)
         {
          CloseAllBuyPositions();
          CloseAllSellPositions();
-         return true;
+         tradable = false;
+         return;
         }
      }
-   
-   if(isNotEnoughMoney()){
-      return true;
-   }
 
-   if(isTooBigSpread(2))
+   if(isYearEnd(dt.mon,dt.day))
      {
-      return true;
+      tradable = false;
+      return;
      }
-   
-
-   return false;
   }
 //+------------------------------------------------------------------+
 //+------------------------------------------------------------------+

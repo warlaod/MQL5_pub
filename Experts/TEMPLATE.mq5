@@ -15,112 +15,116 @@
 #include <Original\period.mqh>
 #include <Original\account.mqh>
 #include <Original\Ontester.mqh>
+#include <Original\caluculate.mqh>
 CTrade trade;
 
-string signal;
-input int SL;
-input int MIN;
-input int denom;
-input int positions;
-input double TPbuy,SLbuy,TPsell,SLsell;
-double lot = 0.10;
 MqlDateTime dt;
-MqlRates price;
+MqlRates Price[];
+input int MIN;
+input int positions=2;
+input int denom = 30000;
+input int spread;
+double lot = 0.10;
+double  Bid,Ask;
+bool tradable = false;
+string signal;
 
-int SarIndicator;
-double Sar[];
-input int SarPeriod;
-input double SarStep,SarMaximum;
+int IchimokuIndicator;
+double Tenkan[];
+input int IchimokuPeriod;
 
-int StdIndicator;
-double Std[];
-input int Std_Ma_Mehod,StdPeriod,StdParam,StdPriceType;
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit()
   {
-   ArraySetAsSeries(price.true);
+   EventSetTimer(300);
+   IchimokuIndicator = iIchimoku(_Symbol,Timeframe(IchimokuPeriod),9,26,52);
+
+   ArraySetAsSeries(Tenkan,true);
+   ArraySetAsSeries(Price,true);
    return(INIT_SUCCEEDED);
   }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick()
   {
-   if(isUntradable()){
+
+   Bid=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_BID),_Digits);
+   Ask=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_ASK),_Digits);
+
+   CopyBuffer(IchimokuIndicator,0,0,1, Tenkan);
+   CopyRates(_Symbol,Timeframe(IchimokuPeriod),0,1,Price);
+
+   if(tradable == false || isTooBigSpread(spread))
+     {
       return;
-      }
-   lot =SetLot(denom);
-   double Bid=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_BID),_Digits);
-   double Ask=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_ASK),_Digits);
+     }
+
+
    signal = "";
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-   
-   if(Sar[1] > Ask && Ask > Sar[0])
+
+   if(true)
+     {
+      signal = "sell";
+     }
+   else
+      if(true)
         {
-         signal="buy";
+         signal = "buy";
         }
-      else
-         if(Sar[1] < Bid && Bid < Sar[0])
-           {
-            signal = "sell";
-           }
 
    if(EachPositionsTotal("buy") < positions/2 && signal=="buy")
      {
-      if(UpDif*TPCoefLong > 25*_Point && UpDif*SLCoefLong > SL*_Point)
-        {
-         trade.Buy(lot,NULL,Ask,Ask-250*_Point,Ask+50*_Point,NULL);
-        }
+      trade.Buy(lot,NULL,Ask,Ask-50*_Point,Ask+50*_Point,NULL);
      }
 
    if(EachPositionsTotal("sell") < positions/2 && signal=="sell")
      {
-      if(Bid+LowDif*SLCoefShort > 25*_Point  && Bid-LowDif*TPCoefShort > SL*_Point)
-        {
-         trade.Sell(lot,NULL,Bid,Bid+LowDif*TPCoefShort,Bid-LowDif*SLCoefShort,NULL);
-        }
+      trade.Sell(lot,NULL,Bid,Bid+50*_Point,Bid-50*_Point,NULL);
      }
-
-
   }
 //+------------------------------------------------------------------+
 double OnTester()
   {
-
    if(!setVariables())
      {
       return -99999999;
      }
-   return testingScalp();
+   return testingNormal();
 
   }
 //+------------------------------------------------------------------+
+void OnTimer()
+  {
+   //lot = SetLot(denom);
+   tradable  = true;
+//lot =SetLot(denom);
+   if(isNotEnoughMoney())
+     {
+      tradable = false;
+      return;
+     }
 
-bool isUntradable(){
    TimeToStruct(TimeCurrent(),dt);
    if(dt.day_of_week == FRIDAY)
      {
-      if((dt.hour == 22 && dt.min > MIN) || dt.hour == 23)
+      if((dt.hour == 22 && dt.min > 0) || dt.hour == 23)
         {
          CloseAllBuyPositions();
          CloseAllSellPositions();
-         return true;
+         tradable = false;
+         return;
         }
      }
 
-   if(isTooBigSpread(2))
+   if(isYearEnd(dt.mon,dt.day))
      {
-      return true;
+      tradable = false;
+      return;
      }
-   if(isNotEnoughMoney())
-     {
-      return true;
-     }
-   return false;
-   
-}
+  }
+//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+

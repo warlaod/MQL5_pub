@@ -34,7 +34,7 @@ double Ema[];
 
 int MacdShortIndicator,MacdLongIndicator,ATRIndicator;
 input int MacdLongPeriod,MacdShortPeriod,MacdPriceType;
-input double TPCoef,SLCoef;
+input double TPCoef,SLCoef,LongMacdSignalCri,ShortMacdCri;
 double LongMacd[],LongMacdSignal[],ShortMacd[],ShortMacdSignal[],ATR[];
 input int spread;
 
@@ -74,38 +74,41 @@ void OnTick()
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-   CopyBuffer(MacdShortIndicator,0,0,2,ShortMacd);
-   CopyBuffer(MacdShortIndicator,1,0,2,ShortMacdSignal);
-   CopyBuffer(MacdLongIndicator,0,0,2,LongMacd);
-   CopyBuffer(MacdLongIndicator,1,0,2,LongMacdSignal);
+   CopyBuffer(MacdShortIndicator,0,0,3,ShortMacd);
+   CopyBuffer(MacdShortIndicator,1,0,3,ShortMacdSignal);
+   CopyBuffer(MacdLongIndicator,0,0,3,LongMacd);
+   CopyBuffer(MacdLongIndicator,1,0,3,LongMacdSignal);
    CopyBuffer(ATRIndicator,0,0,1,ATR);
 
-   double LongHistogram[2];
-   double ShortHistogram[2];
-   for(int i=0; i<2; i++)
+   double LongHistogram[3];
+   double ShortHistogram[3];
+   for(int i=0; i<3; i++)
      {
       LongHistogram[i] = LongMacd[i] - LongMacdSignal[i];
       ShortHistogram[i] = ShortMacd[i] - ShortMacdSignal[i];
      }
-
+   
+   if(MathAbs(LongMacdSignal[1]) < LongMacdSignalCri || MathAbs(ShortMacd[1]) < ShortMacdCri){
+      return;
+   }
 
    signal = "";
-   if(LongHistogram[0] > 0 && LongMacd[0] > 0)
+   if(LongHistogram[1] > 0 && LongMacd[1] > 0)
      {
       signal ="buybuy";
      }
    else
-      if(LongHistogram[0] < 0 && LongMacd[0] < 0)
+      if(LongHistogram[1] < 0 && LongMacd[1] < 0)
         {
          signal ="sellsell";
         }
 
-   if(ShortHistogram[1] < 0 && ShortHistogram[0] > 0 && ShortMacd[0] < 0 && signal == "buybuy")
+   if(ShortHistogram[2] < 0 && ShortHistogram[1] > 0 && ShortMacd[1] < 0 && signal == "buybuy")
      {
       signal = "buy";
      }
    else
-      if(ShortHistogram[1] > 0 && ShortHistogram[0] < 0 && ShortMacd[0] > 0 && signal == "sellsell")
+      if(ShortHistogram[2] > 0 && ShortHistogram[1] < 0 && ShortMacd[1] > 0 && signal == "sellsell")
         {
          signal = "sell";
         }
@@ -160,7 +163,7 @@ double OnTester()
      {
       return -99999999;
      }
-   return testingScalp();
+   return testingNormal();
 
   }
 //+------------------------------------------------------------------+
