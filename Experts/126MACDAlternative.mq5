@@ -33,8 +33,9 @@ double Ema[];
 */
 
 int MacdShortIndicator,MacdLongIndicator,ATRIndicator;
-input int MacdLongPeriod,MacdShortPeriod,MacdPriceType;
-input double TPCoef,SLCoef,LongMacdSignalCri,ShortMacdCri;
+input ENUM_TIMEFRAMES MacdShortTimeframe,MacdLongTimeframe;
+input ENUM_APPLIED_PRICE Applied_price_long,Applied_price_short;
+input double TPCoef,SLCoef,LongMacdCri;
 double LongMacd[],LongMacdSignal[],ShortMacd[],ShortMacdSignal[],ATR[];
 input int spread;
 
@@ -46,9 +47,9 @@ int OnInit()
   {
    EventSetTimer(1800);
 //EmaIndicator = iMA(_Symbol,Timeframe(MacdPeriod+EmaPeriod),10,0,MODE_EMA,EmaPriceType);
-   MacdShortIndicator = iMACD(_Symbol,Timeframe(MacdShortPeriod),12,26,9,MacdPriceType);
-   MacdLongIndicator = iMACD(_Symbol,Timeframe(MacdLongPeriod),12,26,9,MacdPriceType);
-   ATRIndicator = iATR(_Symbol,Timeframe(MacdShortPeriod),14);
+   MacdShortIndicator = iMACD(_Symbol,MacdShortTimeframe,12,26,9,Applied_price_short);
+   MacdLongIndicator = iMACD(_Symbol,MacdLongTimeframe,12,26,9,Applied_price_long);
+   ATRIndicator = iATR(_Symbol,MacdShortTimeframe,14);
 //ArraySetAsSeries(Macd,true);
 //ArraySetAsSeries(MacdSignal,true);
    ArraySetAsSeries(ShortMacd,true);
@@ -88,7 +89,7 @@ void OnTick()
       ShortHistogram[i] = ShortMacd[i] - ShortMacdSignal[i];
      }
    
-   if(MathAbs(LongMacdSignal[1]) < LongMacdSignalCri || MathAbs(ShortMacd[1]) < ShortMacdCri){
+   if(MathAbs(LongMacd[1]) < LongMacdCri){
       return;
    }
 
@@ -152,6 +153,7 @@ void OnTimer()
       tradable = false;
       return;
      }
+   
    
 
   }

@@ -206,17 +206,17 @@ bool PreviousCloseHour(int &close_times[][2],bool which_summer, int hour, int mi
    return false;
   }
 //+------------------------------------------------------------------+
-bool isNotInvalidTrade(double SL,double TP,double price,bool Long)
+bool isNotInvalidTrade(double SL,double TP,double ASKorBID,bool Long)
   {
    if(Long)
      {
-      if(TP - price > 10*_Point && price - SL > 10*_Point)
+      if(TP - ASKorBID > 20*_Point && ASKorBID - SL > 20*_Point)
         {
          return true;
         }
      }
    else
-      if(price - TP > 10*_Point  && SL - price > 10*_Point)
+      if(ASKorBID - TP > 20*_Point  && SL - ASKorBID > 20*_Point)
         {
          return true;
         }
