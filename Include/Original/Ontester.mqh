@@ -196,6 +196,9 @@ double testingScalpLessProfit()
    return result;
   }
 
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 double testingScalp()
   {
    double positiveEffector = min_dd * profit_trades;
@@ -311,6 +314,44 @@ double balance_and_min_dd()
 
    return result;
   }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double testing_balance_and_trades()
+  {
+   double positiveEffector = profit_trades;
+   double negativeEffector = 1;
+
+   if(short_long_ratio < 0.70)
+     {
+      negativeEffector = negativeEffector * 1/short_long_ratio;
+     }
+   if(win_rate <0.25)
+     {
+      negativeEffector = negativeEffector *1/win_rate ;
+     }
+   if(short_win_rate < 0.25)
+     {
+      negativeEffector = negativeEffector * 1/short_win_rate;
+     }
+   if(long_win_rate < 0.25)
+     {
+      negativeEffector = negativeEffector * 1/long_win_rate;
+     }
+
+   balance = TesterStatistics(STAT_PROFIT);
+   if(balance > 0)
+     {
+      result = balance * positiveEffector / negativeEffector ;
+     }
+   else
+     {
+      result = balance / positiveEffector * negativeEffector ;
+     }
+
+   return result;
+  }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -337,6 +378,10 @@ bool setVariables()
       return false;
      }
    if(long_profit_trades == 0 || short_profit_trades == 0)
+     {
+      return false;
+     }
+   if(profit_trades < 100)
      {
       return false;
      }
@@ -394,7 +439,7 @@ bool setVariableLongs()
      {
       return false;
      }
-  min_dd = 1/(TesterStatistics(STAT_BALANCE_DD));
+   min_dd = 1/(TesterStatistics(STAT_BALANCE_DD));
 
 
    win_rate = profit_trades / total_trades ;
@@ -437,7 +482,7 @@ bool setVariableShorts()
      {
       return false;
      }
-  min_dd = 1/(TesterStatistics(STAT_BALANCE_DD));
+   min_dd = 1/(TesterStatistics(STAT_BALANCE_DD));
 
 
 

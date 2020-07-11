@@ -50,7 +50,8 @@ double LowestPrice(string symbol, ENUM_TIMEFRAMES period, int count)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool isTooBigSpread(int cant_trade_spread_line)
+bool 
+isTooBigSpread(int cant_trade_spread_line)
   {
    if(SymbolInfoInteger(_Symbol, SYMBOL_SPREAD) >= cant_trade_spread_line)
      {

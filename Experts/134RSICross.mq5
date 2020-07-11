@@ -47,7 +47,7 @@ input int i;
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(300);
-   RSILongIndicator = iRSI(_Symbol, RSITimeframe, RSILongPeriod, RSI_Applied_price);
+   RSILongIndicator = iRSI(_Symbol, RSITimeframe, RSIShortPeriod+RSILongPeriod, RSI_Applied_price);
    RSIShortIndicator = iRSI(_Symbol, RSITimeframe, RSIShortPeriod, RSI_Applied_price);
    ATRIndicator = iATR(_Symbol, RSITimeframe, 14);
 
@@ -95,7 +95,7 @@ double OnTester() {
    if(!setVariables()) {
       return -99999999;
    }
-   return testingNormal();
+   return testingScalp();
 
 }
 //+------------------------------------------------------------------+
