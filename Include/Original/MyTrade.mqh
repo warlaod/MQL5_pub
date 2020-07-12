@@ -47,14 +47,16 @@ class MyTrade {
       }
    }
    bool isPositionInRange(double Range, double CenterLine, ENUM_POSITION_TYPE PositionType) {
+      
       CPositionInfo cPositionInfo;
-
+      int PositionTotal =PositionsTotal();
       for(int i = PositionsTotal() - 1; i >= 0; i--) {
-         cPositionInfo.Select(_Symbol);
-         ENUM_POSITION_TYPE dwa = cPositionInfo.Type();
-         bool dwad = cPositionInfo.PositionType() != PositionType;
+         cPositionInfo.SelectByTicket(PositionGetTicket(i));
+         ENUM_POSITION_TYPE CType = cPositionInfo.PositionType();
+         double PriceOpen = cPositionInfo.PriceOpen();
          if(cPositionInfo.PositionType() != PositionType) continue;
-         if(isBetween(CenterLine + Range, CenterLine - Range, cPositionInfo.PriceOpen())) {
+         
+         if(MathAbs(cPositionInfo.PriceOpen() - CenterLine) < Range) {
             return true;
          }
       }
@@ -66,7 +68,7 @@ class MyTrade {
          double Ask = Ask();
          if(TP - Ask < 20 * _Point || Ask - SL < 20 * _Point) return true;
       }
-      
+
       else if(TP < SL) {
          double Bid = Bid();
          if(Bid - TP < 20 * _Point  || SL - Bid < 20 * _Point) return true;
