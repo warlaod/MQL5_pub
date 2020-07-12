@@ -30,15 +30,18 @@
 #include <Trade\PositionInfo.mqh>
 #include <Original\MyCalculate.mqh>
 input int spread;
+input int denom = 30000;
 
 class MyTrade {
 
  public:
    bool istradable;
    string signal;
-   void MyTrade() {
+   double lot;
+   void MyTrade(double lot) {
       istradable = false;
       signal = "";
+      this.lot = lot;
    }
 
    void CheckSpread() {
@@ -46,16 +49,22 @@ class MyTrade {
          istradable = false;
       }
    }
+
+   void SetLot() {
+      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, 2);
+      if(lot < 0.01) lot = 0.01;
+      else if(lot > 50) lot = 50;
+   }
    bool isPositionInRange(double Range, double CenterLine, ENUM_POSITION_TYPE PositionType) {
-      
+
       CPositionInfo cPositionInfo;
-      int PositionTotal =PositionsTotal();
+      int PositionTotal = PositionsTotal();
       for(int i = PositionsTotal() - 1; i >= 0; i--) {
          cPositionInfo.SelectByTicket(PositionGetTicket(i));
          ENUM_POSITION_TYPE CType = cPositionInfo.PositionType();
          double PriceOpen = cPositionInfo.PriceOpen();
          if(cPositionInfo.PositionType() != PositionType) continue;
-         
+
          if(MathAbs(cPositionInfo.PriceOpen() - CenterLine) < Range) {
             return true;
          }

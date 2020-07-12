@@ -53,8 +53,8 @@ class MyTest {
       if(result == -99999999){
          return result;
       }
-      double positiveEffector = min_dd * MathSqrt(profit_trades);
-      double negativeEffector = 1;
+      positiveEffector = min_dd * MathLog(profit_trades);
+      negativeEffector = 1;
 
       CheckRatio(short_long_ratio, 0.70);
       CheckRatio(win_rate, 0.25);
@@ -103,15 +103,15 @@ class MyTest {
          result = -99999999;
          return;
       }
-      if(long_profit_trades == 0 || short_profit_trades == 0) {
+      if(long_profit_trades <= 1 || short_profit_trades <= 1) {
          result = -99999999;
          return;
       }
-      if((TesterStatistics(STAT_BALANCE_DD)) == 0) {
+      if((TesterStatistics(STAT_EQUITY_DD)) == 0) {
          result = -99999999;
          return;
       }
-      min_dd = 1 / (TesterStatistics(STAT_BALANCE_DD));
+      min_dd = 1 / (TesterStatistics(STAT_EQUITY_DD));
 
       short_long_ratio = short_trades / long_trades;
       if(short_long_ratio > 1) {
