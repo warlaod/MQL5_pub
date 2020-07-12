@@ -61,8 +61,6 @@ void OnTick()
    Bid=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_BID),_Digits);
    Ask=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_ASK),_Digits);
 
-   lot =SetLot(denom);
-
    CopyBuffer(BBIndicator, 0,0,arrayRange, BBmiddle);
    CopyBuffer(BBIndicator, 1,0,arrayRange, BBhigh);
    CopyBuffer(BBIndicator, 2,0,arrayRange, BBlow);
