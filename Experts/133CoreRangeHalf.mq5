@@ -142,7 +142,8 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   return  myTest.min_dd_and_mathsqrt_profit_trades();
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
+   return  result;
 }
 //+------------------------------------------------------------------+
 
