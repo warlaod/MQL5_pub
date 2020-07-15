@@ -25,33 +25,27 @@
 //   string ErrorDescription(int error_code);
 // #import
 //+------------------------------------------------------------------+
- if(Price[0].close < LowestPrice + HighLowDiff * HighLowCri) {
-      range = "Lower";
+#include <Trade\Trade.mqh>
+#include <Trade\PositionInfo.mqh>
 
-   } else if(Price[0].close > HighestPrice - HighLowDiff * HighLowCri) {
-      range = "Upeer";
-      TotalPositions = MathRound((HighLowDiff * HighLowCri) / (ATR[0] * CornerPriceUnitCoef));
-   } else if(Price[0].close > LowestPrice + HighLowDiff * HighLowCri && Price[0].close < HighestPrice - HighLowDiff * HighLowCri) {
-      range = "Middle";
-      TotalPositions = MathRound(((1 - 2 * HighLowCri) * HighLowDiff) / (ATR[0] * CoreRangePriceUnitCoef));
-   }
+class MyPosition {
+ public:
+   MqlDateTime dt;
 
-   if(range == "Lower") {
-      bottom = LowestPrice - SL * _Point;
-      top = LowestPrice + HighLowDiff * HighLowCri;
-      price_unit = ATR[0] * CornerPriceUnitCoef;
-      TotalPositions = MathRound((top - bottom) / price_unit);
+   bool isPositionInRange(double Range, double CenterLine, ENUM_POSITION_TYPE PositionType) {
+      CPositionInfo cPositionInfo;
+      int PositionTotal = PositionsTotal();
+      for(int i = PositionsTotal() - 1; i >= 0; i--) {
+         cPositionInfo.SelectByTicket(PositionGetTicket(i));
+         ENUM_POSITION_TYPE CType = cPositionInfo.PositionType();
+         double PriceOpen = cPositionInfo.PriceOpen();
+         if(cPositionInfo.PositionType() != PositionType) continue;
 
-      string where = WherePositonIsInRange(price_unit, POSITION_TYPE_BUY);
-      switch(where) {
-      case 'Both':
-         Print("CASE A");
-         break;
-      case 'Upper':
-      case 'Lower':
-         Print("CASE B or C");
-         break;
-      default:
-         Print("NOT A, B or C");
-         break;
+         if(MathAbs(cPositionInfo.PriceOpen() - CenterLine) < Range) {
+            return true;
+         }
       }
+      return false;
+   }
+};
+//+------------------------------------------------------------------+

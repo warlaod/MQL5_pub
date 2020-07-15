@@ -30,6 +30,8 @@ class MyTest {
    double  result;
    double balance;
    double min_dd;
+   double equity_dd;
+   double balance_dd;
    double  total_trades;
    double  profit_trades;
    double loss_trades;
@@ -45,12 +47,14 @@ class MyTest {
    double short_long_ratio;
    double  short_win_rate;
    double long_win_rate;
+   double marginlevel_min;
    double positiveEffector;
    double negativeEffector;
+   
 
  public:
    double min_dd_and_mathsqrt_profit_trades() {
-      if(result == -99999999){
+      if(result == -99999999) {
          return result;
       }
       positiveEffector = min_dd * MathLog(profit_trades);
@@ -91,6 +95,9 @@ class MyTest {
       short_profit_trades = TesterStatistics(STAT_PROFIT_SHORTTRADES);
       gross_profit = TesterStatistics(STAT_GROSS_PROFIT);
       gross_loss =  TesterStatistics(STAT_GROSS_LOSS);
+      marginlevel_min  = TesterStatistics(STAT_MIN_MARGINLEVEL);
+      balance_dd = TesterStatistics(STAT_BALANCE_DD);
+      equity_dd = TesterStatistics(STAT_EQUITY_DD);
       average_profit = 0;
       average_loss = 0;
       win_rate = 0;
@@ -107,11 +114,21 @@ class MyTest {
          result = -99999999;
          return;
       }
-      if((TesterStatistics(STAT_EQUITY_DD)) == 0) {
+      if(balance_dd == 0 && equity_dd == 0) {
          result = -99999999;
          return;
       }
-      min_dd = 1 / (TesterStatistics(STAT_EQUITY_DD));
+
+      if(balance_dd > equity_dd) {
+         min_dd = 1 / balance_dd;
+      } else if(balance_dd < equity_dd) {
+         min_dd = 1 / equity_dd;
+      }
+      
+      if(marginlevel_min < 200){
+         result = -99999999;
+         return;
+      }
 
       short_long_ratio = short_trades / long_trades;
       if(short_long_ratio > 1) {

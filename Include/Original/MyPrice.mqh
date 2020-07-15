@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                      MyTrade.mqh |
+//|                                                      MyPrice.mqh |
 //|                        Copyright 2020, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -25,57 +25,54 @@
 //   string ErrorDescription(int error_code);
 // #import
 //+------------------------------------------------------------------+
-input int spread;
-input int denom = 30000;
-input int positions = 2;
-
-class MyTrade {
-
+input const ENUM_TIMEFRAMES PriceTimeframe;
+class MyPrice {
  public:
-   bool istradable;
-   string signal;
-   double lot;
-   double Ask;
-   double Bid;
-
-   void MyTrade(double lot, bool isSetLot) {
-      Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
-      Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
-      istradable = true;
-      signal = "";
-      if(isSetLot) {
-         SetLot();
-      } else {
-         this.lot = lot;
-      }
+   void MyPrice() {
+      ArraySetAsSeries(price, true);
    }
 
-   void CheckSpread() {
-      if(SymbolInfoInteger(_Symbol, SYMBOL_SPREAD) < spread) {
-         istradable = false;
-      }
+   MqlRates getData(int index, ENUM_TIMEFRAMES Timeframe) {
+      CopyRates(_Symbol, Timeframe, 0, index, price);
+      return price[index];
    }
 
+   double Higest(ENUM_TIMEFRAMES Timeframe, int count) {
+      CopyRates(_Symbol, Timeframe, 0, count, price);
 
-   bool isInvalidTrade(double SL, double TP) {
-      if(TP > SL) {
-         if(TP - Ask < 20 * _Point || Ask - SL < 20 * _Point) return true;
+      double High[];
+      ArraySetAsSeries(High, true);
+
+      CopyHigh(_Symbol, Timeframe, 0, count, High);
+      if(!High[count - 1]) {
+         return NULL;
       }
 
-      else if(TP < SL) {
-         if(Bid - TP < 20 * _Point  || SL - Bid < 20 * _Point) return true;
+      return price[ArrayMaximum(High, 0, count)].high;
+   }
+
+   double Lowest(ENUM_TIMEFRAMES Timeframe, int count) {
+      CopyRates(_Symbol, Timeframe, 0, count, price);
+
+      double Low[];
+      ArraySetAsSeries(Low, true);
+
+      CopyLow(_Symbol, Timeframe, 0, count, Low);
+      if(!Low[count - 1]) {
+         return NULL;
       }
-      return false;
+
+      return price[ArrayMinimum(Low, 0, count)].low;
    }
 
- private:
-   void SetLot() {
-      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, 2);
-      if(lot < 0.01) lot = 0.01;
-      else if(lot > 50) lot = 50;
-   }
-
-};
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
 
+
+ private:
+   MqlRates price[];
+
+
+};
 //+------------------------------------------------------------------+

@@ -14,7 +14,6 @@
 #include <Original\positions.mqh>
 #include <Original\period.mqh>
 #include <Original\account.mqh>
-#include <Original\Ontester.mqh>
 #include <Original\caluculate.mqh>
 #include <Original\MyUtils.mqh>
 #include <Original\MyTrade.mqh>
@@ -43,7 +42,7 @@ input ENUM_APPLIED_PRICE OsmaAppliedPrice;
 input double CornerPriceUnitCoef, CoreRangePriceUnitCoef, CornerCri;
 
 input int PriceCount;
-input int SL;
+input double SL;
 input int Timer;
 
 
@@ -67,6 +66,9 @@ int OnInit() {
 void OnTimer() {
    //myTrade.SetLot();
    myTrade.istradable = true;
+   if(isNotEnoughMoney()){
+       myTrade.istradable = false;
+   }
    myTrade.CheckSpread();
    if(!myTrade.istradable) {
       return;
@@ -95,7 +97,7 @@ void OnTimer() {
 
    if(current_price < lowest_price + highest_lowest_range * CornerCri) {
       bottom = lowest_price - SL * _Point;
-      range_unit = ciOsma.Main(0) * CornerPriceUnitCoef;
+      range_unit = MathAbs(ciOsma.Main(0))*CornerPriceUnitCoef;
 
       if(myTrade.isPositionInRange(range_unit, current_price, POSITION_TYPE_BUY)) return;
       if(myTrade.isInvalidTrade(bottom, Ask + range_unit)) return;
@@ -105,7 +107,7 @@ void OnTimer() {
 
    else if(current_price > highest_price - highest_lowest_range * CornerCri) {
       top = highest_price + SL * _Point;
-      range_unit = ciOsma.Main(0) * CornerPriceUnitCoef;
+      range_unit = MathAbs(ciOsma.Main(0))*CornerPriceUnitCoef;
 
       if(myTrade.isPositionInRange(range_unit, current_price, POSITION_TYPE_SELL)) return;
       if(myTrade.isInvalidTrade(top, Bid - range_unit)) return;
@@ -116,7 +118,7 @@ void OnTimer() {
    else if(current_price > lowest_price + highest_lowest_range * CornerCri && current_price < highest_price - highest_lowest_range * CornerCri) {
       bottom = lowest_price + highest_lowest_range * CornerCri;
       top = highest_price - highest_lowest_range * CornerCri;
-      range_unit = ciOsma.Main(0) * CoreRangePriceUnitCoef;
+      range_unit = MathAbs(ciOsma.Main(0))*CoreRangePriceUnitCoef;
 
       if(ciOsma.Main(0) > 0) {
          if(myTrade.isPositionInRange(range_unit, current_price, POSITION_TYPE_BUY)) return;
