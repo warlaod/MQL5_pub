@@ -12,140 +12,100 @@
 #include <Trade\Trade.mqh>
 #include <Original\prices.mqh>
 #include <Original\positions.mqh>
-#include <Original\period.mqh>
-#include <Original\account.mqh>
-#include <Original\Ontester.mqh>
-#include <Original\caluculate.mqh>
+#include <Original\MyUtils.mqh>
+#include <Original\MyTrade.mqh>
+#include <Original\MyCalculate.mqh>
+#include <Original\MyTest.mqh>
+#include <Original\MyPrice.mqh>
+#include <Original\MyPosition.mqh>
+#include <Indicators\TimeSeries.mqh>
+#include <Indicators\Oscilators.mqh>
+#include <Trade\OrderInfo.mqh>
+#include <Indicators\Trend.mqh>
 CTrade trade;
+MyPosition myPosition;
+CiIchimoku ciIchimoku;
 
-MqlDateTime dt;
-MqlRates Price[];
-input int MIN;
-input int positions,denom,spread;
-double lot = 0.10;
-double  Bid,Ask;
-bool tradable = true;
-
-int IchimokuIndicator;
-double Tenkan[],Kijun[],Senkou1[],Senkou2[],Chikou[];
-input int IchimokuPeriod,SenkouCri,KijunCri;
+input int IchimokuPeriod, SenkouCri, KijunCri;
 input double TPCoef;
 
-string signal,lasttrade;
-int tradesignal;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int OnInit()
-  {
-   EventSetTimer(300);
-   IchimokuIndicator = iIchimoku(_Symbol,Timeframe(IchimokuPeriod),9,26,52);
-
-   ArraySetAsSeries(Tenkan,true);
-   ArraySetAsSeries(Kijun,true);
-   ArraySetAsSeries(Senkou1,true);
-   ArraySetAsSeries(Senkou2,true);
-   ArraySetAsSeries(Price,true);
+int OnInit() {
+   MyUtils myutils();
+   myutils.Init();
+   ciIchimoku.Create(_Symbol,IchimokuTimeframe,9,26,52);
    return(INIT_SUCCEEDED);
-  }
+}
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void OnTick()
-  {
-   
-   Bid=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_BID),_Digits);
-   Ask=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_ASK),_Digits);
-
-   lot =SetLot(denom);
-
-   CopyBuffer(IchimokuIndicator, 0,0,2, Tenkan);
-   CopyBuffer(IchimokuIndicator, 1,0,2, Kijun);
-   CopyBuffer(IchimokuIndicator, 2,0,2, Senkou1);
-   CopyBuffer(IchimokuIndicator, 3,0,2, Senkou2);
-   CopyRates(_Symbol,_Period,0,26,Price);
-   
-   
+void OnTick() {
+   MyTrade myTrade(0.1, false);
+   MyPosition myPosition;
+   myTrade.CheckFridayEnd();
+   myTrade.CheckYearsEnd();
+   if(!myTrade.istradable){
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+   }
 
 
-   if(tradable == false || isTooBigSpread(spread))
-     {
+   myTrade.CheckSpread();
+   if(!myTrade.istradable){
       return;
-     }
+   }
+
    
 
-   signal = "";
+   if( MathAbs(Senkou1[1] - Senkou2[1]) < SenkouCri * _Point || MathAbs(Senkou1[1] - Kijun[1]) < KijunCri * _Point) {
+      return;
+   }
 
-if( MathAbs(Senkou1[1] - Senkou2[1]) < SenkouCri*_Point || MathAbs(Senkou1[1] - Kijun[1]) < KijunCri*_Point){
-   return;
-}
-
-   if(Tenkan[1] > Kijun[1] && Kijun[1] > Senkou1[1] && Senkou1[1] > Senkou2[1])
-     {
+   if(Tenkan[1] > Kijun[1] && Kijun[1] > Senkou1[1] && Senkou1[1] > Senkou2[1]) {
       signal = "buy";
-     }
-  else if(Tenkan[1] < Kijun[1] && Kijun[1] < Senkou1[1] && Senkou1[1] < Senkou2[1])
-     {
+   } else if(Tenkan[1] < Kijun[1] && Kijun[1] < Senkou1[1] && Senkou1[1] < Senkou2[1]) {
       signal = "sell";
-     }
+   }
 
 
-   double TPSLline = MathAbs(Tenkan[0]-Kijun[0]);
+   double TPSLline = MathAbs(Tenkan[0] - Kijun[0]);
 
-   if(EachPositionsTotal("buy") < positions/2 && signal=="buy")
-     {
-      if(isNotInvalidTrade(Senkou1[1], Ask+TPSLline*TPCoef, Ask,true))
-        {
-         trade.Buy(lot,NULL,Ask,Senkou1[1],Ask+TPSLline*TPCoef,NULL);
-        }
-     }
+   if(EachPositionsTotal("buy") < positions / 2 && signal == "buy") {
+      if(isNotInvalidTrade(Senkou1[1], Ask + TPSLline * TPCoef, Ask, true)) {
+         trade.Buy(lot, NULL, Ask, Senkou1[1], Ask + TPSLline * TPCoef, NULL);
+      }
+   }
 
-   if(EachPositionsTotal("sell") < positions/2 && signal=="sell")
-     {
-      if(isNotInvalidTrade(Senkou1[1],Bid-TPSLline*TPCoef, Bid,false))
-        {
-         trade.Sell(lot,NULL,Bid,Senkou1[1],Bid-TPSLline*TPCoef,NULL);
-        }
-     }
-  }
+   if(EachPositionsTotal("sell") < positions / 2 && signal == "sell") {
+      if(isNotInvalidTrade(Senkou1[1], Bid - TPSLline * TPCoef, Bid, false)) {
+         trade.Sell(lot, NULL, Bid, Senkou1[1], Bid - TPSLline * TPCoef, NULL);
+      }
+   }
+}
 //+------------------------------------------------------------------+
-double OnTester()
-  {
-   if(!setVariables())
-     {
-      return -99999999;
-     }
-   return testingNormal();
 
-  }
 //+------------------------------------------------------------------+
-void OnTimer()
-  {
+void OnTimer() {
+   MyPosition myPosition;
+   MyTrade myTrade(0.1, false);
    tradable  = true;
-//lot =SetLot(denom);
-   if(isNotEnoughMoney())
-     {
-      tradable = false;
-      return;
-     }
 
-   TimeToStruct(TimeCurrent(),dt);
-   if(dt.day_of_week == FRIDAY)
-     {
-      if((dt.hour == 22 && dt.min > 0) || dt.hour == 23)
-        {
-         CloseAllBuyPositions();
-         CloseAllSellPositions();
-         tradable = false;
-         return;
-        }
-     }
+   myTrade.CheckFridayEnd();
+   myTrade.CheckYearsEnd();
 
-   if(isYearEnd(dt.mon,dt.day))
-     {
+   if(!myTrade.istradable) {
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       tradable = false;
-      return;
-     }
-  }
+   }
+
+   myTrade.CheckBalance();
+   if(!myTrade.istradable) {
+      tradable = false;
+   }
+
+}
 //+------------------------------------------------------------------+
 //+------------------------------------------------------------------+

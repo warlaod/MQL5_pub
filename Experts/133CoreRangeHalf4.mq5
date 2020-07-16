@@ -20,18 +20,20 @@
 #include <Original\MyCalculate.mqh>
 #include <Original\MyTest.mqh>
 #include <Original\MyPrice.mqh>
+#include <Original\MyPosition.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Trade\OrderInfo.mqh>
 CiOsMA ciOsma;
 CiATR ciATR;
+CiHigh ciHigh;
+CiLow ciLow;
+CiClose ciClose;
 COrderInfo cOrderInfo;
-MyTrade myTrade(0.01);
 CTrade trade;
-MyPrice myPrice;
+
 
 MqlDateTime dt;
-double  Bid, Ask;
 string range;
 
 
@@ -45,7 +47,7 @@ input int PriceCount;
 input int SL;
 input int Timer;
 
-int spreadcoutn =0;
+int spreadcoutn = 0;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -61,21 +63,19 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
-   myTrade.istradable = true;
+   MyPrice myPrice(PriceTimeframe,PriceCount);
+   MyPosition myPosition;
+   MyTrade myTrade(0.01,true);
    myTrade.CheckSpread();
    if(!myTrade.istradable) {
       return;
    }
    ciOsma.Refresh();
 
-   Ask = myTrade.Ask();
-   Bid = myTrade.Bid();
-
-   int index;
-   double lowest_price = myPrice.Lowest(PriceTimeframe,PriceCount);
-   double highest_price = myPrice.Higest(PriceTimeframe,PriceCount);
+   double lowest_price = myPrice.Lowest();
+   double highest_price = myPrice.Higest();
    double highest_lowest_range = highest_price - lowest_price;
-   double current_price = myPrice.getData(0,PriceTimeframe).close;
+   double current_price = myPrice.getData(0, PriceTimeframe).close;
 
 
 
@@ -84,42 +84,44 @@ void OnTimer() {
 
    double bottom, top;
    double range_unit;
+   
+   top = highest_price + SL * _Point;
+   bottom = lowest_price - SL * _Point;
 
    if(current_price < lowest_price + highest_lowest_range * CornerCri) {
-      bottom = lowest_price - SL * _Point;
-      range_unit = highest_lowest_range/CornerPriceUnitCoef;
+      
+      range_unit = highest_lowest_range / CornerPriceUnitCoef;
 
-      if(myTrade.isPositionInRange(range_unit, current_price, POSITION_TYPE_BUY)) return;
-      if(myTrade.isInvalidTrade(bottom, Ask + range_unit)) return;
+      if(myPosition.isPositionInRange(range_unit, current_price, POSITION_TYPE_BUY)) return;
+      if(myTrade.isInvalidTrade(bottom, myTrade.Ask + range_unit)) return;
       if(ciOsma.Main(0) < 0) return;
-      trade.Buy(myTrade.lot, NULL, Ask, lowest_price, Ask + range_unit, NULL);
+      trade.Buy(myTrade.lot, NULL, myTrade.Ask, bottom, myTrade.Ask + range_unit, NULL);
    }
 
-   else if(current_price > highest_price - highest_lowest_range * CornerCri) {
-      top = highest_price + SL * _Point;
-      range_unit = highest_lowest_range/CornerPriceUnitCoef;
 
-      if(myTrade.isPositionInRange(range_unit, current_price, POSITION_TYPE_SELL)) return;
-      if(myTrade.isInvalidTrade(top, Bid - range_unit)) return;
+   else if(current_price > highest_price - highest_lowest_range * CornerCri) {
+      
+      range_unit = highest_lowest_range / CornerPriceUnitCoef;
+
+      if(myPosition.isPositionInRange(range_unit, current_price, POSITION_TYPE_SELL)) return;
+      if(myTrade.isInvalidTrade(top, myTrade.Bid - range_unit)) return;
       if(ciOsma.Main(0) > 0) return;
-      trade.Sell(myTrade.lot, NULL, Bid, highest_price, Bid - range_unit, NULL);
+      trade.Sell(myTrade.lot, NULL, myTrade.Bid, top, myTrade.Bid - range_unit, NULL);
    }
 
    else if(current_price > lowest_price + highest_lowest_range * CornerCri && current_price < highest_price - highest_lowest_range * CornerCri) {
-      bottom = lowest_price + highest_lowest_range * CornerCri;
-      top = highest_price - highest_lowest_range * CornerCri;
-      range_unit = highest_lowest_range/CoreRangePriceUnitCoef;
+      range_unit = highest_lowest_range / CoreRangePriceUnitCoef;
 
       if(ciOsma.Main(0) > 0) {
-         if(myTrade.isPositionInRange(range_unit, current_price, POSITION_TYPE_BUY)) return;
-         if(myTrade.isInvalidTrade(bottom, Ask + range_unit)) return;
-         trade.Buy(myTrade.lot, NULL, Ask, lowest_price, Ask + range_unit, NULL);
+         if(myPosition.isPositionInRange(range_unit, current_price, POSITION_TYPE_BUY)) return;
+         if(myTrade.isInvalidTrade(bottom, myTrade.Ask + range_unit)) return;
+         trade.Buy(myTrade.lot, NULL, myTrade.Ask, bottom, myTrade.Ask + range_unit, NULL);
       }
 
       else if(ciOsma.Main(0) < 0) {
-         if(myTrade.isPositionInRange(range_unit, current_price, POSITION_TYPE_SELL)) return;
-         if(myTrade.isInvalidTrade(top, Bid - range_unit)) return;
-         trade.Sell(myTrade.lot, NULL, Bid, highest_price, Bid - range_unit, NULL);
+         if(myPosition.isPositionInRange(range_unit, current_price, POSITION_TYPE_SELL)) return;
+         if(myTrade.isInvalidTrade(top, myTrade.Bid - range_unit)) return;
+         trade.Sell(myTrade.lot, NULL, myTrade.Bid, top, myTrade.Bid - range_unit, NULL);
       }
    }
 }

@@ -96,9 +96,12 @@ void OnTimer() {
 
    double bottom, top;
    double range_unit;
+   
+   bottom = lowest_price - SL * _Point;
+   top = highest_price + SL * _Point;
 
    if(current_price < lowest_price + highest_lowest_range * CornerCri) {
-      bottom = lowest_price - SL * _Point;
+      
       range_unit = MathAbs(ciATR.Main(0))*CornerPriceUnitCoef;
       if(myTrade.isPositionInRange(range_unit, current_price, POSITION_TYPE_BUY)) return;
       if(myTrade.isInvalidTrade(bottom, Ask + range_unit)) return;
@@ -107,7 +110,7 @@ void OnTimer() {
    }
 
    else if(current_price > highest_price - highest_lowest_range * CornerCri) {
-      top = highest_price + SL * _Point;
+      
       range_unit = MathAbs(ciATR.Main(0))*CornerPriceUnitCoef;
 
       if(myTrade.isPositionInRange(range_unit, current_price, POSITION_TYPE_SELL)) return;

@@ -25,21 +25,23 @@
 //   string ErrorDescription(int error_code);
 // #import
 //+------------------------------------------------------------------+
-input const ENUM_TIMEFRAMES PriceTimeframe;
+input const ENUM_TIMEFRAMES PriceTimeframe = PERIOD_MN1;
 class MyPrice {
  public:
-   void MyPrice() {
+   int count ;
+   ENUM_TIMEFRAMES Timeframe;
+   void MyPrice(ENUM_TIMEFRAMES Timeframe, int count) {
+      this.Timeframe = Timeframe;
+      this.count = count;
       ArraySetAsSeries(price, true);
+      CopyRates(_Symbol, Timeframe, 0, count, price);
    }
 
    MqlRates getData(int index, ENUM_TIMEFRAMES Timeframe) {
-      CopyRates(_Symbol, Timeframe, 0, index, price);
       return price[index];
    }
 
-   double Higest(ENUM_TIMEFRAMES Timeframe, int count) {
-      CopyRates(_Symbol, Timeframe, 0, count, price);
-
+   double Higest() {
       double High[];
       ArraySetAsSeries(High, true);
 
@@ -51,9 +53,7 @@ class MyPrice {
       return price[ArrayMaximum(High, 0, count)].high;
    }
 
-   double Lowest(ENUM_TIMEFRAMES Timeframe, int count) {
-      CopyRates(_Symbol, Timeframe, 0, count, price);
-
+   double Lowest() {
       double Low[];
       ArraySetAsSeries(Low, true);
 
@@ -65,14 +65,7 @@ class MyPrice {
       return price[ArrayMinimum(Low, 0, count)].low;
    }
 
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-
-
  private:
    MqlRates price[];
-
-
 };
 //+------------------------------------------------------------------+

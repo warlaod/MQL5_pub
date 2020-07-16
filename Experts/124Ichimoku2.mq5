@@ -1,92 +1,75 @@
 //+------------------------------------------------------------------+
-//|                                            1009ScalpFractals.mq5 |
-//|                        Copyright 2020, MetaQuotes Software Corp. |
-//|                                             https://www.mql5.com |
-//+------------------------------------------------------------------+
-#property copyright "Copyright 2020, MetaQuotes Software Corp."
-#property link      "https://www.mql5.com"
-#property version   "1.00"
-//+------------------------------------------------------------------+
-//| Expert initialization function                                   |
+//|                                                      ProjectName |
+//|                                      Copyright 2020, CompanyName |
+//|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
 #include <Trade\Trade.mqh>
-#include <Original\prices.mqh>
-#include <Original\positions.mqh>
 #include <Original\MyUtils.mqh>
 #include <Original\MyTrade.mqh>
 #include <Original\MyCalculate.mqh>
 #include <Original\MyTest.mqh>
 #include <Original\MyPrice.mqh>
+#include <Original\MyPosition.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Trade\OrderInfo.mqh>
 #include <Indicators\Trend.mqh>
 CTrade trade;
+MyPosition myPosition;
 CiIchimoku ciIchimoku;
-MyTrade myTrade(0.1);
-MyPrice myPrice;
 
-double  Bid,Ask;
-
+input int SenkouCri, KijunCri, TP;
 input ENUM_TIMEFRAMES IchimokuTimeframe;
-input int SenkouCri,KijunCri;
-input double TPCoef;
 
-string signal,lasttrade;
-int tradesignal;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
-   MyUtils myutils(300);
+   MyUtils myutils();
    myutils.Init();
-   ciIchimoku.Create(_Symbol,IchimokuTimeframe,9,26,52);
-
+   ciIchimoku.Create(_Symbol, IchimokuTimeframe, 9, 26, 52);
    return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void OnTick()
-  {
-   myTrade.istradable = true;
+void OnTick() {
+   MyTrade myTrade(0.1, false);
+   MyPosition myPosition;
+   myTrade.CheckFridayEnd();
+   myTrade.CheckYearsEnd();
+   if(!myTrade.istradable) {
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+   }
+
+   myTrade.CheckBalance();
+   myTrade.CheckSpread();
+   if(!myTrade.istradable) {
+      return;
+   }
+
    ciIchimoku.Refresh();
-   
-   Ask = myTrade.Ask();
-   Bid = myTrade.Bid();
-   
-    if(tradable == false || isTooBigSpread(spread))
-     {
-      return;
-     }
-  }
-//+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
-void OnTimer()
-  {
-   tradable  = true;
-//lot =SetLot(denom);
-   if(isNotEnoughMoney())
-     {
-      tradable = false;
-      return;
-     }
 
-   TimeToStruct(TimeCurrent(),dt);
-   if(dt.day_of_week == FRIDAY)
-     {
-      if((dt.hour == 22 && dt.min > 0) || dt.hour == 23)
-        {
-         CloseAllBuyPositions();
-         CloseAllSellPositions();
-         tradable = false;
-         return;
-        }
-     }
+   double Tenkan = ciIchimoku.TenkanSen(0);
+   double Kijun = ciIchimoku.KijunSen(0);
+   double SpanA = ciIchimoku.SenkouSpanA(0);
+   double SpanB = ciIchimoku.SenkouSpanB(0);
 
-   if(isYearEnd(dt.mon,dt.day))
-     {
-      tradable = false;
-      return;
-     }
-  }
+   if( MathAbs(SpanA - SpanB) < SenkouCri * _Point) return;
+   if(MathAbs(SpanA - SpanB) < KijunCri * _Point) return;
+
+   if(Tenkan > Kijun && Kijun > SpanA && SpanA > SpanB) myTrade.signal = "buy";
+
+   if(myPosition.Total < positions && myTrade.signal == "buy") {
+      if(myTrade.isInvalidTrade(SpanA,myTrade.Ask + TP * _Point)) return;
+      trade.Buy(myTrade.lot, NULL, myTrade.Ask, SpanA, myTrade.Ask + TP * _Point, NULL);
+   }
+}
+
+double OnTester() {
+   MyTest myTest;
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
+   return  result;
+}
+//+------------------------------------------------------------------+

@@ -31,21 +31,34 @@
 class MyPosition {
  public:
    MqlDateTime dt;
+   int Total;
+
+   void MyPosition() {
+      Total = PositionsTotal();
+   }
 
    bool isPositionInRange(double Range, double CenterLine, ENUM_POSITION_TYPE PositionType) {
-      CPositionInfo cPositionInfo;
-      int PositionTotal = PositionsTotal();
-      for(int i = PositionsTotal() - 1; i >= 0; i--) {
+      for(int i = Total - 1; i >= 0; i--) {
          cPositionInfo.SelectByTicket(PositionGetTicket(i));
-         ENUM_POSITION_TYPE CType = cPositionInfo.PositionType();
-         double PriceOpen = cPositionInfo.PriceOpen();
          if(cPositionInfo.PositionType() != PositionType) continue;
-
          if(MathAbs(cPositionInfo.PriceOpen() - CenterLine) < Range) {
             return true;
          }
       }
       return false;
    }
+
+   void CloseAllPositions(ENUM_POSITION_TYPE PositionType) {
+      CTrade itrade;
+      for(int i = Total - 1; i >= 0; i--) {
+         cPositionInfo.SelectByTicket(PositionGetTicket(i));
+         if(cPositionInfo.PositionType() != PositionType) continue;
+         itrade.PositionClose(PositionGetTicket(i));
+      }
+   }
+
+
+ private:
+   CPositionInfo cPositionInfo;
 };
 //+------------------------------------------------------------------+

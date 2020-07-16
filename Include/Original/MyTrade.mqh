@@ -37,10 +37,14 @@ class MyTrade {
    double lot;
    double Ask;
    double Bid;
+   double balance;
+   MqlDateTime dt;
 
    void MyTrade(double lot, bool isSetLot) {
+      balance = NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE),1);
       Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
       Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
+      TimeToStruct(TimeCurrent(), dt);
       istradable = true;
       signal = "";
       if(isSetLot) {
@@ -49,9 +53,9 @@ class MyTrade {
          this.lot = lot;
       }
    }
-
+   
    void CheckSpread() {
-      if(SymbolInfoInteger(_Symbol, SYMBOL_SPREAD) < spread) {
+      if(SymbolInfoInteger(_Symbol, SYMBOL_SPREAD) >= spread) {
          istradable = false;
       }
    }
@@ -67,6 +71,31 @@ class MyTrade {
       }
       return false;
    }
+
+   void CheckYearsEnd() {
+      if(dt.mon == 12 && dt.day > 25) {
+         istradable =  false;
+      }
+      if(dt.mon == 1 && dt.day < 5) {
+         istradable = false;
+      }
+   }
+
+   void CheckFridayEnd() {
+      if(dt.day_of_week == FRIDAY) {
+         if((dt.hour == 22 && dt.min > 0) || dt.hour == 23) {
+            istradable = false;
+         }
+      }
+   }
+   
+   void CheckBalance(){
+      if(balance < 2000){
+         istradable = false;
+      }
+   }
+
+
 
  private:
    void SetLot() {
