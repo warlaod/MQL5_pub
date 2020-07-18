@@ -50,7 +50,7 @@ class MyTest {
    double marginlevel_min;
    double positiveEffector;
    double negativeEffector;
-   
+
 
  public:
    double min_dd_and_mathsqrt_profit_trades() {
@@ -64,6 +64,25 @@ class MyTest {
       CheckRatio(win_rate, 0.25);
       CheckRatio(short_win_rate, 0.25);
       CheckRatio(long_win_rate, 0.25);
+      SetResultForBalance();
+
+      return result;
+   }
+
+   double min_dd_and_mathsqrt_profit_trades_only_longs() {
+      if(marginlevel_min < 200) {
+         result = -99999999;
+         return result;
+      }
+
+      if(balance_dd == 0 && equity_dd == 0) {
+         result = -99999999;
+         return result;
+      }
+      positiveEffector = min_dd * MathLog(profit_trades);
+      negativeEffector = 1;
+
+      CheckRatio(win_rate, 0.25);
       SetResultForBalance();
 
       return result;
@@ -124,8 +143,8 @@ class MyTest {
       } else if(balance_dd < equity_dd) {
          min_dd = 1 / equity_dd;
       }
-      
-      if(marginlevel_min < 200){
+
+      if(marginlevel_min < 200) {
          result = -99999999;
          return;
       }
@@ -139,7 +158,11 @@ class MyTest {
       short_win_rate = short_profit_trades / (total_trades - long_trades);
       long_win_rate = long_profit_trades / (total_trades - short_trades);
       average_profit = gross_profit / profit_trades;
-      average_loss = gross_loss / loss_trades;
+      if(loss_trades != 0) {
+         average_loss = gross_loss / loss_trades;
+      } else {
+         average_loss = 1;
+      }
    }
 };
 //+------------------------------------------------------------------+

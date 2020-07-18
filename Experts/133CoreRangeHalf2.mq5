@@ -68,11 +68,8 @@ void OnTimer() {
    myTrade.istradable = true;
    if(isNotEnoughMoney()){
        myTrade.istradable = false;
-   }
+   }  
    myTrade.CheckSpread();
-   if(!myTrade.istradable) {
-      return;
-   }
    ciOsma.Refresh();
    ciHigh.Refresh();
    ciLow.Refresh();

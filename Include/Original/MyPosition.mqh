@@ -33,7 +33,7 @@ class MyPosition {
    MqlDateTime dt;
    int Total;
 
-   void MyPosition() {
+   void Refresh() {
       Total = PositionsTotal();
    }
 

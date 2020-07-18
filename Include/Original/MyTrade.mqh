@@ -38,22 +38,23 @@ class MyTrade {
    double Ask;
    double Bid;
    double balance;
+   bool isLotIncrease;
    MqlDateTime dt;
 
-   void MyTrade(double lot, bool isSetLot) {
-      balance = NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE),1);
+   void MyTrade(double lot, bool isLotIncrease) {
+      this.isLotIncrease = isLotIncrease;
+      this.lot = lot;
+   }
+
+   void Refresh() {
+      if(isLotIncrease) IncreaseLot();
+      istradable = true;
+      signal = "";
       Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
       Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
       TimeToStruct(TimeCurrent(), dt);
-      istradable = true;
-      signal = "";
-      if(isSetLot) {
-         SetLot();
-      } else {
-         this.lot = lot;
-      }
    }
-   
+
    void CheckSpread() {
       if(SymbolInfoInteger(_Symbol, SYMBOL_SPREAD) >= spread) {
          istradable = false;
@@ -88,17 +89,24 @@ class MyTrade {
          }
       }
    }
-   
-   void CheckBalance(){
-      if(balance < 2000){
+
+   void CheckBalance() {
+      if(NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE), 1) < 2000) {
          istradable = false;
       }
    }
 
-
+   void CheckUntradableHour(int &hours[]) {
+      for(int i = 0; i < ArraySize(hours); i++) {
+         if(dt.hour == hours[i]) {
+            istradable = false;
+            return;
+         }
+      }
+   }
 
  private:
-   void SetLot() {
+   void IncreaseLot() {
       lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, 2);
       if(lot < 0.01) lot = 0.01;
       else if(lot > 50) lot = 50;

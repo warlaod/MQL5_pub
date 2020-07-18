@@ -26,27 +26,28 @@
 #include <Trade\OrderInfo.mqh>
 CiOsMA ciOsma;
 CiATR ciATR;
+COrderInfo cOrderInfo;
 CTrade trade;
 
-input ENUM_TIMEFRAMES OsmaTimeframe;
+input ENUM_TIMEFRAMES OsmaTimeframe, ATRTimeframe;
 input ENUM_APPLIED_PRICE OsmaAppliedPrice;
 
 input double CornerCri;
-input int CornerPriceUnitCoef, CoreRangePriceUnitCoef;
+input double CornerPriceUnitCoef, CoreRangePriceUnitCoef;
 
 input int PriceCount;
 input int SL;
-input int Timer;
-
-int spreadcoutn = 0;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+MyPrice myPrice(PriceTimeframe, PriceCount);
+MyPosition myPosition;
+MyTrade myTrade(0.01, false);
 int OnInit() {
-   MyUtils myutils(1, 60 * Timer);
+   MyUtils myutils(1, 60 );
    myutils.Init();
    ciOsma.Create(_Symbol, OsmaTimeframe, 12, 25, 9, OsmaAppliedPrice);
-
+   ciATR.Create(_Symbol, ATRTimeframe, 14);
    return(INIT_SUCCEEDED);
 }
 
@@ -54,10 +55,11 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
-   MyPrice myPrice(PriceTimeframe,PriceCount);
-   MyPosition myPosition;
-   MyTrade myTrade(0.01,false);
+   myPrice.Refresh();
+   myPosition.Refresh();
+   myTrade.Refresh();
    ciOsma.Refresh();
+   ciATR.Refresh();
 
    double lowest_price = myPrice.Lowest();
    double highest_price = myPrice.Higest();
@@ -66,14 +68,14 @@ void OnTimer() {
 
    double bottom, top;
    double range_unit;
-   
+
    top = highest_price + SL * _Point;
    bottom = lowest_price - SL * _Point;
 
    if(current_price < lowest_price + highest_lowest_range * CornerCri) {
+      range_unit = MathAbs(ciATR.Main(0)) * CornerPriceUnitCoef;
+      bottom = lowest_price - SL * _Point;
       
-      range_unit = highest_lowest_range / CornerPriceUnitCoef;
-
       if(myPosition.isPositionInRange(range_unit, current_price, POSITION_TYPE_BUY)) return;
       if(myTrade.isInvalidTrade(bottom, myTrade.Ask + range_unit)) return;
       if(ciOsma.Main(0) < 0) return;
@@ -82,8 +84,8 @@ void OnTimer() {
 
 
    else if(current_price > highest_price - highest_lowest_range * CornerCri) {
-      
-      range_unit = highest_lowest_range / CornerPriceUnitCoef;
+      range_unit = MathAbs(ciATR.Main(0)) * CornerPriceUnitCoef;
+      top = highest_price + SL * _Point;
 
       if(myPosition.isPositionInRange(range_unit, current_price, POSITION_TYPE_SELL)) return;
       if(myTrade.isInvalidTrade(top, myTrade.Bid - range_unit)) return;
@@ -92,7 +94,9 @@ void OnTimer() {
    }
 
    else if(current_price > lowest_price + highest_lowest_range * CornerCri && current_price < highest_price - highest_lowest_range * CornerCri) {
-      range_unit = highest_lowest_range / CoreRangePriceUnitCoef;
+      range_unit = MathAbs(ciATR.Main(0)) * CoreRangePriceUnitCoef;
+      top = highest_price - highest_lowest_range * CornerCri;
+      bottom = lowest_price + highest_lowest_range * CornerCri;
 
       if(ciOsma.Main(0) > 0) {
          if(myPosition.isPositionInRange(range_unit, current_price, POSITION_TYPE_BUY)) return;

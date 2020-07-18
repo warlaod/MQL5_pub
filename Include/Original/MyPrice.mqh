@@ -34,6 +34,11 @@ class MyPrice {
       this.Timeframe = Timeframe;
       this.count = count;
       ArraySetAsSeries(price, true);
+      ArraySetAsSeries(Low, true);
+      ArraySetAsSeries(High, true);
+   }
+   
+   void Refresh(){
       CopyRates(_Symbol, Timeframe, 0, count, price);
    }
 
@@ -42,9 +47,6 @@ class MyPrice {
    }
 
    double Higest() {
-      double High[];
-      ArraySetAsSeries(High, true);
-
       CopyHigh(_Symbol, Timeframe, 0, count, High);
       if(!High[count - 1]) {
          return NULL;
@@ -54,9 +56,6 @@ class MyPrice {
    }
 
    double Lowest() {
-      double Low[];
-      ArraySetAsSeries(Low, true);
-
       CopyLow(_Symbol, Timeframe, 0, count, Low);
       if(!Low[count - 1]) {
          return NULL;
@@ -67,5 +66,7 @@ class MyPrice {
 
  private:
    MqlRates price[];
+    double High[];
+    double Low[];
 };
 //+------------------------------------------------------------------+

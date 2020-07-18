@@ -51,10 +51,10 @@ void OnTick() {
 
    ciIchimoku.Refresh();
 
-   double Tenkan = ciIchimoku.TenkanSen(0);
-   double Kijun = ciIchimoku.KijunSen(0);
-   double SpanA = ciIchimoku.SenkouSpanA(0);
-   double SpanB = ciIchimoku.SenkouSpanB(0);
+   double Tenkan = ciIchimoku.TenkanSen(1);
+   double Kijun = ciIchimoku.KijunSen(1);
+   double SpanA = ciIchimoku.SenkouSpanA(1);
+   double SpanB = ciIchimoku.SenkouSpanB(1);
 
    if( MathAbs(SpanA - SpanB) < SenkouCri * _Point) return;
    if(MathAbs(SpanA - SpanB) < KijunCri * _Point) return;
@@ -69,7 +69,7 @@ void OnTick() {
 
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades_only_longs();
    return  result;
 }
 //+------------------------------------------------------------------+

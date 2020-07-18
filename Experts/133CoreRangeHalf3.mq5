@@ -33,6 +33,7 @@ COrderInfo cOrderInfo;
 CTrade trade;
 
 
+
 MqlDateTime dt;
 string range;
 
@@ -51,6 +52,9 @@ int spreadcoutn = 0;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+MyPrice myPrice(PriceTimeframe,PriceCount);
+MyTrade myTrade(0.01,true);
+MyPosition myPosition;
 int OnInit() {
    MyUtils myutils(1, 60 * Timer);
    myutils.Init();
@@ -63,11 +67,11 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
-   MyPrice myPrice(PriceTimeframe,PriceCount);
-   MyPosition myPosition;
-   MyTrade myTrade(0.01,true);
+   myPrice.Refresh();
+   myPosition.Refresh();
+   myTrade.Refresh();
    myTrade.CheckSpread();
-   if(!myTrade.istradable) {
+   if(myTrade.istradable) {
       return;
    }
    ciOsma.Refresh();
@@ -76,11 +80,6 @@ void OnTimer() {
    double highest_price = myPrice.Higest();
    double highest_lowest_range = highest_price - lowest_price;
    double current_price = myPrice.getData(0, PriceTimeframe).close;
-
-
-
-   range = "";
-
 
    double bottom, top;
    double range_unit;
