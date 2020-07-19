@@ -138,11 +138,8 @@ class MyTest {
          return;
       }
 
-      if(balance_dd > equity_dd) {
-         min_dd = 1 / balance_dd;
-      } else if(balance_dd < equity_dd) {
-         min_dd = 1 / equity_dd;
-      }
+      min_dd = 1 / equity_dd;
+
 
       if(marginlevel_min < 200) {
          result = -99999999;
