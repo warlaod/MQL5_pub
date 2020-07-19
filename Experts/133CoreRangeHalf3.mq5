@@ -56,7 +56,7 @@ MyPrice myPrice(PriceTimeframe,PriceCount);
 MyTrade myTrade(0.01,false);
 MyPosition myPosition;
 int OnInit() {
-   MyUtils myutils(1, 60 * Timer);
+   MyUtils myutils(13303, 60 * Timer);
    myutils.Init();
    ciOsma.Create(_Symbol, OsmaTimeframe, 12, 25, 9, OsmaAppliedPrice);
 
