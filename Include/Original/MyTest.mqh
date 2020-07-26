@@ -70,19 +70,24 @@ class MyTest {
    }
 
    double min_dd_and_mathsqrt_profit_trades_only_longs() {
-      if(marginlevel_min < 200) {
-         result = -99999999;
-         return result;
-      }
 
-      if(balance_dd == 0 && equity_dd == 0) {
-         result = -99999999;
-         return result;
+      if(long_profit_trades <= 10) {
+         return -99999999;
       }
-      positiveEffector = min_dd * MathLog(profit_trades);
+      if(balance_dd == 0 && equity_dd == 0) {
+         return -99999999;
+      }
+      
+      min_dd = 1 / equity_dd;
+      
+      long_win_rate = long_profit_trades / (total_trades - short_trades);
+      positiveEffector = min_dd * MathLog(long_profit_trades);
+      
+      if(positiveEffector == 0) return -99999999;
+
       negativeEffector = 1;
 
-      CheckRatio(win_rate, 0.25);
+      CheckRatio(long_win_rate, 0.25);
       SetResultForBalance();
 
       return result;
@@ -125,11 +130,11 @@ class MyTest {
       long_win_rate = 0;
 
 
-      if(long_trades == 0 || short_trades == 0) {
+      if(long_trades <= 10 || short_trades <= 10) {
          result = -99999999;
          return;
       }
-      if(long_profit_trades <= 1 || short_profit_trades <= 1) {
+      if(long_profit_trades <= 10 || short_profit_trades <= 10) {
          result = -99999999;
          return;
       }
@@ -151,7 +156,7 @@ class MyTest {
          short_long_ratio = 1 / short_long_ratio ;
       }
 
-      win_rate = profit_trades / total_trades ;
+      win_rate = (loss_trades == 0) ? 1 : profit_trades / total_trades ;
       short_win_rate = short_profit_trades / (total_trades - long_trades);
       long_win_rate = long_profit_trades / (total_trades - short_trades);
       average_profit = gross_profit / profit_trades;

@@ -15,7 +15,6 @@
 #include <Trade\OrderInfo.mqh>
 #include <Indicators\Trend.mqh>
 CTrade trade;
-MyPosition myPosition;
 CiIchimoku ciIchimoku;
 
 input int SenkouCri, KijunCri, TP;
@@ -24,6 +23,8 @@ input ENUM_TIMEFRAMES IchimokuTimeframe;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+MyTrade myTrade(0.1, false);
+MyPosition myPosition;
 int OnInit() {
    MyUtils myutils();
    myutils.Init();
@@ -34,8 +35,9 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   MyTrade myTrade(0.1, false);
-   MyPosition myPosition;
+   myPosition.Refresh();
+   myTrade.Refresh();
+   
    myTrade.CheckFridayEnd();
    myTrade.CheckYearsEnd();
    if(!myTrade.istradable) {
@@ -57,7 +59,7 @@ void OnTick() {
    double SpanB = ciIchimoku.SenkouSpanB(1);
 
    if( MathAbs(SpanA - SpanB) < SenkouCri * _Point) return;
-   if(MathAbs(SpanA - SpanB) < KijunCri * _Point) return;
+   if(MathAbs(SpanA - Kijun) < KijunCri * _Point) return;
 
    if(Tenkan > Kijun && Kijun > SpanA && SpanA > SpanB) myTrade.signal = "buy";
 

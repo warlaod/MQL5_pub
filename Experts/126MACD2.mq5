@@ -23,13 +23,8 @@
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Trade\OrderInfo.mqh>
-CiMACD ciMACDShort;
-CiMACD ciMACDLong;
-MyTrade myTrade(0.1);
 CTrade trade;
 
-string myTrade.signal;
-input int positions;
 double lot = 0.10;
 MqlDateTime dt;
 
@@ -39,14 +34,16 @@ input int EmaPeriod,EmaPriceType;
 double Ema[];
 */
 
-int MacdShortIndicator,MacdLongIndicator,ATRIndicator;
 input ENUM_TIMEFRAMES MacdShortTimeframe,MacdLongTimeframe;
 input ENUM_APPLIED_PRICE MacdAppliedPrice;
 input double TPCoef,SLCoef;
-double LongMacd[],LongMacdmyTrade.signal[],ShortMacd[],ShortMacdmyTrade.signal[],ATR[];
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiMACD ciMACDShort;
+CiMACD ciMACDLong;
+CiATR ciATR;
+MyTrade myTrade(0.1,true);
 int OnInit()
   {
    MyUtils myutils(12602,0);
@@ -54,6 +51,7 @@ int OnInit()
    
    ciMACDShort.Create(_Symbol,MacdShortTimeframe,12,26,9,MacdAppliedPrice);
    ciMACDLong.Create(_Symbol,MacdLongTimeframe,12,26,9,MacdAppliedPrice);
+   ciATR.Create(_Symbol,MacdShortTimeframe,14);
    return(INIT_SUCCEEDED);
   }
 
@@ -71,11 +69,9 @@ void OnTick()
       return;
    }
    
-   Ask = myTrade.Ask();
-   Bid = myTrade.Bid();
-   
    ciMACDLong.Refresh();
    ciMACDShort.Refresh();
+   ciATR.Refresh();
    
    myTrade.signal = "";
 
@@ -113,15 +109,16 @@ void OnTick()
         {
          myTrade.signal = "sell";
         }
-
+   
+   double currentATR =ciATR.Main(0);
    if(EachPositionsTotal("buy") < positions/2 && myTrade.signal=="buy")
      {
-      trade.Buy(lot,NULL,Ask,Ask-ATR[0]*SLCoef,Ask+ATR[0]*TPCoef,NULL);
+      trade.Buy(lot,NULL,myTrade.Ask,myTrade.Ask-currentATR*SLCoef,myTrade.Ask+currentATR*TPCoef,NULL);
      }
 
    if(EachPositionsTotal("sell") < positions/2 && myTrade.signal=="sell")
      {
-      trade.Sell(lot,NULL,Bid,Bid+ATR[0]*SLCoef,Bid-ATR[0]*TPCoef,NULL);
+      trade.Sell(lot,NULL,myTrade.Bid,myTrade.Bid+currentATR*SLCoef,myTrade.Bid-currentATR*TPCoef,NULL);
      }
 
 

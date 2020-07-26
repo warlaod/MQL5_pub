@@ -30,8 +30,8 @@
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool isBetween(double top, double bottom, double compare_val) {
-   if(top - bottom > 0 && compare_val < top && compare_val > bottom) return true;
+bool isBetween(double top,double middle, double bottom) {
+   if(top - bottom > 0 && top-middle > 0 && middle -bottom >0) return true;
    return false;
 }
 //+------------------------------------------------------------------+
