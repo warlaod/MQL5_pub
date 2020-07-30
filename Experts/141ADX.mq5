@@ -25,42 +25,31 @@
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
 #include <Trade\OrderInfo.mqh>
-#include <Indicators\BillWilliams.mqh>
 CiMomentum ciMomentum;
-CiRSI ciRSI;
 CTrade trade;
 
 CiATR ciATR;
-CiMA ciMA;
-CiAMA ciAMA;
 
 CiBearsPower ciBear;
 CiBullsPower ciBull;
 CiADX ciADX;
-CiGator ciGator;
-CiAlligator ciAlligator;
 
-input ENUM_TIMEFRAMES GatorTimeframe;
-input ENUM_MA_METHOD GatorMaMethod;
-input ENUM_APPLIED_PRICE GatorAppliedPrice;
-input int SL, TP;
-input int BearRange,Long,Middle,Short;
+input ENUM_TIMEFRAMES ADXTimeframe,ATRTimeframe;
+input double SLCoef,TPCoef;
+input int ADXCri,ATRCri;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
-MyTrade myTrade(0.1, false);
-
-bool JawTeeth, JawLips, TeethLips = false;
-
+MyTrade myTrade(0.1, true);
 
 bool tradable = true;
 int OnInit() {
-   MyUtils myutils(13400, 60 * 20);
+   MyUtils myutils(14100, 60 * 27);
    myutils.Init();
 
-   ciAlligator.Create(_Symbol, GatorTimeframe, Long, 0, Middle, 0, Short, 0, GatorMaMethod, GatorAppliedPrice);
-
+   ciADX.Create(_Symbol, ADXTimeframe, 14);
+   ciATR.Create(_Symbol, ATRTimeframe, 14);
    return(INIT_SUCCEEDED);
 }
 
@@ -68,33 +57,34 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   
-
-   ciAlligator.Refresh();
-
-   int BearTrend = 0;
-   for(int i = 1; i < BearRange; i++ ) {
-      if(isBetween(ciAlligator.Jaw(i), ciAlligator.Teeth(i),ciAlligator.Lips(i))) BearTrend++;
-   }
-   TeethLips = false;
-   if(BearTrend == BearRange - 1) {
-      if(ciAlligator.Teeth(0) > ciAlligator.Lips(0)) {
-         TeethLips = true;
-      }
-   }
-   
    myTrade.Refresh();
    myTrade.CheckSpread();
    if(!myTrade.istradable || !tradable) return;
 
    myPosition.Refresh();
-   if(myPosition.Total >= positions / 2) return;
 
-   if(TeethLips) {
-      trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - SL * _Point, myTrade.Ask + TP * _Point, NULL);
-      TeethLips = false;
-   }
+   ciATR.Refresh();
+   ciADX.Refresh();
+   
+   double currentATR = ciATR.Main(0);
+   
+   if(currentATR < ATRCri*_Point) return;
+   if(ciADX.Main(0) < ADXCri) return;
+   if(ciADX.Main(0) < ciADX.Main(1)) return;
+   if(ciADX.Plus(1) < ciADX.Main(1) && ciADX.Plus(0) > ciADX.Main(0)) myTrade.signal = "buy";
+   else if(ciADX.Minus(1) < ciADX.Main(1) && ciADX.Minus(0) > ciADX.Main(0)) myTrade.signal = "sell";
+   
+   
+   
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions/2 && myTrade.signal=="buy")
+     {
+      trade.Buy(myTrade.lot,NULL,myTrade.Ask,myTrade.Ask-currentATR*SLCoef,myTrade.Ask+currentATR*TPCoef,NULL);
+     }
 
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions/2 && myTrade.signal=="sell")
+     {
+      trade.Sell(myTrade.lot,NULL,myTrade.Bid,myTrade.Bid+currentATR*SLCoef,myTrade.Bid-currentATR*TPCoef,NULL);
+     }
 }
 //+------------------------------------------------------------------+
 void OnTimer() {
@@ -109,13 +99,14 @@ void OnTimer() {
 
    if(!myTrade.istradable) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       tradable = false;
    }
 }
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_profit_trades_only_longs();
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
    return  result;
 }
 //+------------------------------------------------------------------+

@@ -56,7 +56,17 @@ class MyPosition {
          itrade.PositionClose(PositionGetTicket(i));
       }
    }
-
+   
+   int TotalEachPositions(ENUM_POSITION_TYPE PositionType) {
+      CTrade itrade;
+      int count=0;
+      for(int i = Total - 1; i >= 0; i--) {
+         cPositionInfo.SelectByTicket(PositionGetTicket(i));
+         if(cPositionInfo.PositionType() != PositionType) continue;
+         count++;
+      }
+      return count;
+   }
 
  private:
    CPositionInfo cPositionInfo;
