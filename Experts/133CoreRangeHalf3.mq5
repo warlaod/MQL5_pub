@@ -53,7 +53,7 @@ int spreadcoutn = 0;
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPrice myPrice(PriceTimeframe,PriceCount);
-MyTrade myTrade(0.01,false);
+MyTrade myTrade(0.01,true);
 MyPosition myPosition;
 int OnInit() {
    MyUtils myutils(13303, 60 * Timer);
@@ -79,7 +79,7 @@ void OnTimer() {
    double lowest_price = myPrice.Lowest();
    double highest_price = myPrice.Higest();
    double highest_lowest_range = highest_price - lowest_price;
-   double current_price = myPrice.getData(0, PriceTimeframe).close;
+   double current_price = myPrice.getData(0).close;
 
    double bottom, top;
    double range_unit;
