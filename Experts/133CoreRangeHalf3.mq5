@@ -53,7 +53,7 @@ int spreadcoutn = 0;
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPrice myPrice(PriceTimeframe,PriceCount);
-MyTrade myTrade(0.01,false);
+MyTrade myTrade(0.01,true);
 MyPosition myPosition;
 int OnInit() {
    MyUtils myutils(13303, 60 * Timer);
