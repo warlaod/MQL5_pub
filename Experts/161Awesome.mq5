@@ -29,12 +29,12 @@
 #include <Indicators\BillWilliams.mqh>
 #include <Arrays\ArrayDouble.mqh>
 CTrade trade;
-CiAO ciLongAO,ciShortAB;
+CiAO ciLongAO,ciShortAO;
 input ENUM_TIMEFRAMES AOShotTimeframe,AOLongTimeframe;
 input int MaxValRange,ShortAOCri,LongAOCri;
 input double TPCoef,SLCoef;
 bool tradable = false;
-double MaxVal,MinVal;
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -49,7 +49,7 @@ int OnInit() {
    myutils.Init();
 
    ciLongAO.Create(_Symbol,AOLongTimeframe);
-   ciShortAB.Create(_Symbol,AOShotTimeframe);
+   ciShortAO.Create(_Symbol,AOShotTimeframe);
    return(INIT_SUCCEEDED);
 }
 
@@ -58,42 +58,40 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    myPosition.Refresh();
-   ciShortAB.Refresh();
+   ciShortAO.Refresh();
    ciLongAO.Refresh();
    myTrade.Refresh();
    
-   
-   
-   if(ciShortAB.Main(1) > MaxVal) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-   if(ciShortAB.Main(1) < MinVal) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+   double MaxVal,MinVal;
+   int MinIndex,MaxIndex;
+   MaxVal = ciShortAO.MaxValue(0,0,MaxValRange,MaxIndex);
+   MinVal = ciShortAO.MinValue(0,0,MaxValRange,MinIndex);
+   if(ciShortAO.Main(1) > MaxVal) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+   if(ciShortAO.Main(1) < MinVal) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
    
    if(!myTrade.istradable || !tradable) return;
    if(!isBetween(MathAbs(ciLongAO.Main(2)),MathAbs(ciLongAO.Main(1)),MathAbs(ciLongAO.Main(0)))) return;
-   if(!isBetween(MathAbs(ciShortAB.Main(2)),MathAbs(ciShortAB.Main(3)),MathAbs(ciShortAB.Main(4)))) return;
-   if(MathAbs(ciShortAB.Main(0)) < ShortAOCri*_Point) return;
+   if(!isBetween(MathAbs(ciShortAO.Main(2)),MathAbs(ciShortAO.Main(3)),MathAbs(ciShortAO.Main(4)))) return;
+   if(MathAbs(ciShortAO.Main(0)) < ShortAOCri*_Point) return;
    if(MathAbs(ciLongAO.Main(0)) < LongAOCri*_Point) return;
    
-   int IndexOfMax;
+   if(MaxIndex !=2 && MinIndex !=2) return;
    if(ciLongAO.Main(0) < 0){
-      MaxVal = ciShortAB.MaxValue(0,0,MaxValRange,IndexOfMax);
-      if(IndexOfMax !=2) return;
       myTrade.signal ="sell"; 
    }else if(ciLongAO.Main(0) > 0){
-      MinVal = ciShortAB.MinValue(0,0,MaxValRange,IndexOfMax);
-      if(IndexOfMax !=2) return;
       myTrade.signal ="buy"; 
    }
    
    
 
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
-      if(myTrade.isInvalidTrade(myTrade.Ask - ciShortAB.Main(0) * SLCoef, myTrade.Ask + ciShortAB.Main(0)  * TPCoef)) return;
-      trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - ciShortAB.Main(0) * SLCoef, myTrade.Ask + ciShortAB.Main(0)  * TPCoef, NULL);
+      if(myTrade.isInvalidTrade(myTrade.Ask - ciShortAO.Main(0) * SLCoef, myTrade.Ask + ciShortAO.Main(0)  * TPCoef)) return;
+      trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - ciShortAO.Main(0) * SLCoef, myTrade.Ask + ciShortAO.Main(0)  * TPCoef, NULL);
    }
 
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
-      if(myTrade.isInvalidTrade(myTrade.Bid + ciShortAB.Main(0) * SLCoef, myTrade.Bid - ciShortAB.Main(0) * TPCoef)) return;
-      trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + ciShortAB.Main(0) * SLCoef, myTrade.Bid - ciShortAB.Main(0) * TPCoef, NULL);
+      if(myTrade.isInvalidTrade(myTrade.Bid + ciShortAO.Main(0) * SLCoef, myTrade.Bid - ciShortAO.Main(0) * TPCoef)) return;
+      trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + ciShortAO.Main(0) * SLCoef, myTrade.Bid - ciShortAO.Main(0) * TPCoef, NULL);
    }
 }
 //+------------------------------------------------------------------+
