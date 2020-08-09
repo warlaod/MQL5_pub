@@ -68,6 +68,38 @@ class MyTest {
 
       return result;
    }
+   
+   double min_dd_and_mathsqrt_profit_trades_without_balance() {
+      if(result == -99999999) {
+         return result;
+      }
+      positiveEffector = min_dd * MathLog(profit_trades);
+      negativeEffector = 1;
+
+      CheckRatio(short_long_ratio, 0.70);
+      CheckRatio(win_rate, 0.25);
+      CheckRatio(short_win_rate, 0.25);
+      CheckRatio(long_win_rate, 0.25);
+      SetResultWithOutBalance();
+
+      return result;
+   }
+   
+   double min_dd_and_profit_trades() {
+      if(result == -99999999) {
+         return result;
+      }
+      positiveEffector = min_dd * profit_trades;
+      negativeEffector = 1;
+
+      CheckRatio(short_long_ratio, 0.70);
+      CheckRatio(win_rate, 0.25);
+      CheckRatio(short_win_rate, 0.25);
+      CheckRatio(long_win_rate, 0.25);
+      SetResultForBalance();
+
+      return result;
+   }
 
    double min_dd_and_mathsqrt_profit_trades_only_longs() {
 
@@ -101,9 +133,17 @@ class MyTest {
 
    void SetResultForBalance() {
       if(balance > 0) {
-         result = balance * positiveEffector / negativeEffector ;
+         result = balance* positiveEffector / negativeEffector ;
       } else {
          result = balance / positiveEffector * negativeEffector ;
+      }
+   }
+   
+   void SetResultWithOutBalance() {
+      if(balance > 0) {
+         result =  positiveEffector / negativeEffector ;
+      } else {
+         result = 1 / positiveEffector * negativeEffector ;
       }
    }
 
