@@ -63,6 +63,25 @@ class MyPrice {
 
       return price[ArrayMinimum(Low, 0, count)].low;
    }
+   
+   double RosokuHigh(int index) {
+      if(RosokuDirection(index)) return  price[index].high - price[index].close;
+      return  price[index].high - price[index].open;
+   }
+   
+   double RosokuLow(int index) {
+      if(RosokuDirection(index)) return  price[index].open - price[index].low;
+      return  price[index].close - price[index].low;
+   }
+   
+   double RosokuBody(int index){
+      return MathAbs( price[index].close - price[index].open );
+   }
+   
+   double RosokuDirection(int index) {
+      bool PlusDirection = price[index].close > price[index].open ? true : false;
+      return PlusDirection;
+   }
 
  private:
    MqlRates price[];
