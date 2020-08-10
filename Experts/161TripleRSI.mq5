@@ -29,16 +29,14 @@
 #include <Indicators\BillWilliams.mqh>
 #include <Arrays\ArrayDouble.mqh>
 CTrade trade;
-CiAO ciLongAO,ciShortAO;
 CiRSI ciRSIShort,ciRSIMiddle,ciRSILong;
-input ENUM_TIMEFRAMES AOShotTimeframe,AOLongTimeframe,RSIShortTimeframe,RSIMiddleTimeframe,RSILongTimeframe;
-input int MaxValRange,ShortAOCri,LongAOCri,RSIShortPeriod,RSIMiddlePeriod,RSILongPeriod;
+CiATR ciATR;
+input ENUM_TIMEFRAMES RSIShortTimeframe,RSIMiddleTimeframe,RSILongTimeframe;
+input int RSIBuyTOPCri,RSIBuyBottomCri,RSISellTOPCri,RSISellBottomCri,RSILongMiddleDiff,ATRCri;
+input int RSIPeriod,ATRPeriod;
 input ENUM_APPLIED_PRICE RSIAppliedPrice;
 input double TPCoef,SLCoef;
 bool tradable = false;
-
-double LastMaxVal,LastMinVal;
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -52,11 +50,10 @@ int OnInit() {
    MyUtils myutils(14100, 60 * 27);
    myutils.Init();
 
-   ciLongAO.Create(_Symbol,AOLongTimeframe);
-   ciShortAO.Create(_Symbol,AOShotTimeframe);
-   ciRSIShort.Create(_Symbol,RSIShortTimeframe,RSIShortPeriod,RSIAppliedPrice);
-   ciRSIShort.Create(_Symbol,RSIShortTimeframe,RSIMiddlePeriod,RSIAppliedPrice);
-   ciRSIShort.Create(_Symbol,RSIShortTimeframe,RSILongPeriod,RSIAppliedPrice);
+   ciRSIShort.Create(_Symbol,RSIShortTimeframe,RSIPeriod,RSIAppliedPrice);
+   ciRSIMiddle.Create(_Symbol,RSIMiddleTimeframe,RSIPeriod,RSIAppliedPrice);
+   ciRSILong.Create(_Symbol,RSILongTimeframe,RSIPeriod,RSIAppliedPrice);
+   ciATR.Create(_Symbol, RSIShortTimeframe, ATRPeriod);
    return(INIT_SUCCEEDED);
 }
 
@@ -65,44 +62,39 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    myPosition.Refresh();
-   ciShortAO.Refresh();
-   ciLongAO.Refresh();
+   ciRSIShort.Refresh();
+   ciRSIMiddle.Refresh();
+   ciRSILong.Refresh();
+   ciATR.Refresh();
    myTrade.Refresh();
    
-   double MaxVal,MinVal;
-   int MinIndex,MaxIndex;
+   if(MathAbs(ciRSILong.Main(0) - ciRSIMiddle.Main(0)) < RSILongMiddleDiff) return;
    
-   MaxVal = ciShortAO.MaxValue(0,0,MaxValRange,MaxIndex);
-   MinVal = ciShortAO.MinValue(0,0,MaxValRange,MinIndex);
-   if(ciShortAO.Main(1) > LastMaxVal) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-   if(ciShortAO.Main(1) < LastMinVal) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-   
+   myTrade.CheckSpread();
+
    if(!myTrade.istradable || !tradable) return;
-   if(!isBetween(MathAbs(ciLongAO.Main(0)),MathAbs(ciLongAO.Main(1)),MathAbs(ciLongAO.Main(2)))) return;
-   if(!isBetween(MathAbs(ciShortAO.Main(2)),MathAbs(ciShortAO.Main(3)),MathAbs(ciShortAO.Main(4)))) return;
-   if(MathAbs(ciShortAO.Main(0)) < ShortAOCri*_Point) return;
-   if(MathAbs(ciLongAO.Main(0)) < LongAOCri*_Point) return;
    
-   if(MaxIndex !=2 && MinIndex !=2) return;
-   if(ciLongAO.Main(0) < 0 && ciShortAO.Main(0) > 0){
-      myTrade.signal ="sell"; 
-   }else if(ciLongAO.Main(0) > 0 && ciShortAO.Main(0) < 0){
-      myTrade.signal ="buy"; 
+   if(isBetween(ciRSIShort.Main(0),ciRSILong.Main(0),ciRSIMiddle.Main(0)) && isBetween(ciRSILong.Main(1),ciRSIShort.Main(1),ciRSIMiddle.Main(1))){
+      myTrade.signal = "buy";
+   }
+   
+   if(isBetween(ciRSIMiddle.Main(0),ciRSILong.Main(0),ciRSIShort.Main(0)) && isBetween(ciRSIMiddle.Main(1),ciRSIShort.Main(1),ciRSILong.Main(1))){
+      myTrade.signal = "sell";
    }
    
    
-   double PriceUnit = MathAbs(ciShortAO.Main(0));
+   
+   
+   double PriceUnit = ciATR.Main(0);
+   if(PriceUnit < ATRCri*_Point) return;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
-      LastMinVal = MinVal;
    }
 
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
       if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
       trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
-      LastMaxVal =MaxVal;
-      
    }
 }
 //+------------------------------------------------------------------+
@@ -133,7 +125,7 @@ void OnTimer() {
 double OnTester() {
    MyTest myTest;
    double result =  myTest.min_dd_and_mathsqrt_profit_trades();
-   if(AOLongTimeframe <= AOShotTimeframe) return -99999999;
+   if(!isBetween(RSILongTimeframe,RSIMiddleTimeframe,RSIShortTimeframe)) return -99999999;
    return  result;
 }
 //+------------------------------------------------------------------+

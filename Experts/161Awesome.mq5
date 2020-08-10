@@ -125,7 +125,7 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_profit_trades();
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
    if(AOLongTimeframe <= AOShotTimeframe) return -99999999;
    return  result;
 }
