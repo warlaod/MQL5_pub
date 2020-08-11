@@ -32,7 +32,7 @@ CTrade trade;
 CiRSI ciRSIShort,ciRSIMiddle,ciRSILong;
 CiATR ciATR;
 input ENUM_TIMEFRAMES RSIShortTimeframe,RSIMiddleTimeframe,RSILongTimeframe;
-input int RSIBuyTOPCri,RSIBuyBottomCri,RSISellTOPCri,RSISellBottomCri,RSILongMiddleDiff,ATRCri;
+input int RSIBuyTOPCri,RSISellBottomCri,RSILongMiddleDiff;
 input int RSIPeriod,ATRPeriod;
 input ENUM_APPLIED_PRICE RSIAppliedPrice;
 input double TPCoef,SLCoef;
@@ -86,7 +86,6 @@ void OnTick() {
    
    
    double PriceUnit = ciATR.Main(0);
-   if(PriceUnit < ATRCri*_Point) return;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
