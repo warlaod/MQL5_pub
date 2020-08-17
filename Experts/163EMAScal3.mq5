@@ -10,6 +10,11 @@
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 #include <Trade\Trade.mqh>
+#include <Original\prices.mqh>
+#include <Original\positions.mqh>
+#include <Original\period.mqh>
+#include <Original\account.mqh>
+#include <Original\caluculate.mqh>
 #include <Original\MyUtils.mqh>
 #include <Original\MyTrade.mqh>
 #include <Original\MyCalculate.mqh>
@@ -20,35 +25,39 @@
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
 #include <Trade\OrderInfo.mqh>
- #include <Expert\Trailing\TrailingFixedPips.mqh>
-CTrailingFixedPips ctfp;
-CiMomentum ciMomentum;
+#include <Arrays\ArrayDouble.mqh>
+#include <Indicators\BillWilliams.mqh>
+#include <Arrays\ArrayDouble.mqh>
 CTrade trade;
-
+CiRSI ciRSIShort, ciRSIMiddle, ciRSILong;
 CiATR ciATR;
+CiMA ciMA;
+input ENUM_TIMEFRAMES MATimeframe;
+input int MAPeriod;
+input int TrendRange;
+input int WeakTrendCri, RosokuCri;
+input ENUM_APPLIED_PRICE MAAppliedPrice;
+input double TPCoef, SLCoef;
+bool tradable = false;
 
-CiBearsPower ciBear;
-CiBullsPower ciBull;
-CiADX ciADX;
-
-input ENUM_TIMEFRAMES ADXTimeframe,ATRTimeframe;
-input double SLCoef,TPCoef;
-input int ADXPeriod,ATRPeriod;
-input int ADXCri,ATRCri;
+string PreTrend;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
-MyTrade myTrade(0.1, true);
+MyTrade myTrade(0.1, false);
+MyPrice myPrice(MATimeframe, 3);
 
-bool tradable = true;
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 int OnInit() {
    MyUtils myutils(14100, 60 * 27);
    myutils.Init();
-   
 
-   ciADX.Create(_Symbol, ADXTimeframe, ADXPeriod);
-   ciATR.Create(_Symbol, ATRTimeframe, ATRPeriod);
+
+
+   ciMA.Create(_Symbol, MATimeframe, MAPeriod, 0, MODE_EMA, MAAppliedPrice);
    return(INIT_SUCCEEDED);
 }
 
@@ -56,36 +65,45 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   
+   if(TrendRange > MAPeriod) return;
+   myPosition.Refresh();
+   ciMA.Refresh();
    myTrade.Refresh();
+   myPrice.Refresh();
+
+   double CurTrend = ciMA.Main(0) - ciMA.Main(TrendRange);
+
+
+   if(MathAbs(CurTrend) > WeakTrendCri * _Point) return;
    if(!myTrade.istradable || !tradable) return;
 
-   myPosition.Refresh();
 
-   ciATR.Refresh();
-   ciADX.Refresh();
-   
-   double currentATR = ciATR.Main(0);
-   
-   if(currentATR < ATRCri*_Point) return;
-   if(ciADX.Main(0) < ADXCri) return;
-   if(ciADX.Main(0) < ciADX.Main(1)) return;
-   if(ciADX.Plus(1) < ciADX.Main(1) && ciADX.Plus(0) > ciADX.Main(0)) myTrade.signal = "buy";
-   else if(ciADX.Minus(1) < ciADX.Main(1) && ciADX.Minus(0) > ciADX.Main(0)) myTrade.signal = "sell";
-   
-   
-   
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions/2 && myTrade.signal=="buy")
-     {
-      trade.Buy(myTrade.lot,NULL,myTrade.Ask,myTrade.Ask-currentATR*SLCoef,myTrade.Ask+currentATR*TPCoef,NULL);
-     }
+   if(myPrice.getData(1).high < ciMA.Main(1)) {
+      if(MathAbs(myPrice.getData(2).high - myPrice.getData(1).high) > RosokuCri * _Point) return;
+      if(myPrice.getData(0).close > ciMA.Main(0)) myTrade.signal = "buy";
+   }
 
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions/2 && myTrade.signal=="sell")
-     {
-      trade.Sell(myTrade.lot,NULL,myTrade.Bid,myTrade.Bid+currentATR*SLCoef,myTrade.Bid-currentATR*TPCoef,NULL);
-     }
-     
+   if(myPrice.getData(1).low > ciMA.Main(1)) {
+      if(MathAbs(myPrice.getData(2).low - myPrice.getData(1).low) > RosokuCri * _Point) return;
+      if(myPrice.getData(0).close < ciMA.Main(0)) myTrade.signal = "sell";
+   }
+
+
+
+
+   double PriceUnit = 10 * _Point;
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
+      if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
+      trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
+   }
+
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
+      if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
+      trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
+   }
 }
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
    myPosition.Refresh();
@@ -103,9 +121,15 @@ void OnTimer() {
       tradable = false;
    }
 }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
+
    double result =  myTest.min_dd_and_mathsqrt_profit_trades();
    return  result;
 }

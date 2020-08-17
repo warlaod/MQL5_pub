@@ -56,16 +56,30 @@ class MyPosition {
          itrade.PositionClose(PositionGetTicket(i));
       }
    }
-   
+
    int TotalEachPositions(ENUM_POSITION_TYPE PositionType) {
       CTrade itrade;
-      int count=0;
+      int count = 0;
       for(int i = Total - 1; i >= 0; i--) {
          cPositionInfo.SelectByTicket(PositionGetTicket(i));
          if(cPositionInfo.PositionType() != PositionType) continue;
          count++;
       }
       return count;
+   }
+
+   void Trailings(ENUM_POSITION_TYPE PositionType,double SL) {
+      CTrade itrade;
+      for(int i = Total - 1; i >= 0; i--) {
+         cPositionInfo.SelectByTicket(PositionGetTicket(i));
+         if(cPositionInfo.PositionType() != PositionType) continue;
+         if(MathAbs(cPositionInfo.StopLoss() - cPositionInfo.PriceCurrent()) < MathAbs(SL-cPositionInfo.PriceCurrent())) continue;
+         if(PositionType == POSITION_TYPE_BUY) {
+            itrade.PositionModify(cPositionInfo.Identifier(),SL,cPositionInfo.PriceCurrent()+10*_Point );
+         } else if(PositionType == POSITION_TYPE_SELL) {
+            itrade.PositionModify(cPositionInfo.Identifier(),SL,cPositionInfo.PriceCurrent()-10*_Point );
+         }
+      }
    }
 
  private:

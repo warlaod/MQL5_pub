@@ -24,6 +24,9 @@
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Trade\OrderInfo.mqh>
+#include <Expert\Trailing\TrailingFixedPips.mqh>
+
+
 CiOsMA ciOsma;
 CiATR ciATR;
 CiHigh ciHigh;
@@ -53,12 +56,14 @@ int spreadcoutn = 0;
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPrice myPrice(PriceTimeframe,PriceCount);
-MyTrade myTrade(0.1,false);
+MyTrade myTrade(0.1,true);
 MyPosition myPosition;
 int OnInit() {
    MyUtils myutils(13303, 60 * Timer);
    myutils.Init();
    ciOsma.Create(_Symbol, OsmaTimeframe, 12, 25, 9, OsmaAppliedPrice);
+   
+   
 
    return(INIT_SUCCEEDED);
 }
