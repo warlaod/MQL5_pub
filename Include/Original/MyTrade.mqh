@@ -25,9 +25,11 @@
 //   string ErrorDescription(int error_code);
 // #import
 //+------------------------------------------------------------------+
-input int spread;
+input int spread = 99999;
 input int denom = 30000;
 input int positions = 2;
+input bool isLotModified = false;
+input int FridayEndHour = 23;
 
 class MyTrade {
 
@@ -38,16 +40,14 @@ class MyTrade {
    double Ask;
    double Bid;
    double balance;
-   bool isLotIncrease;
    MqlDateTime dt;
 
-   void MyTrade(double lot, bool isLotIncrease) {
-      this.isLotIncrease = isLotIncrease;
+   void MyTrade(double lot) {
       this.lot = lot;
    }
 
    void Refresh() {
-      if(isLotIncrease) IncreaseLot();
+      if(isLotModified) ModifyLot();
       istradable = true;
       signal = "";
       Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
@@ -84,7 +84,7 @@ class MyTrade {
 
    void CheckFridayEnd() {
       if(dt.day_of_week == FRIDAY) {
-         if((dt.hour == 22 && dt.min > 0) || dt.hour == 23) {
+         if((dt.hour == 22 && dt.min > 0) || dt.hour >= 23) {
             istradable = false;
          }
       }
@@ -106,7 +106,7 @@ class MyTrade {
    }
 
  private:
-   void IncreaseLot() {
+   void ModifyLot() {
       lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, 2);
       if(lot < 0.01) lot = 0.01;
       else if(lot > 50) lot = 50;

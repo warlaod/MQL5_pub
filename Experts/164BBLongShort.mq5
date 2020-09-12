@@ -42,16 +42,16 @@ bool tradable = false;
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
-MyTrade myTrade(0.1, false);
+MyTrade myTrade(0.1);
 MyPrice myPrice(BandLongTimeframe, 3);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
-   MyUtils myutils(14100, 60 * 27);
+   MyUtils myutils(60 * 27);
    myutils.Init();
-
+    trade.SetExpertMagicNumber(MagicNumber);
    ciLongBands.Create(_Symbol, BandLongTimeframe, BandShortPeriod, 0, LongDeviation, BandAppliedPrice);
    ciShortBands.Create(_Symbol, BandShortTimeframe, BandLongPeriod, 0, ShortDeviation, BandAppliedPrice);
    return(INIT_SUCCEEDED);
@@ -69,7 +69,6 @@ void OnTick() {
    
    if(BandLongTimeframe <= BandShortTimeframe) return;
    
-   myPosition.
    if(!myTrade.istradable || !tradable) return;
 
    double currentPrice = myPrice.getData(1).close;

@@ -25,7 +25,6 @@
 //   string ErrorDescription(int error_code);
 // #import
 //+------------------------------------------------------------------+
-input const ENUM_TIMEFRAMES PriceTimeframe = PERIOD_MN1;
 class MyPrice {
  public:
    int count ;
