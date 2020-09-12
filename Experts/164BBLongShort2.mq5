@@ -34,10 +34,11 @@ CiBands ciLongBands, ciShortBands;
 CiATR ciATR;
 
 input ENUM_TIMEFRAMES BandLongTimeframe, BandShortTimeframe;
-input int BandShortPeriod, BandLongPeriod, ShortDeviation,LongDeviation;
+input int BandShortPeriod, BandLongPeriod, Deviation;
 input ENUM_APPLIED_PRICE BandAppliedPrice;
 input double TPCoef, SLCoef;
 bool tradable = false;
+string preSignal;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -52,8 +53,8 @@ int OnInit() {
    MyUtils myutils(14100, 60 * 27);
    myutils.Init();
 
-   ciLongBands.Create(_Symbol, BandLongTimeframe, BandShortPeriod, 0, LongDeviation, BandAppliedPrice);
-   ciShortBands.Create(_Symbol, BandShortTimeframe, BandLongPeriod, 0, ShortDeviation, BandAppliedPrice);
+   ciLongBands.Create(_Symbol, BandLongTimeframe, BandShortPeriod, 0, Deviation, BandAppliedPrice);
+   ciShortBands.Create(_Symbol, BandShortTimeframe, BandLongPeriod, 0, Deviation, BandAppliedPrice);
    return(INIT_SUCCEEDED);
 }
 
@@ -64,30 +65,31 @@ void OnTick() {
    myPosition.Refresh();
    ciLongBands.Refresh();
    ciShortBands.Refresh();
-   myPrice.Refresh();
    myTrade.Refresh();
    
    if(BandLongTimeframe <= BandShortTimeframe) return;
-   
-   myPosition.
+
    if(!myTrade.istradable || !tradable) return;
-
-   double currentPrice = myPrice.getData(1).close;
-   double lastPrice = myPrice.getData(2).close;
-
-   if(ciLongBands.Upper(1) < currentPrice && ciShortBands.Upper(1) < currentPrice){
-     if(ciLongBands.Upper(2) < lastPrice && ciShortBands.Upper(2) < lastPrice)
+   
+   double dwadwa = ciLongBands.Upper(1);
+   double awdwa  = ciShortBands.Upper(0);
+   if(ciLongBands.Upper(1) > ciShortBands.Upper(1) && ciLongBands.Upper(0) < ciShortBands.Upper(0)){
+      preSignal = "buy";
+   }
+   if(ciLongBands.Lower(1) < ciShortBands.Lower(1) && ciLongBands.Lower(0) > ciShortBands.Lower(0)){
+      preSignal = "sell";
+   }
+   
+   if(ciLongBands.Upper(1) < ciShortBands.Upper(1)&& ciLongBands.Upper(0) > ciShortBands.Upper(0) && preSignal =="buy"){
       myTrade.signal = "buy";
+      preSignal = "";
    }
-
-   if(ciLongBands.Lower(1) > currentPrice && ciShortBands.Lower(1) > currentPrice){
-     if(ciLongBands.Lower(2) > lastPrice && ciShortBands.Lower(2) > lastPrice)
+   if(ciLongBands.Lower(1) > ciShortBands.Lower(1) && ciLongBands.Lower(0) < ciShortBands.Lower(0) && preSignal =="sell"){
       myTrade.signal = "sell";
+      preSignal = "";
    }
 
-
-
-   double PriceUnit = ciShortBands.Upper(0) - ciShortBands.Lower(0);
+   double PriceUnit = MathAbs(ciLongBands.Base(0) - ciShortBands.Base(0));
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);

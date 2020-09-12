@@ -30,12 +30,14 @@
 CTrade trade;
 CiStochastic ciStochastic;
 CiSAR ciSAR;
-CiBands ciLongBands, ciShortBands;
+CiBands ciLongBands, ciBands;
 CiATR ciATR;
 
-input ENUM_TIMEFRAMES BandLongTimeframe, BandShortTimeframe;
-input int BandShortPeriod, BandLongPeriod, ShortDeviation,LongDeviation;
+input ENUM_TIMEFRAMES BandTimeframe;
+input int BandPeriod;
+input double Deviation;
 input ENUM_APPLIED_PRICE BandAppliedPrice;
+input int RosokuBodyCri;
 input double TPCoef, SLCoef;
 bool tradable = false;
 //+------------------------------------------------------------------+
@@ -43,7 +45,7 @@ bool tradable = false;
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade(0.1, false);
-MyPrice myPrice(BandLongTimeframe, 3);
+MyPrice myPrice(BandTimeframe, 3);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -52,8 +54,7 @@ int OnInit() {
    MyUtils myutils(14100, 60 * 27);
    myutils.Init();
 
-   ciLongBands.Create(_Symbol, BandLongTimeframe, BandShortPeriod, 0, LongDeviation, BandAppliedPrice);
-   ciShortBands.Create(_Symbol, BandShortTimeframe, BandLongPeriod, 0, ShortDeviation, BandAppliedPrice);
+   ciBands.Create(_Symbol, BandTimeframe, BandPeriod, 0, Deviation, BandAppliedPrice);
    return(INIT_SUCCEEDED);
 }
 
@@ -62,41 +63,33 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    myPosition.Refresh();
-   ciLongBands.Refresh();
-   ciShortBands.Refresh();
+   ciBands.Refresh();
    myPrice.Refresh();
    myTrade.Refresh();
-   
-   if(BandLongTimeframe <= BandShortTimeframe) return;
-   
-   myPosition.
+  
+
    if(!myTrade.istradable || !tradable) return;
-
-   double currentPrice = myPrice.getData(1).close;
-   double lastPrice = myPrice.getData(2).close;
-
-   if(ciLongBands.Upper(1) < currentPrice && ciShortBands.Upper(1) < currentPrice){
-     if(ciLongBands.Upper(2) < lastPrice && ciShortBands.Upper(2) < lastPrice)
-      myTrade.signal = "buy";
+   
+   if(myPrice.RosokuBody(1) < RosokuBodyCri*_Point) return;
+   
+   if(myPrice.RosokuDirection(1)){
+      if(myPrice.getData(1).high < ciBands.Upper(1) && myPrice.getData(0).close > ciBands.Upper(0)) myTrade.signal = "buy";
+   }else{
+      if(myPrice.getData(1).low > ciBands.Lower(1) && myPrice.getData(0).close < ciBands.Lower(0)) myTrade.signal = "sell";
    }
 
-   if(ciLongBands.Lower(1) > currentPrice && ciShortBands.Lower(1) > currentPrice){
-     if(ciLongBands.Lower(2) > lastPrice && ciShortBands.Lower(2) > lastPrice)
-      myTrade.signal = "sell";
-   }
-
-
-
-   double PriceUnit = ciShortBands.Upper(0) - ciShortBands.Lower(0);
+   double PriceUnit = ciBands.Upper(0) - ciBands.Lower(0);
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
    }
-
+   
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
       if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
       trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
+
+
 }
 
 //+------------------------------------------------------------------+
@@ -126,7 +119,7 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades_only_longs();
    return  result;
 }
 //+------------------------------------------------------------------+

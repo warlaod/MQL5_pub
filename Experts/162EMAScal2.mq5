@@ -73,6 +73,7 @@ void OnTick() {
    myTrade.Refresh();
    myPrice.Refresh();
 
+   
    double CurTrend = ciMA.Main(0) - ciMA.Main(TrendRange);
 
    if(MathAbs(CurTrend) > PreTrendCri * _Point) {

@@ -27,23 +27,26 @@
 #include <Trade\OrderInfo.mqh>
 #include <Arrays\ArrayDouble.mqh>
 #include <Indicators\BillWilliams.mqh>
+#include <Arrays\ArrayDouble.mqh>
 CTrade trade;
-CiStochastic ciStochastic;
-CiSAR ciSAR;
-CiBands ciLongBands, ciShortBands;
+CiRSI ciRSIShort,ciRSIMiddle,ciRSILong;
 CiATR ciATR;
-
-input ENUM_TIMEFRAMES BandLongTimeframe, BandShortTimeframe;
-input int BandShortPeriod, BandLongPeriod, ShortDeviation,LongDeviation;
-input ENUM_APPLIED_PRICE BandAppliedPrice;
-input double TPCoef, SLCoef;
+CiMA ciMA;
+input ENUM_TIMEFRAMES MATimeframe;
+input int MAPeriod;
+input int TrendRange;
+input int PreTrendCri,WeakTrendCri,RosokuCri;
+input ENUM_APPLIED_PRICE MAAppliedPrice;
+input double TPCoef,SLCoef;
 bool tradable = false;
+
+string PreTrend;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade(0.1, false);
-MyPrice myPrice(BandLongTimeframe, 3);
+MyPrice myPrice(MATimeframe,3);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -51,9 +54,10 @@ MyPrice myPrice(BandLongTimeframe, 3);
 int OnInit() {
    MyUtils myutils(14100, 60 * 27);
    myutils.Init();
+   
 
-   ciLongBands.Create(_Symbol, BandLongTimeframe, BandShortPeriod, 0, LongDeviation, BandAppliedPrice);
-   ciShortBands.Create(_Symbol, BandShortTimeframe, BandLongPeriod, 0, ShortDeviation, BandAppliedPrice);
+   
+   ciMA.Create(_Symbol,MATimeframe,MAPeriod,0,MODE_EMA,MAAppliedPrice);
    return(INIT_SUCCEEDED);
 }
 
@@ -62,32 +66,37 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    myPosition.Refresh();
-   ciLongBands.Refresh();
-   ciShortBands.Refresh();
-   myPrice.Refresh();
+   ciMA.Refresh();
    myTrade.Refresh();
+   myPrice.Refresh();
    
-   if(BandLongTimeframe <= BandShortTimeframe) return;
+   double CurTrend = ciMA.Main(0) - ciMA.Main(TrendRange);
    
-   myPosition.
+   if(MathAbs(CurTrend) > PreTrendCri*_Point){
+      if(CurTrend > 0) PreTrend = "buy";
+      else if(CurTrend < 0) PreTrend = "sell";
+    }
+    
+   if(MathAbs(CurTrend) > WeakTrendCri*_Point) return;
    if(!myTrade.istradable || !tradable) return;
-
-   double currentPrice = myPrice.getData(1).close;
-   double lastPrice = myPrice.getData(2).close;
-
-   if(ciLongBands.Upper(1) < currentPrice && ciShortBands.Upper(1) < currentPrice){
-     if(ciLongBands.Upper(2) < lastPrice && ciShortBands.Upper(2) < lastPrice)
-      myTrade.signal = "buy";
+   
+   
+   if(PreTrend =="buy"){
+      if(myPrice.getData(1).high > ciMA.Main(1)) return;
+      if(MathAbs(myPrice.getData(2).high - myPrice.getData(1).high) > RosokuCri*_Point) return;
+      if(myPrice.getData(0).close > ciMA.Main(0)) myTrade.signal = "buy";
    }
-
-   if(ciLongBands.Lower(1) > currentPrice && ciShortBands.Lower(1) > currentPrice){
-     if(ciLongBands.Lower(2) > lastPrice && ciShortBands.Lower(2) > lastPrice)
-      myTrade.signal = "sell";
+   
+   if(PreTrend =="sell"){
+      if(myPrice.getData(1).low < ciMA.Main(1)) return;
+      if(MathAbs(myPrice.getData(2).low - myPrice.getData(1).low) > RosokuCri*_Point) return;
+      if(myPrice.getData(0).close < ciMA.Main(0)) myTrade.signal = "sell";
    }
-
-
-
-   double PriceUnit = ciShortBands.Upper(0) - ciShortBands.Lower(0);
+   
+   
+   
+   
+   double PriceUnit = 10*_Point;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
@@ -98,7 +107,6 @@ void OnTick() {
       trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -126,6 +134,7 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
+   
    double result =  myTest.min_dd_and_mathsqrt_profit_trades();
    return  result;
 }

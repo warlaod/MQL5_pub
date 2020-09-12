@@ -29,13 +29,15 @@
 #include <Indicators\BillWilliams.mqh>
 CTrade trade;
 CiStochastic ciStochastic;
-CiSAR ciSAR;
+CiMA ciMALong, ciMAMiddle, ciMAShort;
 CiBands ciLongBands, ciShortBands;
 CiATR ciATR;
 
-input ENUM_TIMEFRAMES BandLongTimeframe, BandShortTimeframe;
-input int BandShortPeriod, BandLongPeriod, ShortDeviation,LongDeviation;
-input ENUM_APPLIED_PRICE BandAppliedPrice;
+input ENUM_TIMEFRAMES MALongTimeframe, MAMiddleTimeframe, MAShortTimeframe,ATRTimeframe;
+input ENUM_APPLIED_PRICE MAAppliedPrice;
+input int MAPeriod;
+input double LongMiddleCri, MiddleShortCri;
+input int ATRCri;
 input double TPCoef, SLCoef;
 bool tradable = false;
 //+------------------------------------------------------------------+
@@ -43,7 +45,6 @@ bool tradable = false;
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade(0.1, false);
-MyPrice myPrice(BandLongTimeframe, 3);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -52,8 +53,11 @@ int OnInit() {
    MyUtils myutils(14100, 60 * 27);
    myutils.Init();
 
-   ciLongBands.Create(_Symbol, BandLongTimeframe, BandShortPeriod, 0, LongDeviation, BandAppliedPrice);
-   ciShortBands.Create(_Symbol, BandShortTimeframe, BandLongPeriod, 0, ShortDeviation, BandAppliedPrice);
+   ciATR.Create(_Symbol, ATRTimeframe, MAPeriod);
+
+   ciMALong.Create(_Symbol, MALongTimeframe, MAPeriod, 0, MODE_EMA, MAAppliedPrice);
+   ciMAMiddle.Create(_Symbol, MAMiddleTimeframe, MAPeriod, 0, MODE_EMA, MAAppliedPrice);
+   ciMAShort.Create(_Symbol, MAShortTimeframe, MAPeriod, 0, MODE_EMA, MAAppliedPrice);
    return(INIT_SUCCEEDED);
 }
 
@@ -62,32 +66,33 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    myPosition.Refresh();
-   ciLongBands.Refresh();
-   ciShortBands.Refresh();
-   myPrice.Refresh();
+   ciMALong.Refresh();
+   ciMAMiddle.Refresh();
+   ciMAShort.Refresh();
+   ciATR.Refresh();
    myTrade.Refresh();
-   
-   if(BandLongTimeframe <= BandShortTimeframe) return;
-   
-   myPosition.
+
+
+   if(!isBetween(MALongTimeframe, MAMiddleTimeframe, MAShortTimeframe)) return;
+
    if(!myTrade.istradable || !tradable) return;
+   
+   if(ciATR.Main(0) < ATRCri*_Point) return;
 
-   double currentPrice = myPrice.getData(1).close;
-   double lastPrice = myPrice.getData(2).close;
+   if(MathAbs(ciMALong.Main(0) - ciMAMiddle.Main(0)) < ciATR.Main(0)*LongMiddleCri) return;
+   if(MathAbs(ciMAMiddle.Main(0) - ciMAShort.Main(0)) < ciATR.Main(0)*MiddleShortCri) return;
 
-   if(ciLongBands.Upper(1) < currentPrice && ciShortBands.Upper(1) < currentPrice){
-     if(ciLongBands.Upper(2) < lastPrice && ciShortBands.Upper(2) < lastPrice)
+   if(isBetween(ciMAShort.Main(0), ciMAMiddle.Main(0), ciMALong.Main(0))) {
       myTrade.signal = "buy";
    }
 
-   if(ciLongBands.Lower(1) > currentPrice && ciShortBands.Lower(1) > currentPrice){
-     if(ciLongBands.Lower(2) > lastPrice && ciShortBands.Lower(2) > lastPrice)
+   if(isBetween(ciMALong.Main(0), ciMAMiddle.Main(0), ciMAShort.Main(0))) {
       myTrade.signal = "sell";
    }
 
 
 
-   double PriceUnit = ciShortBands.Upper(0) - ciShortBands.Lower(0);
+   double PriceUnit = ciATR.Main(0);
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);

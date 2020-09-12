@@ -27,15 +27,14 @@
 #include <Trade\OrderInfo.mqh>
 #include <Arrays\ArrayDouble.mqh>
 #include <Indicators\BillWilliams.mqh>
+#include <Arrays\ArrayDouble.mqh>
 CTrade trade;
-CiStochastic ciStochastic;
-CiSAR ciSAR;
-CiBands ciLongBands, ciShortBands;
+CiRSI ciRSIShort, ciRSIMiddle, ciRSILong;
 CiATR ciATR;
-
-input ENUM_TIMEFRAMES BandLongTimeframe, BandShortTimeframe;
-input int BandShortPeriod, BandLongPeriod, ShortDeviation,LongDeviation;
-input ENUM_APPLIED_PRICE BandAppliedPrice;
+input ENUM_TIMEFRAMES RSIShortTimeframe, RSILongTimeframe;
+input int RSIShortCri, RSILongCri, ATRCri;
+input int RSIPeriod,MinMaxPeriod;
+input ENUM_APPLIED_PRICE RSIAppliedPrice;
 input double TPCoef, SLCoef;
 bool tradable = false;
 //+------------------------------------------------------------------+
@@ -43,7 +42,6 @@ bool tradable = false;
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade(0.1, false);
-MyPrice myPrice(BandLongTimeframe, 3);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -52,8 +50,9 @@ int OnInit() {
    MyUtils myutils(14100, 60 * 27);
    myutils.Init();
 
-   ciLongBands.Create(_Symbol, BandLongTimeframe, BandShortPeriod, 0, LongDeviation, BandAppliedPrice);
-   ciShortBands.Create(_Symbol, BandShortTimeframe, BandLongPeriod, 0, ShortDeviation, BandAppliedPrice);
+   ciRSIShort.Create(_Symbol, RSIShortTimeframe, RSIPeriod, RSIAppliedPrice);
+   ciRSILong.Create(_Symbol, RSILongTimeframe, RSIPeriod, RSIAppliedPrice);
+   ciATR.Create(_Symbol, RSIShortTimeframe, RSIPeriod);
    return(INIT_SUCCEEDED);
 }
 
@@ -62,32 +61,32 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    myPosition.Refresh();
-   ciLongBands.Refresh();
-   ciShortBands.Refresh();
-   myPrice.Refresh();
+   ciRSIShort.Refresh();
+   ciRSILong.Refresh();
+   ciATR.Refresh();
    myTrade.Refresh();
+
+   if(RSILongTimeframe <= RSIShortTimeframe) return;
+   if(RSIPeriod < MinMaxPeriod) return;
    
-   if(BandLongTimeframe <= BandShortTimeframe) return;
-   
-   myPosition.
    if(!myTrade.istradable || !tradable) return;
 
-   double currentPrice = myPrice.getData(1).close;
-   double lastPrice = myPrice.getData(2).close;
+   if(ciATR.Main(0) > ATRCri * _Point) return;
 
-   if(ciLongBands.Upper(1) < currentPrice && ciShortBands.Upper(1) < currentPrice){
-     if(ciLongBands.Upper(2) < lastPrice && ciShortBands.Upper(2) < lastPrice)
-      myTrade.signal = "buy";
+   if(ciRSILong.Main(0) > 100 - RSILongCri) {
+      if(ciRSIShort.Main(1) < RSIShortCri && ciRSIShort.Minimum(0, 0, MinMaxPeriod) == 2) {
+         myTrade.signal = "buy";
+      }
    }
 
-   if(ciLongBands.Lower(1) > currentPrice && ciShortBands.Lower(1) > currentPrice){
-     if(ciLongBands.Lower(2) > lastPrice && ciShortBands.Lower(2) > lastPrice)
-      myTrade.signal = "sell";
+   if(ciRSILong.Main(0) < RSILongCri) {
+      if(ciRSIShort.Main(1) > 100 - RSIShortCri && ciRSIShort.Maximum(0, 0, MinMaxPeriod) == 2) {
+         myTrade.signal = "sell";
+      }
    }
 
 
-
-   double PriceUnit = ciShortBands.Upper(0) - ciShortBands.Lower(0);
+   double PriceUnit = ciATR.Main(0);
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
@@ -98,7 +97,6 @@ void OnTick() {
       trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+

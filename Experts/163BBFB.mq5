@@ -84,6 +84,7 @@ void OnTick() {
    myTrade.signal = Trend;
    LastTrend = Trend;
    
+   
    if(!myTrade.istradable || !tradable) return;
 
 

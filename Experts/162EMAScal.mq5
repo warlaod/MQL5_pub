@@ -32,8 +32,8 @@ CTrade trade;
 CiRSI ciRSIShort,ciRSIMiddle,ciRSILong;
 CiATR ciATR;
 CiMA ciMA;
-input ENUM_TIMEFRAMES MATimeframe;
-input int MAPeriod;
+input ENUM_TIMEFRAMES MATimeframe,ATRTimeframe;
+input int MAPeriod,ATRPeriod;
 input int TrendRange;
 input int PreTrendCri,WeakTrendCri,RosokuCri;
 input ENUM_APPLIED_PRICE MAAppliedPrice;
@@ -58,6 +58,7 @@ int OnInit() {
 
    
    ciMA.Create(_Symbol,MATimeframe,MAPeriod,0,MODE_EMA,MAAppliedPrice);
+   ciATR.Create(_Symbol, ATRTimeframe, ATRPeriod);
    return(INIT_SUCCEEDED);
 }
 
@@ -67,8 +68,11 @@ int OnInit() {
 void OnTick() {
    myPosition.Refresh();
    ciMA.Refresh();
+   ciATR.Refresh();
    myTrade.Refresh();
    myPrice.Refresh();
+   
+   if(MAPeriod < TrendRange) return;
    
    double CurTrend = ciMA.Main(0) - ciMA.Main(TrendRange);
    
@@ -96,7 +100,7 @@ void OnTick() {
    
    
    
-   double PriceUnit = 10*_Point;
+   double PriceUnit = ciATR.Main(0);
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
