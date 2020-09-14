@@ -69,6 +69,7 @@ void OnTick() {
    
    if(BandLongTimeframe <= BandShortTimeframe) return;
    
+   
    if(!myTrade.istradable || !tradable) return;
 
    double currentPrice = myPrice.getData(1).close;

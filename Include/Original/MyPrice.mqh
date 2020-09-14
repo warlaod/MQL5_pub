@@ -47,19 +47,13 @@ class MyPrice {
 
    double Higest() {
       CopyHigh(_Symbol, Timeframe, 0, count, High);
-      if(!High[count - 1]) {
-         return NULL;
-      }
-
+      if(ArraySize(High) < count) return NULL;
       return price[ArrayMaximum(High, 0, count)].high;
    }
 
    double Lowest() {
       CopyLow(_Symbol, Timeframe, 0, count, Low);
-      if(!Low[count - 1]) {
-         return NULL;
-      }
-
+      if(ArraySize(Low) < count) return NULL;
       return price[ArrayMinimum(Low, 0, count)].low;
    }
    

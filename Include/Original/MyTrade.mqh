@@ -42,8 +42,8 @@ class MyTrade {
    double balance;
    MqlDateTime dt;
 
-   void MyTrade(double lot) {
-      this.lot = lot;
+   void MyTrade() {
+      ModifyLot();
    }
 
    void Refresh() {

@@ -31,6 +31,7 @@
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool isBetween(double top,double middle, double bottom) {
+
    if(top - bottom > 0 && top-middle > 0 && middle -bottom >0) return true;
    return false;
 }
