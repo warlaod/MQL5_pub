@@ -30,6 +30,8 @@ input int denom = 30000;
 input int positions = 2;
 input bool isLotModified = false;
 input int FridayEndHour = 23;
+input int StopBalance = 2000;
+input int StopMarginLevel = 200;
 
 class MyTrade {
 
@@ -40,9 +42,18 @@ class MyTrade {
    double Ask;
    double Bid;
    double balance;
+   double minlot;
+   double maxlot;
+   int LotDigits;
    MqlDateTime dt;
 
    void MyTrade() {
+      minlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
+      maxlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
+      if(minlot == 0.001) LotDigits = 3;
+      if(minlot == 0.01) LotDigits = 2;
+      if(minlot == 0.1) LotDigits = 1;
+      if(minlot == 1) LotDigits = 0;
       ModifyLot();
    }
 
@@ -84,14 +95,14 @@ class MyTrade {
 
    void CheckFridayEnd() {
       if(dt.day_of_week == FRIDAY) {
-         if((dt.hour == 22 && dt.min > 0) || dt.hour >= 23) {
+         if((dt.hour == FridayEndHour && dt.min > 0) || dt.hour >= FridayEndHour) {
             istradable = false;
          }
       }
    }
 
    void CheckBalance() {
-      if(NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE), 1) < 2000) {
+      if(NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE), 1) < StopBalance) {
          istradable = false;
       }
    }
@@ -105,11 +116,17 @@ class MyTrade {
       }
    }
 
+   void CheckMarginLevel() {
+      double marginlevel = AccountInfoDouble(ACCOUNT_MARGIN_LEVEL);
+      if(marginlevel < StopMarginLevel && marginlevel != 0 ) istradable = false;
+   }
+
+
  private:
    void ModifyLot() {
-      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, 2);
-      if(lot < 0.01) lot = 0.01;
-      else if(lot > 50) lot = 50;
+      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, LotDigits);
+      if(lot < minlot) lot = minlot;
+      else if(lot > maxlot) lot = maxlot;
    }
 
 };
