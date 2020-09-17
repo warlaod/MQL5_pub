@@ -1,30 +1,4 @@
-//+------------------------------------------------------------------+
-//|                                                      MyPrice.mqh |
-//|                        Copyright 2020, MetaQuotes Software Corp. |
-//|                                             https://www.mql5.com |
-//+------------------------------------------------------------------+
-#property copyright "Copyright 2020, MetaQuotes Software Corp."
-#property link      "https://www.mql5.com"
-//+------------------------------------------------------------------+
-//| defines                                                          |
-//+------------------------------------------------------------------+
-// #define MacrosHello   "Hello, world!"
-// #define MacrosYear    2010
-//+------------------------------------------------------------------+
-//| DLL imports                                                      |
-//+------------------------------------------------------------------+
-// #import "user32.dll"
-//   int      SendMessageA(int hWnd,int Msg,int wParam,int lParam);
-// #import "my_expert.dll"
-//   int      ExpertRecalculate(int wParam,int lParam);
-// #import
-//+------------------------------------------------------------------+
-//| EX5 imports                                                      |
-//+------------------------------------------------------------------+
-// #import "stdlib.ex5"
-//   string ErrorDescription(int error_code);
-// #import
-//+------------------------------------------------------------------+
+
 class MyPrice {
  public:
    int count ;
@@ -49,22 +23,22 @@ class MyPrice {
       return price[index];
    }
 
-   double Higest() {
-      CopyHigh(_Symbol, Timeframe, 0, count, High);
-      if(ArraySize(High) < count) {
-         CopyHigh(_Symbol, _Period, 0, count, High);
+   double Higest(int high_count) {
+      CopyHigh(_Symbol, Timeframe, 0, high_count, High);
+      if(ArraySize(High) < high_count) {
+         CopyHigh(_Symbol, _Period, 0, high_count, High);
          Comment("Warning: Now using current Timeframe due to shortage of bars");
       }
-      return price[ArrayMaximum(High, 0, count)].high;
+      return price[ArrayMaximum(High, 0, high_count)].high;
    }
 
-   double Lowest() {
-      CopyLow(_Symbol, Timeframe, 0, count, Low);
-      if(ArraySize(Low) < count) {
-         CopyLow(_Symbol, _Period, 0, count, Low);
+   double Lowest(int low_count) {
+      CopyLow(_Symbol, Timeframe, 0, low_count, Low);
+      if(ArraySize(Low) < low_count) {
+         CopyLow(_Symbol, _Period, 0, low_count, Low);
          Comment("Warning: Now using current Timeframe due to shortage of bars");
       }
-      return price[ArrayMinimum(Low, 0, count)].low;
+      return price[ArrayMinimum(Low, 0, low_count)].low;
    }
 
    double RosokuHigh(int index) {

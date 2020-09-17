@@ -1,14 +1,22 @@
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
-/////////////////////////////
-bool isBetween(double top,double middle, double bottom) {
+input int MagicNumber = 0;
 
-   if(top - bottom > 0 && top-middle > 0 && middle -bottom >0) return true;
-   return false;
-}
+class MyUtils{
+   public:
+      int magicNum;
+      int eventTime;
+      void MyUtils(int eventTime = 0){
+         this.eventTime = eventTime;
+         
+      }
+      void Init(){
+         if(eventTime > 0) EventSetTimer(eventTime);
+      }
+      
+};
 
-/////////////////////////////
 class MyPosition {
  public:
    MqlDateTime dt;
@@ -87,8 +95,8 @@ class MyPosition {
  private:
    CPositionInfo cPositionInfo;
 };
+//+------------------------------------------------------------------+
 
-/////////////////////////////
 class MyPrice {
  public:
    int count ;
@@ -100,9 +108,13 @@ class MyPrice {
       ArraySetAsSeries(Low, true);
       ArraySetAsSeries(High, true);
    }
-   
-   void Refresh(){
+
+   void Refresh() {
       CopyRates(_Symbol, Timeframe, 0, count, price);
+      if(ArraySize(price) < count) {
+         CopyRates(_Symbol, _Period, 0, count, price);
+         Comment("Warning: Now using current Timeframe due to shortage of bars");
+      }
    }
 
    MqlRates getData(int index) {
@@ -111,36 +123,36 @@ class MyPrice {
 
    double Higest() {
       CopyHigh(_Symbol, Timeframe, 0, count, High);
-      if(!High[count - 1]) {
-         return NULL;
+      if(ArraySize(High) < count) {
+         CopyHigh(_Symbol, _Period, 0, count, High);
+         Comment("Warning: Now using current Timeframe due to shortage of bars");
       }
-
       return price[ArrayMaximum(High, 0, count)].high;
    }
 
    double Lowest() {
       CopyLow(_Symbol, Timeframe, 0, count, Low);
-      if(!Low[count - 1]) {
-         return NULL;
+      if(ArraySize(Low) < count) {
+         CopyLow(_Symbol, _Period, 0, count, Low);
+         Comment("Warning: Now using current Timeframe due to shortage of bars");
       }
-
       return price[ArrayMinimum(Low, 0, count)].low;
    }
-   
+
    double RosokuHigh(int index) {
       if(RosokuDirection(index)) return  price[index].high - price[index].close;
       return  price[index].high - price[index].open;
    }
-   
+
    double RosokuLow(int index) {
       if(RosokuDirection(index)) return  price[index].open - price[index].low;
       return  price[index].close - price[index].low;
    }
-   
-   double RosokuBody(int index){
+
+   double RosokuBody(int index) {
       return MathAbs( price[index].close - price[index].open );
    }
-   
+
    double RosokuDirection(int index) {
       bool PlusDirection = price[index].close > price[index].open ? true : false;
       return PlusDirection;
@@ -148,35 +160,19 @@ class MyPrice {
 
  private:
    MqlRates price[];
-    double High[];
-    double Low[];
+   double High[];
+   double Low[];
 };
-
-
-/////////////////////////////
-input int MagicNumber = 0;
-
-class MyUtils{
-   public:
-      int magicNum;
-      int eventTime;
-      void MyUtils(int eventTime = 0){
-         this.eventTime = eventTime;
-         
-      }
-      void Init(){
-         if(eventTime > 0) EventSetTimer(eventTime);
-      }
-      
-};
-
-
 //+------------------------------------------------------------------+
+
+
 input int spread = 99999;
 input int denom = 30000;
 input int positions = 2;
 input bool isLotModified = false;
 input int FridayEndHour = 23;
+input int StopBalance = 2000;
+input int StopMarginLevel = 200;
 
 class MyTrade {
 
@@ -187,9 +183,18 @@ class MyTrade {
    double Ask;
    double Bid;
    double balance;
+   double minlot;
+   double maxlot;
+   int LotDigits;
    MqlDateTime dt;
 
    void MyTrade() {
+      minlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
+      maxlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
+      if(minlot == 0.001) LotDigits = 3;
+      if(minlot == 0.01) LotDigits = 2;
+      if(minlot == 0.1) LotDigits = 1;
+      if(minlot == 1) LotDigits = 0;
       ModifyLot();
    }
 
@@ -231,14 +236,14 @@ class MyTrade {
 
    void CheckFridayEnd() {
       if(dt.day_of_week == FRIDAY) {
-         if((dt.hour == 22 && dt.min > 0) || dt.hour >= 23) {
+         if((dt.hour == FridayEndHour && dt.min > 0) || dt.hour >= FridayEndHour) {
             istradable = false;
          }
       }
    }
 
    void CheckBalance() {
-      if(NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE), 1) < 2000) {
+      if(NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE), 1) < StopBalance) {
          istradable = false;
       }
    }
@@ -252,11 +257,25 @@ class MyTrade {
       }
    }
 
+   void CheckMarginLevel() {
+      double marginlevel = AccountInfoDouble(ACCOUNT_MARGIN_LEVEL);
+      if(marginlevel < StopMarginLevel && marginlevel != 0 ) istradable = false;
+   }
+
+
  private:
    void ModifyLot() {
-      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, 2);
-      if(lot < 0.01) lot = 0.01;
-      else if(lot > 50) lot = 50;
+      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, LotDigits);
+      if(lot < minlot) lot = minlot;
+      else if(lot > maxlot) lot = maxlot;
    }
 
 };
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+bool isBetween(double top,double middle, double bottom) {
+
+   if(top - bottom > 0 && top-middle > 0 && middle -bottom >0) return true;
+   return false;
+}
