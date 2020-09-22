@@ -47,14 +47,14 @@ string Trend;
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
-MyTrade myTrade(0.1, false);
+MyTrade myTrade();
 MyPrice myPrice(BandTimeframe, 3);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
-   MyUtils myutils(14100, 60 * 27);
+   MyUtils myutils(60 * 27);
    myutils.Init();
 
    ciBands.Create(_Symbol, BandTimeframe, BandPeriod, 0, Deviation, BandAppliedPrice);
@@ -77,8 +77,6 @@ void OnTick() {
    CArrayDouble BandWidth;
    for(int i = 0; i <= BandWidthRange; i++) {
       BandWidth.Add(ciBands.Upper(i) - ciBands.Lower(i));
-      double dwa  = BandWidth.At(i);
-      string aw = "fewa";
    }
 
    if( BandWidth.At(0) / BandWidth.At(BandWidth.Maximum(0, BandWidthRange)) <= BoxCri) {

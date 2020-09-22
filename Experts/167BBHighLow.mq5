@@ -68,7 +68,7 @@ void OnTick() {
    myPrice.Refresh();
    myTrade.Refresh();
   
-
+   myTrade.CheckSpread();
    if(!myTrade.istradable || !tradable) return;
    
    if(myPrice.RosokuBody(1) < RosokuBodyCri*_Point) return;

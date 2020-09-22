@@ -1,5 +1,10 @@
+//+------------------------------------------------------------------+
+//|                                                      ProjectName |
+//|                                      Copyright 2020, CompanyName |
+//|                                       http://www.companyname.net |
+//+------------------------------------------------------------------+
 
-input int spread = 99999;
+input int spread = -1;
 input int denom = 30000;
 input int positions = 2;
 input bool isLotModified = false;
@@ -41,9 +46,11 @@ class MyTrade {
    }
 
    void CheckSpread() {
-      if(SymbolInfoInteger(_Symbol, SYMBOL_SPREAD) >= spread) {
+      int currentSpread = SymbolInfoInteger(_Symbol, SYMBOL_SPREAD);
+      if(spread == -1)
+         return;
+      if(currentSpread >= spread)
          istradable = false;
-      }
    }
 
 

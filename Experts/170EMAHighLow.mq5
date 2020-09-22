@@ -30,7 +30,7 @@ CiMA ciMA;
 input ENUM_TIMEFRAMES MATimeframe;
 input int MAPeriod;
 input int TrendRange;
-input int PreTrendCri, WeakTrendCri, RosokuCri;
+input int  WeakTrendCri,  priceCount, PriceDistanceCri, SignalPriceCri;
 input ENUM_APPLIED_PRICE MAAppliedPrice;
 input double TPCoef, SLCoef;
 bool tradable = false;
@@ -41,7 +41,7 @@ string PreTrend;
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyPrice myPrice(MATimeframe, 3);
+MyPrice myPrice(MATimeframe, priceCount);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -62,42 +62,39 @@ int OnInit() {
 void OnTick() {
    myPosition.Refresh();
    ciMA.Refresh();
-   ciATR.Refresh();
    myTrade.Refresh();
    myPrice.Refresh();
 
    if(MAPeriod < TrendRange) return;
-   
-   myTrade.CheckSpread();
+
    if(!myTrade.istradable || !tradable) return;
 
    double CurTrend = ciMA.Main(0) - ciMA.Main(TrendRange);
 
-   if(MathAbs(CurTrend) > PreTrendCri * _Point) {
-      if(CurTrend > 0) PreTrend = "buy";
-      else if(CurTrend < 0) PreTrend = "sell";
-   }
+   double Highest = myPrice.Higest(1, priceCount);
+   double Lowest = myPrice.Lowest(1, priceCount);
+
+   if(Highest - Lowest > PriceDistanceCri * _Point) return;
 
    if(MathAbs(CurTrend) > WeakTrendCri * _Point) return;
    if(!myTrade.istradable || !tradable) return;
 
 
-   if(PreTrend == "buy") {
-      if(myPrice.getData(1).high > ciMA.Main(1)) return;
-      if(MathAbs(myPrice.getData(2).high - myPrice.getData(1).high) > RosokuCri * _Point) return;
-      if(myPrice.getData(0).close > ciMA.Main(0)) myTrade.signal = "buy";
+   if(myPrice.getData(0).close > Highest + SignalPriceCri * _Point) {
+      if(CurTrend > 0) {
+         myTrade.signal = "buy";
+      }
+   }
+   if(myPrice.getData(0).close < Lowest - SignalPriceCri * _Point) {
+      if(CurTrend < 0) {
+         myTrade.signal = "sell";
+      }
    }
 
-   if(PreTrend == "sell") {
-      if(myPrice.getData(1).low < ciMA.Main(1)) return;
-      if(MathAbs(myPrice.getData(2).low - myPrice.getData(1).low) > RosokuCri * _Point) return;
-      if(myPrice.getData(0).close < ciMA.Main(0)) myTrade.signal = "sell";
-   }
 
 
 
-
-   double PriceUnit = MathAbs(myPrice.getData(0).close - ciMA.Main(0));
+   double PriceUnit = Highest - Lowest;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);

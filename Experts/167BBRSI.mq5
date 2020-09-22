@@ -10,11 +10,6 @@
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 #include <Trade\Trade.mqh>
-#include <Original\prices.mqh>
-#include <Original\positions.mqh>
-#include <Original\period.mqh>
-#include <Original\account.mqh>
-#include <Original\caluculate.mqh>
 #include <Original\MyUtils.mqh>
 #include <Original\MyTrade.mqh>
 #include <Original\MyCalculate.mqh>
@@ -29,21 +24,21 @@
 #include <Indicators\BillWilliams.mqh>
 #include <Arrays\ArrayDouble.mqh>
 CTrade trade;
-CiRSI ciRSI,ciRSIMiddle,ciRSILong;
+CiRSI ciRSI, ciRSIMiddle, ciRSILong;
 CiATR ciATR;
 CiBands ciBands;
 input ENUM_TIMEFRAMES RSITimeframe;
 input int RSIDiffCri;
-input int RSIPeriod,BandPeriod,TrailingPeriod;
-input int SLCount,TPCount;
-input ENUM_APPLIED_PRICE RSIAppliedPrice,BandAppliedPrice;
+input int RSIPeriod, BandPeriod, TrailingPeriod;
+input int TPCoef, SLCoef;
+input ENUM_APPLIED_PRICE RSIAppliedPrice, BandAppliedPrice;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyPrice myPrice(RSITimeframe,100);
+MyPrice myPrice(RSITimeframe, 100);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -53,8 +48,8 @@ int OnInit() {
    myutils.Init();
    trade.SetExpertMagicNumber(MagicNumber);
 
-   ciRSI.Create(_Symbol,RSITimeframe,RSIPeriod,RSIAppliedPrice);
-   ciBands.Create(_Symbol, RSITimeframe, BandPeriod,0,2, BandAppliedPrice);
+   ciRSI.Create(_Symbol, RSITimeframe, 14, RSIAppliedPrice);
+   ciBands.Create(_Symbol, RSITimeframe, 20, 0, 2, BandAppliedPrice);
    return(INIT_SUCCEEDED);
 }
 
@@ -67,39 +62,30 @@ void OnTick() {
    ciBands.Refresh();
    myTrade.Refresh();
    myPrice.Refresh();
-   
-      
-   myPosition.TrailingsByRecentPrice(POSITION_TYPE_BUY,RSITimeframe,TrailingPeriod);
-   myPosition.TrailingsByRecentPrice(POSITION_TYPE_SELL,RSITimeframe,TrailingPeriod);
-   
+
    if(MathAbs(ciRSI.Main(1) - ciRSI.Main(0)) < RSIDiffCri) return;
 
    if(!myTrade.istradable || !tradable) return;
-   
-   if(ciBands.Upper(1) <  myPrice.getData(1).high ){
-      if(ciRSI.Main(1) > 70 && ciRSI.Main(1) > ciRSI.Main(0) && myPrice.getData(1).close > myPrice.getData(0).close){
+
+   if(ciBands.Upper(1) <  myPrice.getData(1).high ) {
+      if(ciRSI.Main(1) > 70 && ciRSI.Main(1) > ciRSI.Main(0) && myPrice.getData(1).close > myPrice.getData(0).close) {
          myTrade.signal = "sell";
       }
    }
-   
-    if(ciBands.Lower(1) > myPrice.getData(1).low ){
-      if(ciRSI.Main(1) < 30 && ciRSI.Main(1) < ciRSI.Main(0) && myPrice.getData(1).close < myPrice.getData(0).close){
+
+   if(ciBands.Lower(1) > myPrice.getData(1).low ) {
+      if(ciRSI.Main(1) < 30 && ciRSI.Main(1) < ciRSI.Main(0) && myPrice.getData(1).close < myPrice.getData(0).close) {
          myTrade.signal = "buy";
       }
    }
-   
+   double PriceUnit = 10*_Point;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
-      TP = myPrice.Higest(TPCount);
-      SL = myPrice.Lowest(SLCount);
-      if(myTrade.isInvalidTrade(SL,TP return;
-      trade.Buy(myTrade.lot, NULL, myTrade.Ask,SL,TP NULL);
+      if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
+      trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
    }
-
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
-      TP = myPrice.Lowest(SLCount);
-      SL = myPrice.Lowest(TPCount);
-      if(myTrade.isInvalidTrade(SL,TP return;
-      trade.Sell(myTrade.lot, NULL, myTrade.Bid,SL,TP NULL);
+      if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
+      trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
 }
 //+------------------------------------------------------------------+
@@ -114,6 +100,7 @@ void OnTimer() {
    myTrade.CheckFridayEnd();
    myTrade.CheckYearsEnd();
    myTrade.CheckBalance();
+   myTrade.CheckMarginLevel();
 
    if(!myTrade.istradable) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
