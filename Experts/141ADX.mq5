@@ -26,29 +26,32 @@ CiMomentum ciMomentum;
 CTrade trade;
 
 CiATR ciATR;
+CiOsMA ciOsma;
 
 CiBearsPower ciBear;
 CiBullsPower ciBull;
 CiADX ciADX;
 
-input ENUM_TIMEFRAMES ADXTimeframe,ATRTimeframe;
-input double SLCoef,TPCoef;
-input int ADXPeriod,ATRPeriod;
-input int ADXCri,ATRCri;
+input ENUM_TIMEFRAMES ADXTimeframe;
+input ENUM_APPLIED_PRICE OsmaAppleidPrice;
+input double SLCoef,TPCoef,OsmaCri,ATRCri;
+input int ADXPeriod;
+input int ADXCri;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
-MyTrade myTrade(0.1, true);
+MyTrade myTrade();
 
 bool tradable = true;
 int OnInit() {
-   MyUtils myutils(14100, 60 * 27);
+   MyUtils myutils(60 * 27);
    myutils.Init();
    
 
    ciADX.Create(_Symbol, ADXTimeframe, ADXPeriod);
-   ciATR.Create(_Symbol, ATRTimeframe, ATRPeriod);
+   ciATR.Create(_Symbol, ADXTimeframe, 14);
+   ciOsma.Create(_Symbol,ADXTimeframe,12,26,9,OsmaAppleidPrice);
    return(INIT_SUCCEEDED);
 }
 
@@ -64,14 +67,15 @@ void OnTick() {
 
    ciATR.Refresh();
    ciADX.Refresh();
+   ciOsma.Refresh();
    
    double currentATR = ciATR.Main(0);
    
-   if(currentATR < ATRCri*_Point) return;
+   if(currentATR < pow(10,ATRCri)) return;
    if(ciADX.Main(0) < ADXCri) return;
    if(ciADX.Main(0) < ciADX.Main(1)) return;
-   if(ciADX.Plus(1) < ciADX.Main(1) && ciADX.Plus(0) > ciADX.Main(0)) myTrade.signal = "buy";
-   else if(ciADX.Minus(1) < ciADX.Main(1) && ciADX.Minus(0) > ciADX.Main(0)) myTrade.signal = "sell";
+   if(ciADX.Plus(1) < ciADX.Main(1) && ciADX.Plus(0) > ciADX.Main(0) && ciOsma.Main(0) > pow(10,OsmaCri)) myTrade.signal = "buy";
+   else if(ciADX.Minus(1) < ciADX.Main(1) && ciADX.Minus(0) > ciADX.Main(0) && ciOsma.Main(0) < -pow(10,OsmaCri)) myTrade.signal = "sell";
    
    
    
