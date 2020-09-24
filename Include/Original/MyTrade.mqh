@@ -23,6 +23,8 @@ class MyTrade {
    double balance;
    double minlot;
    double maxlot;
+   datetime longLastTrade;
+   datetime shortLastTrade;
    int LotDigits;
    MqlDateTime dt;
 
@@ -52,7 +54,6 @@ class MyTrade {
       if(currentSpread >= spread)
          istradable = false;
    }
-
 
    bool isInvalidTrade(double SL, double TP) {
       if(TP > SL) {
