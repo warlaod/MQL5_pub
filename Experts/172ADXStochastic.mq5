@@ -22,26 +22,29 @@
 #include <Trade\OrderInfo.mqh>
 #include <Arrays\ArrayDouble.mqh>
 #include <Indicators\BillWilliams.mqh>
-#include <Arrays\ArrayDouble.mqh>
 CTrade trade;
-CiRSI ciRSI, ciRSIMiddle, ciRSILong;
 CiStochastic ciStochastic;
+CiSAR ciSAR;
+CiADX ciADX;
+CiOsMA ciOsma;
+CiBands ciLongBands, ciBands;
 CiATR ciATR;
-CiMomentum ciMomentum;
-CiBands ciBands;
-input ENUM_TIMEFRAMES MomentumTimeframe;
-input ENUM_APPLIED_PRICE MomentumAppliedPrice;
-input double SLCoef, TPCoef;
-input int k, s, d;
-input int MomentumPeriod;
-input int SellStochasticCri, BuyStochasticCri, CloseBuyStochasticCri, CloseSellStochasticCri;
+
+input ENUM_TIMEFRAMES StochasticTimeframe, ADXTimeframe;
+input int ADXPeriod, ATRPeriod;
+input ENUM_STO_PRICE Sto_PRICE;
+input int k, d, s;
+input int StochasticHighCri, StochasticLowCri;
+input double TPCoef, SLCoef;
+input int ADXCri;
 bool tradable = false;
+string LTrend;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyPrice myPrice(MomentumTimeframe, 2);
+MyPrice myPrice(StochasticTimeframe, 3);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -49,10 +52,9 @@ MyPrice myPrice(MomentumTimeframe, 2);
 int OnInit() {
    MyUtils myutils(60 * 27);
    myutils.Init();
-   trade.SetExpertMagicNumber(MagicNumber);
-
-   ciMomentum.Create(_Symbol, MomentumTimeframe, MomentumPeriod, MomentumAppliedPrice);
-   ciStochastic.Create(_Symbol, MomentumTimeframe, k, d, s, MODE_EMA, STO_LOWHIGH);
+   ciADX.Create(_Symbol, ADXTimeframe, ADXPeriod);
+   ciStochastic.Create(_Symbol, StochasticTimeframe, k, d, s, MODE_EMA, Sto_PRICE);
+   ciATR.Create(_Symbol, ADXTimeframe, ATRPeriod);
    return(INIT_SUCCEEDED);
 }
 
@@ -61,56 +63,42 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    myPosition.Refresh();
+   ciATR.Refresh();
    ciStochastic.Refresh();
-   ciMomentum.Refresh();
+   ciADX.Refresh();
    myTrade.Refresh();
-   myPrice.Refresh();
 
 
+   if(ciADX.Main(0) > ADXCri) return;
    myTrade.CheckSpread();
-   //myPosition.Trailings(POSITION_TYPE_BUY,myTrade.Ask - (ciBands.Upper(0)-ciBands.Lower(0))*TrailingCoef);
-   //myPosition.Trailings(POSITION_TYPE_SELL,myTrade.Bid + (ciBands.Upper(0)-ciBands.Lower(0))*TrailingCoef);
    if(!myTrade.istradable || !tradable) return;
 
-
-
-   if(ciStochastic.Main(0) > CloseBuyStochasticCri || ciStochastic.Signal(0) > CloseBuyStochasticCri) {
-      if(ciStochastic.Main(1) > ciStochastic.Signal(1) &&  ciStochastic.Main(0) < ciStochastic.Signal(0))
-        myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+   if(ciStochastic.Main(1) > StochasticHighCri && ciStochastic.Signal(1) > StochasticHighCri) {
+      if(ciStochastic.Main(1) > ciStochastic.Signal(1) && ciStochastic.Main(0) < ciStochastic.Signal(0))
+         myTrade.signal = "sell";
    }
 
-   if(ciStochastic.Main(0) < CloseSellStochasticCri || ciStochastic.Signal(0) < CloseSellStochasticCri) {
-      if(ciStochastic.Main(1) < ciStochastic.Signal(1) &&  ciStochastic.Main(0) > ciStochastic.Signal(0))
-         myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+   else if(ciStochastic.Main(1) < StochasticLowCri && ciStochastic.Signal(1) < StochasticLowCri) {
+      if(ciStochastic.Main(1) < ciStochastic.Signal(1) && ciStochastic.Main(0) > ciStochastic.Signal(0))
+         myTrade.signal = "buy";
    }
 
 
-   if(ciMomentum.Main(0) < 100 ) {
-      if(ciStochastic.Main(0) > SellStochasticCri || ciStochastic.Signal(0) > SellStochasticCri) {
-         if(ciStochastic.Main(1) > ciStochastic.Signal(1) &&  ciStochastic.Main(0) < ciStochastic.Signal(0))
-            myTrade.signal = "sell";
-      }
-   }
 
-   if(ciMomentum.Main(0) > 100) {
-      if(ciStochastic.Main(0) < BuyStochasticCri || ciStochastic.Signal(0) < BuyStochasticCri) {
-         if(ciStochastic.Main(1) < ciStochastic.Signal(1) &&  ciStochastic.Main(0) > ciStochastic.Signal(0))
-            myTrade.signal = "buy";
-      }
-   }
-
-   double PriceUnit =10*_Point;
+   double PriceUnit = ciATR.Main(0);
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
-      if(myPosition.isPositionInTPRange(PriceUnit*TPCoef,myPrice.getData(0).close,POSITION_TYPE_BUY)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
    }
+
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
       if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
-      if(myPosition.isPositionInTPRange(PriceUnit*TPCoef,myPrice.getData(0).close,POSITION_TYPE_SELL)) return;
       trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
+
+
 }
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -123,7 +111,6 @@ void OnTimer() {
    myTrade.CheckFridayEnd();
    myTrade.CheckYearsEnd();
    myTrade.CheckBalance();
-   myTrade.CheckMarginLevel();
 
    if(!myTrade.istradable) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
@@ -139,12 +126,14 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades_only_longs();
    return  result;
 }
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+

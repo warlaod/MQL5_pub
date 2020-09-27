@@ -31,13 +31,12 @@ CiATR ciATR;
 
 input ENUM_TIMEFRAMES BandTimeframe;
 input int BandPeriod;
-input ENUM_APPLIED_PRICE BandAppliedPrice;
-input int BandWidthRange;
-input double BoxCri, TrendCri, PriceCri;
+input ENUM_APPLIED_PRICE BandAppliedPrice, OsmaAppliedPrice;
 input double TPCoef, SLCoef;
-input int perBLowCri, perBHighCri;
+input double OsmaCri;
+
 bool tradable = false;
-string Trend;
+string LastTrend, NewTrend;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -51,8 +50,8 @@ MyPrice myPrice(BandTimeframe, 3);
 int OnInit() {
    MyUtils myutils(60 * 27);
    myutils.Init();
-   ciOsma.Create(_Symbol,BandTimeframe,12,26,9,PRICE_CLOSE);
-   ciBands.Create(_Symbol, BandTimeframe, BandPeriod, 0, 2, PRICE_CLOSE);
+   ciOsma.Create(_Symbol, BandTimeframe, 12, 26, 9, OsmaAppliedPrice);
+   ciBands.Create(_Symbol, BandTimeframe, BandPeriod, 0, 2, BandAppliedPrice);
    return(INIT_SUCCEEDED);
 }
 
@@ -66,40 +65,33 @@ void OnTick() {
    myPrice.Refresh();
    myTrade.Refresh();
 
+   if(MathAbs(ciOsma.Main(1)) < OsmaCri*_Point) return;
+   if(!isBetween(MathAbs(ciOsma.Main(1)), MathAbs(ciOsma.Main(2)), MathAbs(ciOsma.Main(0)))) return;
 
-   if(!myTrade.istradable || !tradable) return;
 
 
-   CArrayDouble BandWidth;
-   for(int i = 0; i <= BandWidthRange; i++) {
-      BandWidth.Add(ciBands.Upper(i) - ciBands.Lower(i));
-      double dwa  = BandWidth.At(i);
-      string aw = "fewa";
-   }
+   if(ciOsma.Main(0) < 0) NewTrend = "short";
+   else NewTrend = "long";
 
-   if( BandWidth.At(0) / BandWidth.At(BandWidth.Maximum(0, BandWidthRange)) <= BoxCri) {
-      Trend = "Box";
-   } else if( BandWidth.At(BandWidth.Minimum(0, BandWidthRange)) / BandWidth.At(0) >= TrendCri) {
-      Trend = "Trend";
-   }
+   if(NewTrend == LastTrend) return;
 
-   if(Trend == "Trend") {
-      double perB = (myPrice.getData(0).close - ciBands.Lower(0)) / (ciBands.Upper(0) - ciBands.Lower(0)) * 100;
-      if(perB > 50 + perBLowCri && perB < 100 - perBHighCri) myTrade.signal = "buy";
-      if(perB <  50 - perBLowCri && perB > 0 + perBHighCri) myTrade.signal = "sell";
-   } else if(Trend != "Box") {
-      if(myPrice.getData(1).high > ciBands.Upper(1) && myPrice.getData(1).close - myPrice.getData(1).open > 0 && myPrice.getData(0).close > myPrice.getData(1).close) {
-         if( myPrice.RosokuHigh(1) / myPrice.RosokuBody(1) > PriceCri) return;
+
+   if(NewTrend == "short") {
+      if(myPrice.getData(1).close < ciBands.Lower(1) && myPrice.getData(0).close > ciBands.Lower(0)) {
          myTrade.signal = "buy";
-         Trend = "";
-      }
-
-      if(myPrice.getData(1).low < ciBands.Lower(1) && myPrice.getData(1).close - myPrice.getData(1).open < 0 && myPrice.getData(0).close < myPrice.getData(1).close) {
-         if( myPrice.RosokuLow(1) / myPrice.RosokuBody(1) > PriceCri) return;
-         myTrade.signal = "sell";
-         Trend = "";
       }
    }
+
+   if(NewTrend == "long") {
+      if(myPrice.getData(1).close > ciBands.Upper(1) && myPrice.getData(0).close < ciBands.Upper(0)) {
+         myTrade.signal = "sell";
+      }
+   }
+
+   LastTrend = NewTrend;
+
+   myTrade.CheckSpread();
+   if(!myTrade.istradable || !tradable) return;
 
    double PriceUnit = ciBands.Upper(0) - ciBands.Lower(0);
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
@@ -111,6 +103,8 @@ void OnTick() {
       if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
       trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
+
+
 
 
 }

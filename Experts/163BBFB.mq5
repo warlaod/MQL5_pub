@@ -45,14 +45,14 @@ string Trend, LastTrend;
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
-MyTrade myTrade(0.1, false);
+MyTrade myTrade();
 MyPrice myPrice(MATimeframe, 3);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
-   MyUtils myutils(14100, 60 * 27);
+   MyUtils myutils( 60 * 27);
    myutils.Init();
 
 

@@ -55,8 +55,8 @@ class MyUtils{
 //+------------------------------------------------------------------+
 
 input int spread = -1;
-input int denom = 30000;
-input int positions = 2;
+input int denom = 3000000;
+int positions = 2;
 input bool isLotModified = false;
 input int FridayEndHour = 23;
 input int StopBalance = 2000;

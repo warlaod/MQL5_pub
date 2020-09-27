@@ -62,7 +62,6 @@ int OnInit() {
 void OnTick() {
    myPosition.Refresh();
    ciMA.Refresh();
-   ciATR.Refresh();
    myTrade.Refresh();
    myPrice.Refresh();
 
@@ -98,13 +97,14 @@ void OnTick() {
 
 
    double PriceUnit = MathAbs(myPrice.getData(0).close - ciMA.Main(0));
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
+      if(myPosition.isPositionInTPRange(PriceUnit*TPCoef,myPrice.getData(0).close,POSITION_TYPE_BUY)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
    }
-
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
       if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
+      if(myPosition.isPositionInTPRange(PriceUnit*TPCoef,myPrice.getData(0).close,POSITION_TYPE_SELL)) return;
       trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
 }
