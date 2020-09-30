@@ -55,11 +55,11 @@ int spreadcoutn = 0;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-MyPrice myPrice(PriceTimeframe,PriceCount);
-MyTrade myTrade(0.1,true);
+MyPrice myPrice(PERIOD_MN1,PriceCount);
+MyTrade myTrade;
 MyPosition myPosition;
 int OnInit() {
-   MyUtils myutils(13303, 60 * Timer);
+   MyUtils myutils(60 * Timer);
    myutils.Init();
    ciOsma.Create(_Symbol, OsmaTimeframe, 12, 25, 9, OsmaAppliedPrice);
    
@@ -81,8 +81,8 @@ void OnTimer() {
    }
    ciOsma.Refresh();
 
-   double lowest_price = myPrice.Lowest();
-   double highest_price = myPrice.Higest();
+   double lowest_price = myPrice.Lowest(0,PriceCount);
+   double highest_price = myPrice.Higest(0,PriceCount);
    double highest_lowest_range = highest_price - lowest_price;
    double current_price = myPrice.getData(0).close;
 
