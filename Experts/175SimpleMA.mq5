@@ -23,13 +23,17 @@
 #include <Arrays\ArrayDouble.mqh>
 #include <Indicators\BillWilliams.mqh>
 CTrade trade;
+CiMA ciLongMA, ciShortMA;
 CiFractals ciFractals;
 CiATR ciATR;
 
-input ENUM_TIMEFRAMES FractalTimeframe;
+
+input ENUM_TIMEFRAMES  MATimeframe;
+input ENUM_MA_METHOD MA_MODE;
+input ENUM_APPLIED_PRICE AppliedPrice;
+input int LongPeriod, ShortPeriod;
 input double TPCoef, SLCoef;
-input int FractalPeriod;
-input int SignalCri,ATRCri;
+input int ATRCri;
 bool tradable = false;
 string LTrend;
 //+------------------------------------------------------------------+
@@ -37,7 +41,7 @@ string LTrend;
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyPrice myPrice(FractalTimeframe, 2);
+MyPrice myPrice(MATimeframe, 2);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -45,8 +49,10 @@ MyPrice myPrice(FractalTimeframe, 2);
 int OnInit() {
    MyUtils myutils(60 * 27);
    myutils.Init();
-   ciFractals.Create(_Symbol, FractalTimeframe);
-   ciATR.Create(_Symbol,FractalTimeframe,14);
+
+   ciLongMA.Create(_Symbol, MATimeframe, LongPeriod, 0, MA_MODE, AppliedPrice);
+   ciShortMA.Create(_Symbol, MATimeframe, ShortPeriod, 0, MA_MODE, AppliedPrice);
+   ciATR.Create(_Symbol,MATimeframe,14);
 
    return(INIT_SUCCEEDED);
 }
@@ -56,43 +62,41 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    myPosition.Refresh();
-   ciFractals.Refresh();
+   ciLongMA.Refresh();
+   ciShortMA.Refresh();
    ciATR.Refresh();
    myTrade.Refresh();
    myPrice.Refresh();
 
 
    myTrade.CheckSpread();
-   
+
    if(!myTrade.istradable || !tradable) return;
-
-   CArrayDouble UpperFractals;
-   CArrayDouble LowerFractals;
-   for(int i = 0; i < FractalPeriod; i++) {
-      if(ciFractals.Upper(i) != EMPTY_VALUE) UpperFractals.Add(ciFractals.Upper(i));
-      if(ciFractals.Lower(i) != EMPTY_VALUE) LowerFractals.Add(ciFractals.Lower(i));
-   }
-
+   if(ShortPeriod >= LongPeriod) return;
+   
    if(ciATR.Main(0) < ATRCri*_Point) return;
-
-   double HighestFractal = UpperFractals.At(UpperFractals.Maximum(0, FractalPeriod));
-   double LowestFractal = LowerFractals.At(LowerFractals.Minimum(0, FractalPeriod));
-  
-
-   if(HighestFractal < myPrice.getData(0).close + SignalCri * _Point) myTrade.signal = "buy";
-
-   if(LowestFractal > myPrice.getData(0).close - SignalCri * _Point) myTrade.signal = "sell";
-
-
-   double PriceUnit = 10 * _Point;
+   
+   
+   
+   if(ciLongMA.Main(1) > ciShortMA.Main(1) && ciLongMA.Main(0) < ciShortMA.Main(0)){
+      myTrade.signal = "buy";
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+   }
+   
+   if(ciLongMA.Main(1) < ciShortMA.Main(1) && ciLongMA.Main(0) > ciShortMA.Main(0)){
+      myTrade.signal = "sell";
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+   }
+   
+    double PriceUnit = 10*_Point;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
-      if(myTrade.isInvalidTrade(LowestFractal - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
-      trade.Buy(myTrade.lot, NULL, myTrade.Ask, LowestFractal - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
+      if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
+      trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
    }
 
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
-      if(myTrade.isInvalidTrade(HighestFractal + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
-      trade.Sell(myTrade.lot, NULL, myTrade.Bid, HighestFractal + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
+      if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
+      trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
 
 

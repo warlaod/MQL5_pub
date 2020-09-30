@@ -23,21 +23,24 @@
 #include <Arrays\ArrayDouble.mqh>
 #include <Indicators\BillWilliams.mqh>
 CTrade trade;
+CiMA ciLongMA, ciShortMA;
 CiFractals ciFractals;
 CiATR ciATR;
+CiRSI ciLongRSI, ciShortRSI;
 
-input ENUM_TIMEFRAMES FractalTimeframe;
+
+input ENUM_TIMEFRAMES PriceTimeframe;
 input double TPCoef, SLCoef;
-input int FractalPeriod;
-input int SignalCri,ATRCri;
+input int PriceCri;
 bool tradable = false;
+double lastopen;
 string LTrend;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyPrice myPrice(FractalTimeframe, 2);
+MyPrice myPrice(PriceTimeframe, 2);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -45,8 +48,6 @@ MyPrice myPrice(FractalTimeframe, 2);
 int OnInit() {
    MyUtils myutils(60 * 27);
    myutils.Init();
-   ciFractals.Create(_Symbol, FractalTimeframe);
-   ciATR.Create(_Symbol,FractalTimeframe,14);
 
    return(INIT_SUCCEEDED);
 }
@@ -56,43 +57,38 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    myPosition.Refresh();
-   ciFractals.Refresh();
-   ciATR.Refresh();
    myTrade.Refresh();
    myPrice.Refresh();
 
 
    myTrade.CheckSpread();
-   
-   if(!myTrade.istradable || !tradable) return;
 
-   CArrayDouble UpperFractals;
-   CArrayDouble LowerFractals;
-   for(int i = 0; i < FractalPeriod; i++) {
-      if(ciFractals.Upper(i) != EMPTY_VALUE) UpperFractals.Add(ciFractals.Upper(i));
-      if(ciFractals.Lower(i) != EMPTY_VALUE) LowerFractals.Add(ciFractals.Lower(i));
+   if(lastopen != myPrice.getData(1).open) {
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      lastopen =  myPrice.getData(1).open;
    }
 
-   if(ciATR.Main(0) < ATRCri*_Point) return;
+   if(!myTrade.istradable || !tradable) return;
 
-   double HighestFractal = UpperFractals.At(UpperFractals.Maximum(0, FractalPeriod));
-   double LowestFractal = LowerFractals.At(LowerFractals.Minimum(0, FractalPeriod));
-  
 
-   if(HighestFractal < myPrice.getData(0).close + SignalCri * _Point) myTrade.signal = "buy";
 
-   if(LowestFractal > myPrice.getData(0).close - SignalCri * _Point) myTrade.signal = "sell";
-
+   if(myPrice.getData(1).high <= myPrice.getData(0).close && MathAbs(myPrice.getData(1).close - myPrice.getData(1).high) > PriceCri*_Point ) {
+      myTrade.signal = "buy";
+   }
+   if(myPrice.getData(1).low >= myPrice.getData(0).close && MathAbs(myPrice.getData(1).close - myPrice.getData(1).low) > PriceCri*_Point ) {
+      myTrade.signal = "sell";
+   }
 
    double PriceUnit = 10 * _Point;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
-      if(myTrade.isInvalidTrade(LowestFractal - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
-      trade.Buy(myTrade.lot, NULL, myTrade.Ask, LowestFractal - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
+      if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
+      trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
    }
 
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
-      if(myTrade.isInvalidTrade(HighestFractal + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
-      trade.Sell(myTrade.lot, NULL, myTrade.Bid, HighestFractal + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
+      if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
+      trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
 
 
