@@ -15,6 +15,7 @@
 #include <Original\MyCalculate.mqh>
 #include <Original\MyTest.mqh>
 #include <Original\MyPrice.mqh>
+#include <Original\MyDate.mqh>
 #include <Original\MyPosition.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
@@ -22,33 +23,30 @@
 #include <Trade\OrderInfo.mqh>
 #include <Arrays\ArrayDouble.mqh>
 #include <Indicators\BillWilliams.mqh>
+#include <Arrays\ArrayDouble.mqh>
 CTrade trade;
-CiMA ciLongMA, ciShortMA;
-CiFractals ciFractals;
-CiATR ciATR;
-CiRSI ciLongRSI, ciShortRSI;
-
-
-input ENUM_TIMEFRAMES PriceTimeframe;
-input double TPCoef, SLCoef;
-input int PriceCri;
+CiOsMA ciOsma;
+CiBands ciBands;
+input int TPCoef, SLCoef;
+input ENUM_TIMEFRAMES LongPriceTimeframe, ShortPriceTimeframe;
 bool tradable = false;
-double lastopen;
-string LTrend;
+
+datetime lastStopLossTime;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyPrice myPrice(PriceTimeframe, 2);
-
+MyPrice myLongPrice(LongPriceTimeframe, 3);
+MyPrice myShortPrice(ShortPriceTimeframe, 3);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    MyUtils myutils(60 * 27);
    myutils.Init();
-
+   trade.SetExpertMagicNumber(MagicNumber);
+   ciBands.Create(_Symbol, ShortPriceTimeframe, 20, 0, 3, PRICE_CLOSE);
    return(INIT_SUCCEEDED);
 }
 
@@ -58,42 +56,55 @@ int OnInit() {
 void OnTick() {
    myPosition.Refresh();
    myTrade.Refresh();
-   myPrice.Refresh();
-
-
+   myLongPrice.Refresh();
+   myShortPrice.Refresh();
    myTrade.CheckSpread();
+   ciBands.Refresh();
+   
+   if(LongPriceTimeframe <= ShortPriceTimeframe) return;
 
-   if(lastopen != myPrice.getData(1).open) {
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      lastopen =  myPrice.getData(1).open;
+
+   if(myLongPrice.RosokuIsPlus(2) && myLongPrice.RosokuIsPlus(1)) {
+      if(myLongPrice.getData(2).high < myLongPrice.getData(1).close)
+         myTrade.signal = "buybuy";
+   } else if(!myLongPrice.RosokuIsPlus(2) && !myLongPrice.RosokuIsPlus(1)) {
+      if(myLongPrice.getData(2).low > myLongPrice.getData(1).close)
+         myTrade.signal = "sellsell";
    }
 
+   if(myTrade.signal == "buybuy" && myLongPrice.getData(2).high > myLongPrice.getData(0).close) {
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      lastStopLossTime = TimeCurrent();
+   }
+   if(myTrade.signal == "sellsell" && myLongPrice.getData(2).low < myLongPrice.getData(0).close) {
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      lastStopLossTime = TimeCurrent();
+   }
+
+   if(myTrade.signal == "buybuy") {
+      if(ciBands.Lower(1) > myLongPrice.getData(1).close) myTrade.signal = "buy";
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+   }
+   if(myTrade.signal == "sellsell") {
+      if(ciBands.Upper(1) < myLongPrice.getData(1).close) myTrade.signal = "sell";
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+   }
+
+   if(NewBarsCount(lastStopLossTime, LongPriceTimeframe) == 0) return;
    if(!myTrade.istradable || !tradable) return;
 
 
-
-   if(myPrice.getData(1).high <= myPrice.getData(0).close && MathAbs(myPrice.getData(1).close - myPrice.getData(1).high) > PriceCri*_Point ) {
-      myTrade.signal = "buy";
-   }
-   if(myPrice.getData(1).low >= myPrice.getData(0).close && MathAbs(myPrice.getData(1).close - myPrice.getData(1).low) > PriceCri*_Point ) {
-      myTrade.signal = "sell";
-   }
 
    double PriceUnit = 10 * _Point;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
    }
-
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
       if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
       trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
-
-
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -102,15 +113,14 @@ void OnTimer() {
    myTrade.Refresh();
 
    tradable = true;
-
+   MyDate myDate();
+   myDate.Refresh();
    myTrade.CheckFridayEnd();
-   myTrade.CheckYearsEnd();
+   myDate.CheckYearsEnd();
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
    
-   int hours[] ={0,1,2,3,4,5,6,7};
-   myTrade.CheckUntradableHour(hours);
-
+   myDate.CheckDST_USA();
    if(!myTrade.istradable) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
@@ -125,14 +135,12 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_profit_trades_only_longs();
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
    return  result;
 }
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+

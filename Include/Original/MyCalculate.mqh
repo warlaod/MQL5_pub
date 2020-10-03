@@ -30,9 +30,16 @@
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool isBetween(double top,double middle, double bottom) {
+bool isBetween(double top, double middle, double bottom) {
 
-   if(top - bottom > 0 && top-middle > 0 && middle -bottom >0) return true;
+   if(top - bottom > 0 && top - middle > 0 && middle - bottom > 0) return true;
    return false;
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double NewBarsCount(datetime LastTime, ENUM_TIMEFRAMES Timeframe) {
+   return Bars(_Symbol, Timeframe, Timeframe, TimeCurrent());
 }
 //+------------------------------------------------------------------+

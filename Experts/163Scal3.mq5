@@ -141,3 +141,17 @@ double OnTester() {
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
+   void check_DST_USA() {
+      
+      datetime DSTStart = StringToTime(dt.year + "03" + "15");
+      datetime DSTEnd = StringToTime(dt.year + "11" + "01");
+
+      if(dt.mon == 3 && dt.day_of_week == MONDAY) {
+         if(8 < dt.day && dt.day <= 15) {
+         }
+      }
+      if(dt.mon == 11 && dt.day_of_week == MONDAY) {
+         if(1 < dt.day && dt.day <= 8) {
+         }
+      }
+   }

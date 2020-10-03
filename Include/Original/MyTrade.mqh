@@ -8,7 +8,7 @@ input int spread = -1;
 input int denom = 30000;
 input int positions = 2;
 input bool isLotModified = false;
-input int FridayEndHour = 23;
+input int FridayCloseHour = 23;
 input int StopBalance = 2000;
 input int StopMarginLevel = 200;
 
@@ -23,8 +23,6 @@ class MyTrade {
    double balance;
    double minlot;
    double maxlot;
-   datetime longLastTrade;
-   datetime shortLastTrade;
    int LotDigits;
    MqlDateTime dt;
 
@@ -77,7 +75,7 @@ class MyTrade {
 
    void CheckFridayEnd() {
       if(dt.day_of_week == FRIDAY) {
-         if((dt.hour == FridayEndHour && dt.min > 0) || dt.hour >= FridayEndHour) {
+         if((dt.hour == FridayCloseHour && dt.min > 30) || dt.hour >= FridayCloseHour) {
             istradable = false;
          }
       }

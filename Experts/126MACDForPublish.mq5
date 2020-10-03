@@ -22,12 +22,12 @@ CiMACD ciLongMACD, ciShortMACD;
 CiATR ciATR;
 ENUM_TIMEFRAMES MacdShortTimeframe = PERIOD_M15;
 ENUM_TIMEFRAMES MacdLongTimeframe = PERIOD_H2;
-ENUM_TIMEFRAMES ATRTimeframe = PERIOD_M5;
-ENUM_APPLIED_PRICE MacdPriceType = PRICE_WEIGHTED;
+ENUM_TIMEFRAMES ATRTimeframe = PERIOD_H12;
+ENUM_APPLIED_PRICE MacdPriceType = PRICE_CLOSE;
 bool tradable = false;
 
-double TPCoef = 15;
-double SLCoef = 11.25;
+double TPCoef = 0.5;
+double SLCoef = 1.25;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+

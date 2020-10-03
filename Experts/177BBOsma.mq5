@@ -22,25 +22,23 @@
 #include <Trade\OrderInfo.mqh>
 #include <Arrays\ArrayDouble.mqh>
 #include <Indicators\BillWilliams.mqh>
+#include <Arrays\ArrayDouble.mqh>
 CTrade trade;
-CiMA ciLongMA, ciShortMA;
-CiFractals ciFractals;
-CiATR ciATR;
-CiRSI ciLongRSI, ciShortRSI;
-
-
-input ENUM_TIMEFRAMES PriceTimeframe;
-input double TPCoef, SLCoef;
-input int PriceCri;
+CiOsMA ciOsma;
+CiBands ciBands;
+input ENUM_TIMEFRAMES BandTimeframe;
+input double OsmaCri, OsmaDiffCri, OsmaCloseCri;
+input int TPCoef, SLCoef;
+input ENUM_APPLIED_PRICE OsmaAppliedPrice, BandAppliedPrice;
 bool tradable = false;
-double lastopen;
-string LTrend;
+
+double lastMaxOsma;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyPrice myPrice(PriceTimeframe, 2);
+MyPrice myPrice(BandTimeframe, 3);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -48,7 +46,11 @@ MyPrice myPrice(PriceTimeframe, 2);
 int OnInit() {
    MyUtils myutils(60 * 27);
    myutils.Init();
+   trade.SetExpertMagicNumber(MagicNumber);
 
+   ciOsma.Create(_Symbol, BandTimeframe, 12, 26, 9, OsmaAppliedPrice);
+   ciBands.Create(_Symbol, BandTimeframe, 20, 0, 2, BandAppliedPrice);
+   
    return(INIT_SUCCEEDED);
 }
 
@@ -57,43 +59,48 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    myPosition.Refresh();
+   ciBands.Refresh();
+   ciOsma.Refresh();
    myTrade.Refresh();
    myPrice.Refresh();
 
-
    myTrade.CheckSpread();
-
-   if(lastopen != myPrice.getData(1).open) {
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      lastopen =  myPrice.getData(1).open;
-   }
-
    if(!myTrade.istradable || !tradable) return;
 
+   double Osma2 = ciOsma.Main(2);
+   double Osma1 = ciOsma.Main(1);
+   double Osma0 = ciOsma.Main(0);
+
+   if(MathAbs(Osma1) < OsmaCri * _Point) return;
+   if(MathAbs(Osma1 - Osma0) < OsmaDiffCri * _Point) return;
 
 
-   if(myPrice.getData(1).high <= myPrice.getData(0).close && MathAbs(myPrice.getData(1).close - myPrice.getData(1).high) > PriceCri*_Point ) {
-      myTrade.signal = "buy";
-   }
-   if(myPrice.getData(1).low >= myPrice.getData(0).close && MathAbs(myPrice.getData(1).close - myPrice.getData(1).low) > PriceCri*_Point ) {
-      myTrade.signal = "sell";
+
+   if( MathAbs(Osma1) > MathAbs(Osma0) && MathAbs(Osma1) > MathAbs(Osma2)) {
+      if(Osma0 > 0 && ciBands.Upper(1) < myPrice.getData(1).close) {
+         myTrade.signal = "sell";
+         myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+         myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      }
+      if(Osma0 < 0 && ciBands.Lower(1) > myPrice.getData(1).close) {
+         myTrade.signal = "buy";
+         myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+         myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      }
    }
 
    double PriceUnit = 10 * _Point;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
+      lastMaxOsma = Osma1;
    }
-
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
       if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
       trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
+      lastMaxOsma = Osma1;
    }
-
-
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -107,9 +114,6 @@ void OnTimer() {
    myTrade.CheckYearsEnd();
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
-   
-   int hours[] ={0,1,2,3,4,5,6,7};
-   myTrade.CheckUntradableHour(hours);
 
    if(!myTrade.istradable) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
@@ -125,14 +129,12 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_profit_trades_only_longs();
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
    return  result;
 }
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
