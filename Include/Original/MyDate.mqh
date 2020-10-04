@@ -28,8 +28,8 @@
 #include <Original\MyCalculate.mqh>
 #include <Tools\DateTime.mqh>
 
-input bool SetDSTOnUSA;
-input bool SetDSTOnEU;
+// input bool SetDSTOnUSA;
+// input bool SetDSTOnEU;
 input int FridayEndHour = 23;
 class MyDate {
  public:
@@ -42,13 +42,14 @@ class MyDate {
 
    void Refresh() {
       TimeToStruct(TimeCurrent(), dt);
-      if(SetDSTOnEU) {
-         checkDST_EU();
-         if(isDSTOnEU) TimeToStruct(TimeCurrent() + 3600, dt);
-      } else if(SetDSTOnUSA) {
-         checkDST_EU();
-         if(isDSTOnUSA) TimeToStruct(TimeCurrent() + 3600, dt);
-      }
+      // if(SetDSTOnEU) {
+      //    checkDST_EU();
+      //    if(isDSTOnEU) TimeToStruct(TimeCurrent() + 3600, dt);
+      // } else if(SetDSTOnUSA) {
+      //    checkDST_USA();
+      //    if(isDSTOnUSA) TimeToStruct(TimeCurrent() + 3600, dt);
+      //    double dawdwa = 123;
+      // }
    }
 
    bool isYearEnd() {
@@ -58,8 +59,9 @@ class MyDate {
    }
 
    bool isFridayEnd() {
-      if(dt.day_of_week == FRIDAY) {
-         if((dt.hour == FridayEndHour - 1 && dt.min > 30) || dt.hour >= FridayEndHour) return true;
+      if(dt.day_of_week == SATURDAY) {
+         if((dt.hour == FridayEndHour - 1 && dt.min > 0) || dt.hour >= FridayEndHour)
+            return true;
       }
       return false;
    }
@@ -68,14 +70,20 @@ class MyDate {
       double CurrentTime = TimeCurrent();
       double StartTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 3, DST_USA_Startday()));
       double EndTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 11, DST_USA_Endday()));
-      if(isBetween(EndTime, CurrentTime, StartTime)) isDSTOnUSA = true;
+      if(isBetween(EndTime, CurrentTime, StartTime))
+         isDSTOnUSA = true;
+      else
+         isDSTOnUSA = false;
    }
 
    void checkDST_EU() {
       double CurrentTime = TimeCurrent();
       double StartTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 3, DST_EU_Startday()));
       double EndTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 10, DST_EU_Endday()));
-      if(isBetween(EndTime, CurrentTime, StartTime)) isDSTOnEU = true;
+      if(isBetween(EndTime, CurrentTime, StartTime))
+         isDSTOnEU = true;
+      else
+         isDSTOnEU = false;
    }
 
  private:
