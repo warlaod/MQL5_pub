@@ -16,6 +16,7 @@
 #include <Original\MyTest.mqh>
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
+#include <Original\MyOrder.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -23,24 +24,20 @@
 #include <Arrays\ArrayDouble.mqh>
 #include <Indicators\BillWilliams.mqh>
 CTrade trade;
-CiMA ciMA,ciMALong;
+CiMA ciMAShort, ciMALong;
+CiBands ciBands;
+CiStochastic ciStochastic;
+#include <Generic\Interfaces\IComparable.mqh>
 
-
-input ENUM_TIMEFRAMES PriceTimeframe;
-input ENUM_MA_METHOD MA_Metogod;
-input ENUM_APPLIED_PRICE AppliedPrice;
 input int TPCoef, SLCoef;
-input int BodyCri, MACri,EntryCri;
+input ENUM_TIMEFRAMES Timeframe;
 bool tradable = false;
-double lastopen;
-string LTrend;
-datetime LastTradeTime;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyPrice myPrice(PriceTimeframe, 2);
+MyPrice myPrice(PERIOD_M5, 3);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -49,8 +46,8 @@ int OnInit() {
    MyUtils myutils(60 * 27);
    myutils.Init();
 
-   ciMA.Create(_Symbol, PriceTimeframe, 14, 0, MA_Metogod, AppliedPrice);
-   ciMALong.Create(_Symbol, PriceTimeframe, 28, 0, MA_Metogod, AppliedPrice);
+   ciBands.Create(_Symbol, Timeframe, 20, 0, 2, PRICE_CLOSE);
+   ciStochastic.Create(_Symbol, Timeframe, 5, 3, 3, MODE_SMA, STO_LOWHIGH);
 
    return(INIT_SUCCEEDED);
 }
@@ -62,37 +59,41 @@ void OnTick() {
    myPosition.Refresh();
    myTrade.Refresh();
    myPrice.Refresh();
-   ciMA.Refresh();
-   ciMALong.Refresh();
+   ciBands.Refresh();
+   ciStochastic.Refresh();
 
    myTrade.CheckSpread();
-
-
-   myPosition.CloseAllPositionsInMinute(10);
+   myPosition.Trailings(POSITION_TYPE_BUY,ciBands.Base(0));
+   myPosition.Trailings(POSITION_TYPE_SELL,ciBands.Base(0));
    
+   MyOrder myOrder;
+   myOrder.Refresh();
+   if(myOrder.wasOrderedInTheSameBar(Timeframe)) myTrade.istradable = false;
+
+   if(ciStochastic.Main(2) > 80 && ciStochastic.Main(1) <= 80 ) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+   if(ciStochastic.Main(2) < 20 && ciStochastic.Main(1) >= 20 ) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+
+
    if(!myTrade.istradable || !tradable) return;
-   
-   if(ciMALong.Main(1) > ciMA.Main(1) && myPrice.getData(1).high > ciMA.Main(1) && myPrice.getData(1).close < ciMA.Main(1) ){
-      myTrade.signal = "buy";
+
+   if(ciBands.Upper(2) < myPrice.getData(2).high && ciBands.Upper(1) < myPrice.getData(1).high) {
+      if(myPrice.RosokuIsPlus(2) && myPrice.RosokuIsPlus(1))
+         myTrade.signal = "buy";
    }
-   
-   if(ciMALong.Main(1) < ciMA.Main(1) && myPrice.getData(1).low < ciMA.Main(1) && myPrice.getData(1).close > ciMA.Main(1) ){
-      myTrade.signal = "sell";
+   if(ciBands.Lower(2) > myPrice.getData(2).low && ciBands.Lower(1) > myPrice.getData(1).low) {
+      if(!myPrice.RosokuIsPlus(2) && !myPrice.RosokuIsPlus(1))
+         myTrade.signal = "sell";
    }
 
-   
-   if(Bars(_Symbol, PriceTimeframe, LastTradeTime, TimeCurrent()) == 0) return;
    double PriceUnit = 10 * _Point;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
-      if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
-      trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
-      LastTradeTime = TimeCurrent();
+      if(myTrade.isInvalidTrade(ciBands.Base(0), myTrade.Ask + PriceUnit  * TPCoef)) return;
+      trade.Buy(myTrade.lot, NULL, myTrade.Ask, ciBands.Base(0), myTrade.Ask + PriceUnit  * TPCoef, NULL);
    }
 
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
-      if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
-      trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
-      LastTradeTime = TimeCurrent();
+      if(myTrade.isInvalidTrade(ciBands.Base(0), myTrade.Bid - PriceUnit * TPCoef)) return;
+      trade.Sell(myTrade.lot, NULL, myTrade.Bid, ciBands.Base(0), myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
 
 
@@ -111,9 +112,6 @@ void OnTimer() {
    myTrade.CheckYearsEnd();
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
-
-   int hours[] = {8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
-
 
    if(!myTrade.istradable) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);

@@ -4,6 +4,8 @@
 //|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
 
+#include <Original\MyCalculate.mqh>
+
 input int spread = -1;
 input int denom = 30000;
 input int positions = 2;
@@ -42,7 +44,6 @@ class MyTrade {
       signal = "";
       Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
       Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
-      TimeToStruct(TimeCurrent(), dt);
    }
 
    void CheckSpread() {
@@ -64,7 +65,16 @@ class MyTrade {
       return false;
    }
 
+   void CheckUntradableTime(string start, string end) {
+      if(isBetween(StringToTime(end), TimeCurrent(), StringToTime(start))) istradable = false;
+   }
+   
+   void CheckTradableTime(string start, string end) {
+      if(!isBetween(StringToTime(end), TimeCurrent(), StringToTime(start))) istradable = false;
+   }
+
    void CheckYearsEnd() {
+      TimeToStruct(TimeCurrent(), dt);
       if(dt.mon == 12 && dt.day > 25) {
          istradable =  false;
       }
@@ -74,6 +84,7 @@ class MyTrade {
    }
 
    void CheckFridayEnd() {
+      TimeToStruct(TimeCurrent(), dt);
       if(dt.day_of_week == FRIDAY) {
          if((dt.hour == FridayCloseHour && dt.min > 30) || dt.hour >= FridayCloseHour) {
             istradable = false;
@@ -84,15 +95,6 @@ class MyTrade {
    void CheckBalance() {
       if(NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE), 1) < StopBalance) {
          istradable = false;
-      }
-   }
-
-   void CheckUntradableHour(int &hours[]) {
-      for(int i = 0; i < ArraySize(hours); i++) {
-         if(dt.hour == hours[i]) {
-            istradable = false;
-            return;
-         }
       }
    }
 

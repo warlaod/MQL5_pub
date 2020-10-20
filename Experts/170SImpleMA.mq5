@@ -23,7 +23,7 @@
 #include <Arrays\ArrayDouble.mqh>
 #include <Indicators\BillWilliams.mqh>
 CTrade trade;
-CiMA ciMA,ciMALong;
+CiMA ciMA;
 
 
 input ENUM_TIMEFRAMES PriceTimeframe;
@@ -50,7 +50,6 @@ int OnInit() {
    myutils.Init();
 
    ciMA.Create(_Symbol, PriceTimeframe, 14, 0, MA_Metogod, AppliedPrice);
-   ciMALong.Create(_Symbol, PriceTimeframe, 28, 0, MA_Metogod, AppliedPrice);
 
    return(INIT_SUCCEEDED);
 }
@@ -63,23 +62,28 @@ void OnTick() {
    myTrade.Refresh();
    myPrice.Refresh();
    ciMA.Refresh();
-   ciMALong.Refresh();
 
    myTrade.CheckSpread();
 
 
-   myPosition.CloseAllPositionsInMinute(10);
-   
+
    if(!myTrade.istradable || !tradable) return;
-   
-   if(ciMALong.Main(1) > ciMA.Main(1) && myPrice.getData(1).high > ciMA.Main(1) && myPrice.getData(1).close < ciMA.Main(1) ){
+
+   if(myPrice.RosokuBody(1) > BodyCri * _Point) return;
+
+   if(MathAbs(myPrice.getData(1).close - ciMA.Main(1)) < MACri * _Point) return;
+
+   if(myPrice.RosokuIsPlus(1) && myPrice.getData(1).close < ciMA.Main(1)) {
+      if(myPrice.getData(0).close - myPrice.getData(1).close > EntryCri*_Point)
       myTrade.signal = "buy";
    }
-   
-   if(ciMALong.Main(1) < ciMA.Main(1) && myPrice.getData(1).low < ciMA.Main(1) && myPrice.getData(1).close > ciMA.Main(1) ){
+
+   if(!myPrice.RosokuIsPlus(1) && myPrice.getData(1).close > ciMA.Main(1)) {
+       if(myPrice.getData(1).close - myPrice.getData(0).close > EntryCri*_Point)
       myTrade.signal = "sell";
    }
-
+   
+   int dwad = Bars(_Symbol, PriceTimeframe, LastTradeTime, TimeCurrent());
    
    if(Bars(_Symbol, PriceTimeframe, LastTradeTime, TimeCurrent()) == 0) return;
    double PriceUnit = 10 * _Point;

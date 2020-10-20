@@ -115,8 +115,7 @@ void OnTimer() {
    tradable = true;
    MyDate myDate();
    myDate.Refresh();
-   myTrade.CheckFridayEnd();
-   myDate.CheckYearsEnd();
+   if(myDate.isYearEnd() || myDate.isFridayEnd()) myTrade.istradable == false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
    

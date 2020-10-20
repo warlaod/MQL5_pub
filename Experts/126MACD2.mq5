@@ -19,7 +19,8 @@ input ENUM_TIMEFRAMES ATRTimeframe;
 input ENUM_APPLIED_PRICE MacdPriceType;
 bool tradable = false;
 
-input double TPCoef,SLCoef;
+input double TPCoef;
+input double SLRate;
 //+-------------------------
 
 MyPosition myPosition;
@@ -81,12 +82,13 @@ void OnTick() {
         }
 
     double PriceUnit = ciATR.Main(0);
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
+    double SLCoef = SLRate*TPCoef;
+   if(myPosition.Total < positions && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
    }
 
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
+   if(myPosition.Total < positions && myTrade.signal == "sell") {
       if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
       trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
