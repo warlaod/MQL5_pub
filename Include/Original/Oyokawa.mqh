@@ -5,10 +5,12 @@
 //+------------------------------------------------------------------+
 
 #include <Original\MyCalculate.mqh>
-
+#include <Indicators\Trend.mqh>
 
 class CurrencyStrength {
  public:
+   string strongest;
+   string weakest;
    void CurrencyStrength(ENUM_TIMEFRAMES Timeframe, int count) {
       this.Timeframe = Timeframe;
       this.count = count;
@@ -62,7 +64,9 @@ class CurrencyStrength {
       return false;
    }
 
-
+   bool isStrongest(string currency){
+   
+   }
 
    string StrongestCurrency() {
       if(isAUDStrongest()) return "AUD";
@@ -88,8 +92,10 @@ class CurrencyStrength {
    ENUM_TIMEFRAMES Timeframe;
 
    bool isRising(string symbol) {
-      CopyRates(symbol, Timeframe, 0, count, price);
-      if(price[0].open < price[0].close) return true;
+      CiMA ciMA;
+      ciMA.Create(_Symbol,Timeframe,5,0,MODE_EMA,PRICE_CLOSE);
+      double Trend = ciMA.Main(0) - ciMA.Main(5);
+      if(Trend > 0) return true;
       return false;
    }
 

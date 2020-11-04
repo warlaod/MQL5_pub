@@ -19,7 +19,7 @@ class MyPrice {
       }
    }
 
-   MqlRates getData(int index) {
+   MqlRates At(int index) {
       return price[index];
    }
 
@@ -29,7 +29,7 @@ class MyPrice {
          CopyHigh(_Symbol, _Period, 0, high_count, High);
          Comment("Warning: Now using current Timeframe due to shortage of bars");
       }
-      return price[ArrayMaximum(High, 0, high_count)].high;
+      return High[ArrayMaximum(High,0,high_count)];
    }
 
    double Lowest(int start,int low_count) {
@@ -38,7 +38,7 @@ class MyPrice {
          CopyLow(_Symbol, _Period, 0, low_count, Low);
          Comment("Warning: Now using current Timeframe due to shortage of bars");
       }
-      return price[ArrayMinimum(Low, 0, low_count)].low;
+      return Low[ArrayMinimum(Low, 0, low_count)];
    }
 
    double RosokuHigh(int index) {

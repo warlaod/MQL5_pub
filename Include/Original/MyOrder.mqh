@@ -32,16 +32,21 @@
 class MyOrder {
  public:
    int HistoryTotal;
+   ENUM_TIMEFRAMES Timeframe;
+
+   void MyOrder(ENUM_TIMEFRAMES Timeframe) {
+      this.Timeframe = Timeframe;
+   }
 
    void Refresh() {
-      HistorySelect(0,TimeCurrent());
+      HistorySelect(0, TimeCurrent());
       HistoryTotal = HistoryOrdersTotal();
    }
 
 
-   bool wasOrderedInTheSameBar(ENUM_TIMEFRAMES Timeframe) {
+   bool wasOrderedInTheSameBar() {
       CHistoryOrderInfo cHistoryOrderInfo;
-      cHistoryOrderInfo.SelectByIndex(HistoryTotal-1);
+      cHistoryOrderInfo.SelectByIndex(HistoryTotal - 1);
       if(cHistoryOrderInfo.Magic() != MagicNumber) return false;
       int current = TimeCurrent();
       int timedone = cHistoryOrderInfo.TimeDone();
