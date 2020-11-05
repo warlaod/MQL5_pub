@@ -15,6 +15,7 @@
 #include <Original\MyCalculate.mqh>
 #include <Original\MyTest.mqh>
 #include <Original\MyPrice.mqh>
+#include <Original\MyOrder.mqh>
 #include <Original\MyPosition.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
@@ -42,6 +43,7 @@ bool tradable = false;
 MyPosition myPosition;
 MyTrade myTrade();
 MyPrice myPrice(MomentumTimeframe, 2);
+MyOrder myOrder(MomentumTimeframe);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -65,6 +67,8 @@ void OnTick() {
    ciMomentum.Refresh();
    myTrade.Refresh();
    myPrice.Refresh();
+   
+   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 
 
    myTrade.CheckSpread();
@@ -102,12 +106,12 @@ void OnTick() {
    double PriceUnit =10*_Point;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
       if(myTrade.isInvalidTrade(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef)) return;
-      if(myPosition.isPositionInTPRange(PriceUnit*TPCoef,myPrice.getData(0).close,POSITION_TYPE_BUY)) return;
+      if(myPosition.isPositionInTPRange(PriceUnit*TPCoef,myPrice.At(0).close,POSITION_TYPE_BUY)) return;
       trade.Buy(myTrade.lot, NULL, myTrade.Ask, myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit  * TPCoef, NULL);
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
       if(myTrade.isInvalidTrade(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) return;
-      if(myPosition.isPositionInTPRange(PriceUnit*TPCoef,myPrice.getData(0).close,POSITION_TYPE_SELL)) return;
+      if(myPosition.isPositionInTPRange(PriceUnit*TPCoef,myPrice.At(0).close,POSITION_TYPE_SELL)) return;
       trade.Sell(myTrade.lot, NULL, myTrade.Bid, myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef, NULL);
    }
 }
