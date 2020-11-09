@@ -32,6 +32,7 @@ class MyTrade {
     minlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
     maxlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
     if(LotDigits != -1) {
+      this.LotDigits = LotDigits;
       ModifyLot();
       return;
     }
