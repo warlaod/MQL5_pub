@@ -10,7 +10,6 @@ input int spread = -1;
 input int denom = 30000;
 input int positions = 2;
 input bool isLotModified = false;
-input int FridayCloseHour = 23;
 input int StopBalance = 2000;
 input int StopMarginLevel = 200;
 
@@ -26,7 +25,6 @@ class MyTrade {
   double minlot;
   double maxlot;
   int LotDigits;
-  MqlDateTime dt;
 
   void MyTrade(int LotDigits = -1) {
     minlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
@@ -70,32 +68,7 @@ class MyTrade {
     return false;
   }
 
-  void CheckUntradableTime(string start, string end) {
-    if(isBetween(StringToTime(end), TimeCurrent(), StringToTime(start))) istradable = false;
-  }
-
-  void CheckTradableTime(string start, string end) {
-    if(!isBetween(StringToTime(end), TimeCurrent(), StringToTime(start))) istradable = false;
-  }
-
-  void CheckYearsEnd() {
-    TimeToStruct(TimeCurrent(), dt);
-    if(dt.mon == 12 && dt.day > 25) {
-      istradable =  false;
-    }
-    if(dt.mon == 1 && dt.day < 5) {
-      istradable = false;
-    }
-  }
-
-  void CheckFridayEnd() {
-    TimeToStruct(TimeCurrent(), dt);
-    if(dt.day_of_week == FRIDAY) {
-      if((dt.hour == FridayCloseHour && dt.min > 30) || dt.hour >= FridayCloseHour) {
-        istradable = false;
-      }
-    }
-  }
+  
 
   void CheckBalance() {
     if(NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE), 1) < StopBalance) {
