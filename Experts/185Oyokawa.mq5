@@ -36,9 +36,9 @@ CiStochastic ciStochastic;
 
 input double TPCoef;
 input int SLCoef;
-input double Edge;
+input double Edge,ATRCri;
 input ENUM_TIMEFRAMES LongTimeframe, ShortTimeframe;
-input int PricePeriod, RSIPeriod, RSIRange, RSICri;
+input int PricePeriod,RSIPeriod,RSIRange,RSICri;
 input int positionCloseMin;
 bool tradable = false;
 //+------------------------------------------------------------------+
@@ -56,7 +56,7 @@ CurrencyStrength CS(ShortTimeframe, 1);;
 int OnInit() {
    MyUtils myutils(60 * 27);
    myutils.Init();
-   ciRSI.Create(_Symbol, LongTimeframe, RSIPeriod, PRICE_CLOSE);
+   ciRSI.Create(_Symbol,LongTimeframe,RSIPeriod,PRICE_CLOSE);
    return(INIT_SUCCEEDED);
 }
 
@@ -70,37 +70,44 @@ void OnTick() {
    Refresh();
    Check();
 
-   // ciOsma.Refresh();
+  // ciOsma.Refresh();
    ciRSI.Refresh();
    myShortPrice.Refresh();
    myLongPrice.Refresh();
    //myPosition.CloseAllPositionsInMinute(positionCloseMin);
 
-   double LongHighest = myLongPrice.Higest(1, RSIRange);
-   double LongLowest = myLongPrice.Lowest(1, RSIRange);
+   double LongHighest = myLongPrice.Higest(1,RSIRange);
+   double LongLowest = myLongPrice.Lowest(1,RSIRange);
    double CenterLine = (LongHighest + LongLowest) / 2;
    double Diff = LongHighest - LongLowest;
-
-   double ShortHighest = myShortPrice.Higest(2, PricePeriod);
-   double ShortLowest = myShortPrice.Lowest(2, PricePeriod);
-
+   
+   double ShortHighest = myShortPrice.Higest(2,PricePeriod);
+   double ShortLowest = myShortPrice.Lowest(2,PricePeriod);
+   
    if(MathAbs(ciRSI.Main(0) - ciRSI.Main(RSIRange)) > RSICri) return;
-
-   if(isBetween(CenterLine + Diff * Edge, myShortPrice.At(0).close, CenterLine)) {
-      if(isBetween(myShortPrice.At(2).close, ShortLowest, myShortPrice.At(1).close))
+   
+   if(isBetween(CenterLine+Diff*Edge,myShortPrice.At(0).close,CenterLine)){
+     if(isBetween(myShortPrice.At(2).close,ShortLowest,myShortPrice.At(1).close))
          myTrade.signal = "sell";
    }
-
-   if(isBetween(CenterLine, myShortPrice.At(0).close, CenterLine - Diff * Edge)) {
-      if(isBetween(myShortPrice.At(1).close, ShortHighest, myShortPrice.At(2).close))
+   
+   if(isBetween(CenterLine,myShortPrice.At(0).close,CenterLine-Diff*Edge)){
+       if(isBetween(myShortPrice.At(1).close,ShortHighest,myShortPrice.At(2).close))
          myTrade.signal = "buy";
    }
 
    if(!myTrade.istradable || !tradable) return;
-
+   
    double PriceUnit = 10 * _Point;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(ShortLowest - PriceUnit * SLCoef, ShortHighest + PriceUnit * TPCoef);
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(ShortHighest + PriceUnit * SLCoef, ShortLowest -  PriceUnit * TPCoef);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
+      if(myTrade.isInvalidTrade(ShortLowest, ShortHighest + PriceUnit*TPCoef)) return;
+      trade.Buy(myTrade.lot, NULL, myTrade.Ask, ShortLowest, ShortHighest + PriceUnit*TPCoef, NULL);
+   }
+
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
+      if(myTrade.isInvalidTrade(ShortHighest, ShortLowest -  PriceUnit*TPCoef)) return;
+      trade.Sell(myTrade.lot, NULL, myTrade.Bid, ShortHighest, ShortLowest -  PriceUnit*TPCoef, NULL);
+   }
 
 }
 
@@ -162,4 +169,3 @@ void Check() {
 
 //+------------------------------------------------------------------+
 
-//+------------------------------------------------------------------+

@@ -56,16 +56,12 @@ class CurrencyStrength {
    }
 
    bool isEURStrongest() {
-      if(isRising("EURJPY") && isRising("EURUSD") && isRising("EURGBP") && !isRising("EURAUD")) return true;
+      if(isRising("EURJPY") && isRising("EURUSD") && isRising("EURGBP") && isRising("EURAUD")) return true;
       return false;
    }
    bool isEURWeakest() {
       if(!isRising("EURJPY") && !isRising("EURUSD") && !isRising("EURGBP") && !isRising("EURAUD")) return true;
       return false;
-   }
-
-   bool isStrongest(string currency){
-   
    }
 
    string StrongestCurrency() {
@@ -86,6 +82,14 @@ class CurrencyStrength {
       return "";
    }
 
+   string Trend(string currency) {
+      string start = StringSubstr(currency, 0, 3);
+      string end = StringSubstr(currency, 3, 3);
+      if(StrongestCurrency() == start && WeakestCurrency() == end) return "buy";
+      else if(StrongestCurrency() == end && WeakestCurrency() == start) return "sell";
+      return "";
+   }
+
  private:
    MqlRates price[];
    int count ;
@@ -93,7 +97,7 @@ class CurrencyStrength {
 
    bool isRising(string symbol) {
       CiMA ciMA;
-      ciMA.Create(_Symbol,Timeframe,5,0,MODE_EMA,PRICE_CLOSE);
+      ciMA.Create(_Symbol, Timeframe, 5, 0, MODE_EMA, PRICE_CLOSE);
       double Trend = ciMA.Main(0) - ciMA.Main(5);
       if(Trend > 0) return true;
       return false;

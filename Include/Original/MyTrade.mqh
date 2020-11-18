@@ -5,6 +5,7 @@
 //+------------------------------------------------------------------+
 
 #include <Original\MyCalculate.mqh>
+#include <Trade\Trade.mqh>
 
 input int spread = -1;
 input int denom = 30000;
@@ -68,7 +69,7 @@ class MyTrade {
    void CheckUntradableTime(string start, string end) {
       if(isBetween(StringToTime(end), TimeCurrent(), StringToTime(start))) istradable = false;
    }
-   
+
    void CheckTradableTime(string start, string end) {
       if(!isBetween(StringToTime(end), TimeCurrent(), StringToTime(start))) istradable = false;
    }
@@ -101,6 +102,22 @@ class MyTrade {
    void CheckMarginLevel() {
       double marginlevel = AccountInfoDouble(ACCOUNT_MARGIN_LEVEL);
       if(marginlevel < StopMarginLevel && marginlevel != 0 ) istradable = false;
+   }
+
+   bool Buy(double SL, double TP) {
+      CTrade trade;
+      if(signal != "buy") return false;
+      if(isInvalidTrade(SL, TP)) return false;
+      if(trade.Buy(lot, NULL, Ask, SL, TP, NULL)) return true;
+      return false;
+   }
+
+   bool Sell(double SL, double TP) {
+      CTrade trade;
+      if(signal != "sell") return false;
+      if(isInvalidTrade(SL, TP)) return false;
+      if(trade.Sell(lot, NULL, Bid, SL, TP, NULL)) return true;
+      return false;
    }
 
 

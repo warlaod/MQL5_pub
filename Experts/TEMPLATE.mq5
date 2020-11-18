@@ -10,121 +10,115 @@
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 #include <Trade\Trade.mqh>
-#include <Original\prices.mqh>
-#include <Original\positions.mqh>
-#include <Original\period.mqh>
-#include <Original\account.mqh>
-#include <Original\Ontester.mqh>
-#include <Original\caluculate.mqh>
-CTrade trade;
+#include <Original\MyUtils.mqh>
+#include <Original\MyTrade.mqh>
+#include <Original\Oyokawa.mqh>
+#include <Original\MyCalculate.mqh>
+#include <Original\MyTest.mqh>
+#include <Original\MyPrice.mqh>
+#include <Original\MyPosition.mqh>
+#include <Original\MyOrder.mqh>
+#include <Indicators\TimeSeries.mqh>
+#include <Indicators\Oscilators.mqh>
+#include <Indicators\Trend.mqh>
+#include <Trade\OrderInfo.mqh>
+#include <Arrays\ArrayDouble.mqh>
+#include <Indicators\BillWilliams.mqh>
 
-MqlDateTime dt;
-MqlRates Price[];
-input int MIN;
-input int positions=2;
-input int denom = 30000;
-input int spread;
-double lot = 0.10;
-double  Bid,Ask;
+input double SLCoef,TPCoef;
+input ENUM_TIMEFRAMES Timeframe;
 bool tradable = false;
-string signal;
-
-int IchimokuIndicator;
-double Tenkan[];
-input int IchimokuPeriod;
-
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int OnInit()
-  {
-   EventSetTimer(300);
-   IchimokuIndicator = iIchimoku(_Symbol,Timeframe(IchimokuPeriod),9,26,52);
-
-   ArraySetAsSeries(Tenkan,true);
-   ArraySetAsSeries(Price,true);
+MyPosition myPosition;
+MyTrade myTrade();
+MyPrice myPrice(Timeframe, 3);
+MyOrder myOrder(Timeframe);
+CurrencyStrength CS(Timeframe, 1);;
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CiBands bands;
+int OnInit() {
+   MyUtils myutils(60 * 27);
+   myutils.Init();
+   bands.Create(_Symbol,Timeframe,20,0,2,PRICE_CLOSE);
    return(INIT_SUCCEEDED);
-  }
+}
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void OnTick()
-  {
+void OnTick() {
+   Refresh();
+   Check();
 
-   Bid=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_BID),_Digits);
-   Ask=NormalizeDouble(SymbolInfoDouble(_Symbol,SYMBOL_ASK),_Digits);
+   myPosition.CloseAllPositionsInMinute(positionCloseMin);
 
-   CopyBuffer(IchimokuIndicator,0,0,1, Tenkan);
-   CopyRates(_Symbol,Timeframe(IchimokuPeriod),0,1,Price);
-
-   if(tradable == false || isTooBigSpread(spread))
-     {
-      return;
-     }
+   if(!myTrade.istradable || !tradable) return;
+   
+   
+   double PriceUnit = 10 * _Point;
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(PriceUnit * SLCoef, PriceUnit * TPCoef);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(PriceUnit * SLCoef, PriceUnit * TPCoef);
 
 
-   signal = "";
+}
 
-   if(true)
-     {
-      signal = "sell";
-     }
-   else
-      if(true)
-        {
-         signal = "buy";
-        }
-
-   if(EachPositionsTotal("buy") < positions/2 && signal=="buy")
-     {
-      trade.Buy(lot,NULL,Ask,Ask-50*_Point,Ask+50*_Point,NULL);
-     }
-
-   if(EachPositionsTotal("sell") < positions/2 && signal=="sell")
-     {
-      trade.Sell(lot,NULL,Bid,Bid+50*_Point,Bid-50*_Point,NULL);
-     }
-  }
 //+------------------------------------------------------------------+
-double OnTester()
-  {
-   if(!setVariables())
-     {
-      return -99999999;
-     }
-   return testingNormal();
-
-  }
+//|                                                                  |
 //+------------------------------------------------------------------+
-void OnTimer()
-  {
-   //lot = SetLot(denom);
-   tradable  = true;
-//lot =SetLot(denom);
-   if(isNotEnoughMoney())
-     {
+void OnTimer() {
+   myPosition.Refresh();
+   myTrade.Refresh();
+
+   tradable = true;
+
+   myTrade.CheckFridayEnd();
+   myTrade.CheckYearsEnd();
+   myTrade.CheckBalance();
+   myTrade.CheckMarginLevel();
+
+   if(!myTrade.istradable) {
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       tradable = false;
-      return;
-     }
+   }
+}
 
-   TimeToStruct(TimeCurrent(),dt);
-   if(dt.day_of_week == FRIDAY)
-     {
-      if((dt.hour == 22 && dt.min > 0) || dt.hour == 23)
-        {
-         CloseAllBuyPositions();
-         CloseAllSellPositions();
-         tradable = false;
-         return;
-        }
-     }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 
-   if(isYearEnd(dt.mon,dt.day))
-     {
-      tradable = false;
-      return;
-     }
-  }
 //+------------------------------------------------------------------+
+double OnTester() {
+   MyTest myTest;
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
+   return  result;
+}
+
 //+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void Refresh() {
+   myPosition.Refresh();
+   myTrade.Refresh();
+   myOrder.Refresh();
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void Check() {
+   myTrade.CheckSpread();
+   //myTrade.CheckUntradableTime("01:00", "07:00");
+   //myTrade.CheckTradableTime("00:00","07:00");
+   //myTrade.CheckTradableTime("08:00", "14:00");
+   //myTrade.CheckTradableTime("14:00","24:00");
+   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
+}
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+
