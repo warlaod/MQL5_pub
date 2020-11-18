@@ -11,31 +11,27 @@ input int spread = -1;
 input int denom = 30000;
 input int positions = 2;
 input bool isLotModified = false;
-input int FridayCloseHour = 23;
 input int StopBalance = 2000;
 input int StopMarginLevel = 200;
 
 class MyTrade {
 
  public:
-   bool istradable;
-   string signal;
-   double lot;
-   double Ask;
-   double Bid;
-   double balance;
-   double minlot;
-   double maxlot;
-   int LotDigits;
-   MqlDateTime dt;
+  bool istradable;
+  string signal;
+  double lot;
+  double Ask;
+  double Bid;
+  double balance;
+  double minlot;
+  double maxlot;
+  int LotDigits;
 
-   void MyTrade() {
-      minlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
-      maxlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
-      if(minlot == 0.001) LotDigits = 3;
-      if(minlot == 0.01) LotDigits = 2;
-      if(minlot == 0.1) LotDigits = 1;
-      if(minlot == 1) LotDigits = 0;
+  void MyTrade(int LotDigits = -1) {
+    minlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
+    maxlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
+    if(LotDigits != -1) {
+      this.LotDigits = LotDigits;
       ModifyLot();
    }
 
@@ -122,11 +118,11 @@ class MyTrade {
 
 
  private:
-   void ModifyLot() {
-      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, LotDigits);
-      if(lot < minlot) lot = minlot;
-      else if(lot > maxlot) lot = maxlot;
-   }
+  void ModifyLot() {
+    lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, LotDigits);
+    if(lot < minlot) lot = minlot;
+    else if(lot > maxlot) lot = maxlot;
+  }
 
 };
 //+------------------------------------------------------------------+

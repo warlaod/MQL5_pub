@@ -32,12 +32,10 @@ CiStochastic ciStochastic;
 #include <Generic\Interfaces\IComparable.mqh>
 
 input int TPCoef, SLCoef;
-input ENUM_TIMEFRAMES MAShortTimeframe, MALongTimeframe, CSTimeframe;
-input int TrendPeriod,SLPeriod;
-input int TPLine;
+input ENUM_TIMEFRAMES MAShortTimeframe, CSTimeframe;
+input int LongMiddleCri,PriceCount;
 input int positionCloseMin;
 bool tradable = false;
-input int RangeTrendCri, LongTrendCri;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -50,60 +48,61 @@ CurrencyStrength CS(CSTimeframe, 1);;
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
-   MyUtils myutils(60 * 27);
-   myutils.Init();
+  MyUtils myutils(60 * 27);
+  myutils.Init();
 
-   ciMAShort.Create(_Symbol, MAShortTimeframe, 8, 0, MODE_EMA, PRICE_CLOSE);
-   ciMAMiddle.Create(_Symbol, MAShortTimeframe, 13, 0, MODE_EMA, PRICE_CLOSE);
-   ciMALong.Create(_Symbol, MAShortTimeframe, 21, 0, MODE_EMA, PRICE_CLOSE);
-   return(INIT_SUCCEEDED);
+  ciMAShort.Create(_Symbol, MAShortTimeframe, 10, 0, MODE_SMA, PRICE_CLOSE);
+  ciMAMiddle.Create(_Symbol, MAShortTimeframe, 40, 0, MODE_SMA, PRICE_CLOSE);
+  ciMALong.Create(_Symbol, MAShortTimeframe, 160, 0, MODE_SMA, PRICE_CLOSE);
+  return(INIT_SUCCEEDED);
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   Refresh();
-   ciMAShort.Refresh();
-   ciMALong.Refresh();
-   ciMAMiddle.Refresh();
-   Check();
+  Refresh();
+  ciMAShort.Refresh();
+  ciMALong.Refresh();
+  ciMAMiddle.Refresh();
+  Check();
 
 
-   double ShortTrend = ciMAShort.Main(0) - ciMAShort.Main(TrendPeriod);
-   double MiddleTrend = ciMAShort.Main(0) - ciMAShort.Main(TrendPeriod);
-   double LongTrend = ciMALong.Main(0) - ciMALong.Main(TrendPeriod);
-  
-
-   if(isBetween(ciMAShort.Main(0), ciMAMiddle.Main(0), ciMALong.Main(0))) {
-      if(myPrice.getData(1).low < ciMAShort.Main(0) && myPrice.getData(1).close > ciMAShort.Main(1))
-         myTrade.signal = "buy";
-   }
-
-   if(isBetween(ciMALong.Main(0), ciMAMiddle.Main(0), ciMAShort.Main(0))) {
-      if(myPrice.getData(1).high > ciMAShort.Main(0) && myPrice.getData(1).close < ciMAShort.Main(1))
-         myTrade.signal = "sell";
-   }
+  //if(MathAbs(ciMALong.Main(0) - ciMAMiddle.Main(0)) < LongMiddleCri*_Point) return;
 
 
-   myPosition.CloseAllPositionsInMinute(positionCloseMin);
 
-   if(!myTrade.istradable || !tradable) return;
 
-   double PriceUnit = 10 * _Point;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
-      double SL  = myPrice.Lowest(1, SLPeriod) - 30*_Point;
-      double TP = myPrice.Higest(1,SLPeriod) + TPLine * _Point;
-      if(myTrade.isInvalidTrade(SL, TP)) return;
-      trade.Buy(myTrade.lot, NULL, myTrade.Ask, SL, TP, NULL);
-   }
+  //myPosition.CloseAllPositionsInMinute(positionCloseMin);
 
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
-      double TP  = myPrice.Lowest(1, SLPeriod) - TPLine * _Point;
-      double SL = myPrice.Higest(1,SLPeriod) + 30*_Point;
-      if(myTrade.isInvalidTrade(SL, TP)) return;
-      trade.Sell(myTrade.lot, NULL, myTrade.Bid, SL, TP, NULL);
-   }
+  if(!myTrade.istradable || !tradable) return;
+
+  if(isBetween(ciMAMiddle.Main(0),ciMAShort.Main(0),ciMALong.Main(0))) {
+    if(myPrice.At(1).low > myPrice.At(0).low && myPrice.At(1).high > myPrice.At(0).high) {
+      if(myPrice.Lowest(1,PriceCount) > myPrice.At(0).low)
+        myTrade.signal = "sell";
+    }
+  } else if(isBetween(ciMALong.Main(0),ciMAShort.Main(0),ciMAMiddle.Main(0))) {
+    if(myPrice.At(1).low < myPrice.At(0).low && myPrice.At(1).high < myPrice.At(0).high) {
+      if(myPrice.Higest(1,PriceCount) < myPrice.At(0).high)
+        myTrade.signal = "buy";
+    }
+  }
+
+  double PriceUnit = 10 * _Point;
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
+    double SL  = ciMAMiddle.Main(0);
+    double TP = ciMALong.Main(0);
+    if(myTrade.isInvalidTrade(SL, TP)) return;
+    trade.Buy(myTrade.lot, NULL, myTrade.Ask, SL, TP, NULL);
+  }
+
+  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
+    double SL  = ciMAMiddle.Main(0);
+    double TP = ciMALong.Main(0);
+    if(myTrade.isInvalidTrade(SL, TP)) return;
+    trade.Sell(myTrade.lot, NULL, myTrade.Bid, SL, TP, NULL);
+  }
 
 
 }
@@ -112,21 +111,21 @@ void OnTick() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
-   myPosition.Refresh();
-   myTrade.Refresh();
+  myPosition.Refresh();
+  myTrade.Refresh();
 
-   tradable = true;
+  tradable = true;
 
-   myTrade.CheckFridayEnd();
-   myTrade.CheckYearsEnd();
-   myTrade.CheckBalance();
-   myTrade.CheckMarginLevel();
+  myTrade.CheckFridayEnd();
+  myTrade.CheckYearsEnd();
+  myTrade.CheckBalance();
+  myTrade.CheckMarginLevel();
 
-   if(!myTrade.istradable) {
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      tradable = false;
-   }
+  if(!myTrade.istradable) {
+    myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+    myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+    tradable = false;
+  }
 }
 
 //+------------------------------------------------------------------+
@@ -135,31 +134,31 @@ void OnTimer() {
 
 //+------------------------------------------------------------------+
 double OnTester() {
-   MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
-   return  result;
+  MyTest myTest;
+  double result =  myTest.min_dd_and_mathsqrt_profit_trades();
+  return  result;
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Refresh() {
-   myPosition.Refresh();
-   myTrade.Refresh();
-   myPrice.Refresh();
-   myOrder.Refresh();
+  myPosition.Refresh();
+  myTrade.Refresh();
+  myPrice.Refresh();
+  myOrder.Refresh();
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   myTrade.CheckSpread();
-   //myTrade.CheckUntradableTime("01:00","07:00");
-   //myTrade.CheckTradableTime("00:00","07:00");
-   //myTrade.CheckTradableTime("08:00", "14:00");
-   //myTrade.CheckTradableTime("14:00","24:00");
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
+  myTrade.CheckSpread();
+  //myTrade.CheckUntradableTime("01:00","07:00");
+  //myTrade.CheckTradableTime("00:00","07:00");
+  //myTrade.CheckTradableTime("08:00", "14:00");
+  //myTrade.CheckTradableTime("14:00","24:00");
+  if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
 //+------------------------------------------------------------------+
 

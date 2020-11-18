@@ -16,6 +16,7 @@
 #include <Original\MyCalculate.mqh>
 #include <Original\MyTest.mqh>
 #include <Original\MyPrice.mqh>
+#include <Original\MyDate.mqh>
 #include <Original\MyPosition.mqh>
 #include <Original\MyOrder.mqh>
 #include <Indicators\TimeSeries.mqh>
@@ -25,31 +26,33 @@
 #include <Arrays\ArrayDouble.mqh>
 #include <Indicators\BillWilliams.mqh>
 CTrade trade;
-CiADX ciADX;
-CiRSI ciRSIShort, ciRSIMiddle, ciRSILong;
+CiATR ciATR;
+CiBands ciBands;
+CiMACD ciLongMACD,ciShortMACD;
 #include <Generic\Interfaces\IComparable.mqh>
 
-input int PricePeriod;
-input int SLCoef, TPCoef;
-input int ADXCri;
-input ENUM_TIMEFRAMES ADXTimeframe;
+input int LongPeriod,ShortPeriod,ATRPeriod;
+input int SLCoef;
+input double TPCoef;
+input ENUM_TIMEFRAMES ShortTimeframe;
 input int positionCloseMin;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
+MyDate myDate;
 MyTrade myTrade();
-MyPrice myPrice(ADXTimeframe, 1);
-MyOrder myOrder(ADXTimeframe);
-CurrencyStrength CS(ADXTimeframe, 1);;
+MyPrice myPrice(ShortTimeframe, 3);
+MyOrder myOrder(ShortTimeframe);
+CurrencyStrength CS(ShortTimeframe, _Symbol);;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
-  MyUtils myutils(60 * 27);
+  MyUtils myutils(60 * 20);
   myutils.Init();
-  ciADX.Create(_Symbol,ADXTimeframe,14);
+  ciATR.Create(_Symbol,ShortTimeframe,ATRPeriod);
   return(INIT_SUCCEEDED);
 }
 
@@ -59,41 +62,40 @@ int OnInit() {
 void OnTick() {
   Refresh();
   Check();
+  ciATR.Refresh();
 
-  ciRSILong.Refresh();
-  ciRSIMiddle.Refresh();
-  ciRSIShort.Refresh();
-  ciADX.Refresh();
   myPrice.Refresh();
+
+  double LongHighest = myPrice.Higest(0,LongPeriod);
+  double LongLowest = myPrice.Lowest(0,LongPeriod);
+  double ShortHighest = myPrice.Higest(2,ShortPeriod);
+  double ShortLowest = myPrice.Lowest(2,ShortPeriod);
+
+  double CenterLine = (LongHighest+LongLowest)/2;
+
+  if(isBetween(myPrice.At(1).close,ShortHighest,myPrice.At(2).close))
+    myTrade.signal = "buy";
+  if(isBetween(myPrice.At(2).close,ShortLowest,myPrice.At(1).close))
+    myTrade.signal = "sell";
+
 
 
   //myPosition.CloseAllPositionsInMinute(positionCloseMin);
-
-  myTrade.CheckSpread();
-  
-  if(ciADX.Main(1) < ADXCri ) return;
-
-  if(!myTrade.istradable || !tradable) return;
-
-  if(ciADX.Plus(2) < ciADX.Main(2) && ciADX.Plus(1) > ciADX.Main(1)) {
-
-    myTrade.signal = "buy";
-  }
-  if(ciADX.Minus(2) < ciADX.Main(2) && ciADX.Minus(1) > ciADX.Main(1)) myTrade.signal = "sell";
-
-
-
-  double Highest = myPrice.Higest(0, PricePeriod);
-  double Lowest = myPrice.Lowest(0, PricePeriod);
-  double PriceUnit = 10 * _Point;
+  double PriceUnit = ciATR.Main(0)*TPCoef;
   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
-    if(myTrade.isInvalidTrade(Lowest, Highest + PriceUnit*TPCoef)) return;
-    trade.Buy(myTrade.lot, NULL, myTrade.Ask, Lowest, Highest + PriceUnit*TPCoef, NULL);
+    double SL  = LongLowest;
+    double TP = myTrade.Ask + PriceUnit*TPCoef;
+    if(myTrade.isInvalidTrade(SL, TP)) return;
+    if(myPosition.isPositionInTPRange(PriceUnit,myPrice.At(0).close,POSITION_TYPE_BUY)) return;
+    trade.Buy(myTrade.lot, NULL, myTrade.Ask, SL, TP, NULL);
   }
 
   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
-    if(myTrade.isInvalidTrade(Highest, Lowest -  PriceUnit*TPCoef)) return;
-    trade.Sell(myTrade.lot, NULL, myTrade.Bid, Highest, Lowest -  PriceUnit*TPCoef, NULL);
+    double SL  = LongHighest;
+    double TP = myTrade.Bid - PriceUnit*TPCoef;
+    if(myTrade.isInvalidTrade(SL, TP)) return;
+    if(myPosition.isPositionInTPRange(PriceUnit,myPrice.At(0).close,POSITION_TYPE_SELL)) return;
+    trade.Sell(myTrade.lot, NULL, myTrade.Bid, SL, TP, NULL);
   }
 
 }
@@ -104,13 +106,14 @@ void OnTick() {
 void OnTimer() {
   myPosition.Refresh();
   myTrade.Refresh();
+  myDate.Refresh();
 
   tradable = true;
 
-  myTrade.CheckFridayEnd();
-  myTrade.CheckYearsEnd();
   myTrade.CheckBalance();
   myTrade.CheckMarginLevel();
+
+  if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
 
   if(!myTrade.istradable) {
     myPosition.CloseAllPositions(POSITION_TYPE_BUY);
@@ -144,12 +147,14 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
   myTrade.CheckSpread();
-//myTrade.CheckUntradableTime("01:00", "07:00");
-//myTrade.CheckTradableTime("00:00","07:00");
+  //myTrade.CheckUntradableTime("01:00", "07:00");
+  //myTrade.CheckTradableTime("00:00","07:00");
   //myTrade.CheckTradableTime("08:00", "14:00");
-//myTrade.CheckTradableTime("14:00","24:00");
+  //myTrade.CheckTradableTime("15:00","23:00");
   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
+//+------------------------------------------------------------------+
+
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+

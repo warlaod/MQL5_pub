@@ -25,14 +25,16 @@
 #include <Arrays\ArrayDouble.mqh>
 #include <Indicators\BillWilliams.mqh>
 CTrade trade;
-CiADX ciADX;
-CiRSI ciRSIShort, ciRSIMiddle, ciRSILong;
+CiATR ciATR;
+CiBands ciBands;
 #include <Generic\Interfaces\IComparable.mqh>
 
-input int PricePeriod;
+input int PricePeriod,BandPeriod,BandWidthPeriod,TrendPeriod,ATRPeriod;
 input int SLCoef, TPCoef;
-input int ADXCri;
-input ENUM_TIMEFRAMES ADXTimeframe;
+input double BandWidthDiffCri;
+input int BandWidthTop,BandWidthBottom;
+input int BandWidthCri,TrendCri;
+input ENUM_TIMEFRAMES BandTimeframe;
 input int positionCloseMin;
 bool tradable = false;
 //+------------------------------------------------------------------+
@@ -40,16 +42,16 @@ bool tradable = false;
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyPrice myPrice(ADXTimeframe, 1);
-MyOrder myOrder(ADXTimeframe);
-CurrencyStrength CS(ADXTimeframe, 1);;
+MyPrice myPrice(BandTimeframe, 3);
+MyOrder myOrder(BandTimeframe);
+CurrencyStrength CS(BandTimeframe, _Symbol);;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
   MyUtils myutils(60 * 27);
   myutils.Init();
-  ciADX.Create(_Symbol,ADXTimeframe,14);
+  ciBands.Create(_Symbol,BandTimeframe,BandPeriod,0,3,PRICE_CLOSE);
   return(INIT_SUCCEEDED);
 }
 
@@ -60,40 +62,35 @@ void OnTick() {
   Refresh();
   Check();
 
-  ciRSILong.Refresh();
-  ciRSIMiddle.Refresh();
-  ciRSIShort.Refresh();
-  ciADX.Refresh();
+  ciBands.Refresh();
+  ciATR.Refresh();
   myPrice.Refresh();
 
 
   //myPosition.CloseAllPositionsInMinute(positionCloseMin);
 
-  myTrade.CheckSpread();
-  
-  if(ciADX.Main(1) < ADXCri ) return;
+  CArrayDouble BandWidth;
+  for(int i=0; i<BandWidthPeriod; i++) {
+    BandWidth.Add(ciBands.Upper(i)- ciBands.Lower(i));
+  }
 
   if(!myTrade.istradable || !tradable) return;
 
-  if(ciADX.Plus(2) < ciADX.Main(2) && ciADX.Plus(1) > ciADX.Main(1)) {
+  if(isBetween(BandWidthTop*_Point,BandWidth[0],BandWidthBottom*_Point)) return;
+  if(BandWidth[0] / BandWidth[BandWidth.Minimum(0,TrendPeriod-1)] > BandWidthDiffCri) return;
 
-    myTrade.signal = "buy";
-  }
-  if(ciADX.Minus(2) < ciADX.Main(2) && ciADX.Minus(1) > ciADX.Main(1)) myTrade.signal = "sell";
+  if(myPrice.At(1).high > ciBands.Upper(1) && myPrice.At(1).close < ciBands.Upper(1)) myTrade.signal = "sell";
+  else if(myPrice.At(1).low < ciBands.Upper(1) && myPrice.At(1).close > ciBands.Lower(1)) myTrade.signal = "buy";
 
-
-
-  double Highest = myPrice.Higest(0, PricePeriod);
-  double Lowest = myPrice.Lowest(0, PricePeriod);
   double PriceUnit = 10 * _Point;
   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
-    if(myTrade.isInvalidTrade(Lowest, Highest + PriceUnit*TPCoef)) return;
-    trade.Buy(myTrade.lot, NULL, myTrade.Ask, Lowest, Highest + PriceUnit*TPCoef, NULL);
+    if(myTrade.isInvalidTrade(myPrice.At(1).low, ciBands.Base(0))) return;
+    trade.Buy(myTrade.lot, NULL, myTrade.Ask, myPrice.At(1).low, ciBands.Base(0), NULL);
   }
 
   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
-    if(myTrade.isInvalidTrade(Highest, Lowest -  PriceUnit*TPCoef)) return;
-    trade.Sell(myTrade.lot, NULL, myTrade.Bid, Highest, Lowest -  PriceUnit*TPCoef, NULL);
+    if(myTrade.isInvalidTrade(myPrice.At(1).high, ciBands.Base(0))) return;
+    trade.Sell(myTrade.lot, NULL, myTrade.Bid, myPrice.At(1).high, ciBands.Base(0), NULL);
   }
 
 }
@@ -144,12 +141,14 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
   myTrade.CheckSpread();
-//myTrade.CheckUntradableTime("01:00", "07:00");
+  myTrade.CheckUntradableTime("01:00", "07:00");
 //myTrade.CheckTradableTime("00:00","07:00");
   //myTrade.CheckTradableTime("08:00", "14:00");
-//myTrade.CheckTradableTime("14:00","24:00");
+ //myTrade.CheckTradableTime("14:00","24:00");
   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
+//+------------------------------------------------------------------+
+
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
