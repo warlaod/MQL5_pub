@@ -34,6 +34,7 @@ input int FridayEndHour = 23;
 class MyDate {
  public:
   CDateTime dt;
+  datetime  timeCurrent;
   bool isDSTOnUSA;
   bool isDSTOnEU;
   void MyDate() {
@@ -41,7 +42,8 @@ class MyDate {
   }
 
   void Refresh() {
-    TimeToStruct(TimeCurrent(), dt);
+    timeCurrent = TimeCurrent();
+    TimeToStruct(timeCurrent, dt);
     // if(SetDSTOnEU) {
     //    checkDST_EU();
     //    if(isDSTOnEU) TimeToStruct(TimeCurrent() + 3600, dt);
@@ -53,7 +55,7 @@ class MyDate {
   }
 
   bool isInTime(string start, string end) {
-    if(isBetween(StringToTime(end), TimeCurrent(), StringToTime(start))) return true;
+    if(isBetween(StringToTime(end), timeCurrent, StringToTime(start))) return true;
     return false;
   }
 
@@ -65,8 +67,7 @@ class MyDate {
 
   bool isFridayEnd() {
     if(dt.day_of_week == FRIDAY) {
-      if((dt.hour == FridayEndHour - 1 && dt.min > 0) || dt.hour >= FridayEndHour)
-        return true;
+      if((dt.hour >= FridayEndHour-1)) return true;
     }
     return false;
   }

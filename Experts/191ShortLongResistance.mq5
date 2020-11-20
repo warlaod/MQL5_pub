@@ -35,7 +35,6 @@ input int LongPeriod,ShortPeriod,ATRPeriod;
 input int SLCoef;
 input double TPCoef;
 input ENUM_TIMEFRAMES ShortTimeframe;
-input int positionCloseMin;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -66,6 +65,9 @@ void OnTick() {
 
   myPrice.Refresh();
 
+
+  if(!myTrade.istradable || !tradable) return;
+
   double LongHighest = myPrice.Higest(0,LongPeriod);
   double LongLowest = myPrice.Lowest(0,LongPeriod);
   double ShortHighest = myPrice.Higest(2,ShortPeriod);
@@ -74,32 +76,31 @@ void OnTick() {
   double CenterLine = (LongHighest+LongLowest)/2;
 
   if(isBetween(myPrice.At(1).close,ShortHighest,myPrice.At(2).close))
-    myTrade.signal = "buy";
+    myTrade.setSignal(ORDER_TYPE_BUY);
   if(isBetween(myPrice.At(2).close,ShortLowest,myPrice.At(1).close))
-    myTrade.signal = "sell";
+    myTrade.setSignal(ORDER_TYPE_SELL);
 
 
 
   //myPosition.CloseAllPositionsInMinute(positionCloseMin);
   double PriceUnit = ciATR.Main(0)*TPCoef;
-  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 && myTrade.signal == "buy") {
+  
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2) {
     double SL  = LongLowest;
-    double TP = myTrade.Ask + PriceUnit*TPCoef;
-    if(myTrade.isInvalidTrade(SL, TP)) return;
+    double TP = myTrade.Ask + PriceUnit;
     if(myPosition.isPositionInTPRange(PriceUnit,myPrice.At(0).close,POSITION_TYPE_BUY)) return;
-    trade.Buy(myTrade.lot, NULL, myTrade.Ask, SL, TP, NULL);
+    myTrade.Buy(SL,TP);
+  }
+  
+    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2) {
+    double SL  = LongHighest;
+    double TP = myTrade.Bid - PriceUnit;
+    if(myPosition.isPositionInTPRange(PriceUnit,myPrice.At(0).close,POSITION_TYPE_SELL)) return;
+    myTrade.Sell(SL,TP);
   }
 
-  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 && myTrade.signal == "sell") {
-    double SL  = LongHighest;
-    double TP = myTrade.Bid - PriceUnit*TPCoef;
-    if(myTrade.isInvalidTrade(SL, TP)) return;
-    if(myPosition.isPositionInTPRange(PriceUnit,myPrice.At(0).close,POSITION_TYPE_SELL)) return;
-    trade.Sell(myTrade.lot, NULL, myTrade.Bid, SL, TP, NULL);
-  }
 
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -113,7 +114,7 @@ void OnTimer() {
   myTrade.CheckBalance();
   myTrade.CheckMarginLevel();
 
-  if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
+  //if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
 
   if(!myTrade.istradable) {
     myPosition.CloseAllPositions(POSITION_TYPE_BUY);

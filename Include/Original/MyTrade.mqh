@@ -17,21 +17,24 @@ input int StopMarginLevel = 200;
 class MyTrade {
 
  public:
-  bool istradable;
-  string signal;
-  double lot;
-  double Ask;
-  double Bid;
-  double balance;
-  double minlot;
-  double maxlot;
-  int LotDigits;
+   bool istradable;
+   string signal;
+   double lot;
+   double Ask;
+   double Bid;
+   double balance;
+   double minlot;
+   double maxlot;
+   int LotDigits;
+   MqlDateTime dt;
 
-  void MyTrade(int LotDigits = -1) {
-    minlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
-    maxlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
-    if(LotDigits != -1) {
-      this.LotDigits = LotDigits;
+   void MyTrade() {
+      minlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
+      maxlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
+      if(minlot == 0.001) LotDigits = 3;
+      if(minlot == 0.01) LotDigits = 2;
+      if(minlot == 0.1) LotDigits = 1;
+      if(minlot == 1) LotDigits = 0;
       ModifyLot();
    }
 
@@ -39,8 +42,14 @@ class MyTrade {
       if(isLotModified) ModifyLot();
       istradable = true;
       signal = "";
+      
       Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
       Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
+   }
+   
+   void setSignal(ENUM_ORDER_TYPE OrderType){
+   	if(OrderType == ORDER_TYPE_BUY) signal = "buy";
+   	if(OrderType == ORDER_TYPE_SELL) signal = "sell";
    }
 
    void CheckSpread() {
@@ -60,33 +69,6 @@ class MyTrade {
          if(Bid - TP < 20 * _Point  || SL - Bid < 20 * _Point) return true;
       }
       return false;
-   }
-
-   void CheckUntradableTime(string start, string end) {
-      if(isBetween(StringToTime(end), TimeCurrent(), StringToTime(start))) istradable = false;
-   }
-
-   void CheckTradableTime(string start, string end) {
-      if(!isBetween(StringToTime(end), TimeCurrent(), StringToTime(start))) istradable = false;
-   }
-
-   void CheckYearsEnd() {
-      TimeToStruct(TimeCurrent(), dt);
-      if(dt.mon == 12 && dt.day > 25) {
-         istradable =  false;
-      }
-      if(dt.mon == 1 && dt.day < 5) {
-         istradable = false;
-      }
-   }
-
-   void CheckFridayEnd() {
-      TimeToStruct(TimeCurrent(), dt);
-      if(dt.day_of_week == FRIDAY) {
-         if((dt.hour == FridayCloseHour && dt.min > 30) || dt.hour >= FridayCloseHour) {
-            istradable = false;
-         }
-      }
    }
 
    void CheckBalance() {
@@ -110,7 +92,7 @@ class MyTrade {
 
    bool Sell(double SL, double TP) {
       CTrade trade;
-      if(signal != "sell") return false;
+      if(signal == "sell") return false;
       if(isInvalidTrade(SL, TP)) return false;
       if(trade.Sell(lot, NULL, Bid, SL, TP, NULL)) return true;
       return false;
@@ -118,11 +100,11 @@ class MyTrade {
 
 
  private:
-  void ModifyLot() {
-    lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, LotDigits);
-    if(lot < minlot) lot = minlot;
-    else if(lot > maxlot) lot = maxlot;
-  }
+   void ModifyLot() {
+      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, LotDigits);
+      if(lot < minlot) lot = minlot;
+      else if(lot > maxlot) lot = maxlot;
+   }
 
 };
 //+------------------------------------------------------------------+
