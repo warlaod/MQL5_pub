@@ -30,10 +30,9 @@ CiATR ciATR;
 CiBands ciBands;
 #include <Generic\Interfaces\IComparable.mqh>
 
-input int PricePeriod,BandPeriod;
+input int PricePeriod,BandPeriod,BandWidthPeriod;
 input int SLCoef, TPCoef;
 input ENUM_TIMEFRAMES BandTimeframe;
-input int positionCloseMin;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |

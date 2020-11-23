@@ -23,7 +23,7 @@ class MyPrice {
       return price[index];
    }
 
-   double Higest(int start,int high_count) {
+   double Highest(int start,int high_count) {
       CopyHigh(_Symbol, Timeframe, start, high_count, High);
       if(ArraySize(High) < high_count) {
          CopyHigh(_Symbol, _Period, 0, high_count, High);

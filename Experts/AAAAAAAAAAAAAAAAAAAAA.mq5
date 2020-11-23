@@ -34,7 +34,7 @@ MyTrade myTrade();
 MyDate myDate();
 MyPrice myPrice(Timeframe, 3);
 MyOrder myOrder(Timeframe);
-CurrencyStrength CS(Timeframe, 1);;
+CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -51,7 +51,7 @@ void OnTick() {
    Refresh();
    Check();
 
-   myPosition.CloseAllPositionsInMinute(positionCloseMin);
+   //myPosition.CloseAllPositionsInMinute(positionCloseMin);
 
    if(!myTrade.istradable || !tradable) return;
    
