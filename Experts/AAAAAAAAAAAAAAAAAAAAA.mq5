@@ -39,26 +39,26 @@ CurrencyStrength CS(Timeframe, 1);
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
-   MyUtils myutils(60 * 27);
-   myutils.Init();
-   return(INIT_SUCCEEDED);
+  MyUtils myutils(60 * 27);
+  myutils.Init();
+  return(INIT_SUCCEEDED);
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   Refresh();
-   Check();
+  Refresh();
+  Check();
 
-   //myPosition.CloseAllPositionsInMinute(positionCloseMin);
+  //myPosition.CloseAllPositionsInMinute(positionCloseMin);
 
-   if(!myTrade.istradable || !tradable) return;
-   
-   
-   double PriceUnit = 10 * _Point;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+  if(!myTrade.istradable || !tradable) return;
+
+
+  double PriceUnit = 10 * _Point;
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
 
 
 }
@@ -67,20 +67,21 @@ void OnTick() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
-   myPosition.Refresh();
-   myTrade.Refresh();
+  myPosition.Refresh();
+  myTrade.Refresh();
+  myDate.Refresh();
 
-   tradable = true;
-	
-	if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
-   myTrade.CheckBalance();
-   myTrade.CheckMarginLevel();
+  tradable = true;
 
-   if(!myTrade.istradable) {
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      tradable = false;
-   }
+  if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
+  myTrade.CheckBalance();
+  myTrade.CheckMarginLevel();
+
+  if(!myTrade.istradable) {
+    myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+    myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+    tradable = false;
+  }
 }
 
 //+------------------------------------------------------------------+
@@ -89,29 +90,31 @@ void OnTimer() {
 
 //+------------------------------------------------------------------+
 double OnTester() {
-   MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
-   return  result;
+  MyTest myTest;
+  double result =  myTest.min_dd_and_mathsqrt_profit_trades();
+  return  result;
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Refresh() {
-   myPosition.Refresh();
-   myTrade.Refresh();
-   myOrder.Refresh();
+  myPosition.Refresh();
+  myTrade.Refresh();
+  myOrder.Refresh();
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   myTrade.CheckSpread();
-   //myDate.isInTime("01:00", "07:00");
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
+  myTrade.CheckSpread();
+  //myDate.Refresh();
+  //if(!myDate.isInTime("08:00", "12:00")) myTrade.istradable = false;
+  if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 
+//+------------------------------------------------------------------+
