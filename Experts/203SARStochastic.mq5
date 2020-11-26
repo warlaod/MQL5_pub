@@ -63,12 +63,13 @@ void OnTick() {
   StdDev.Refresh();
   Stochastic.Refresh();
   myPrice.Refresh();
-
+	
+  double PriceUnit = 10 * _Point;
   if(Stochastic.Main(0) > 70) {
-    if(isDeadCross(Stochastic.Main(1),Stochastic.Signal(1),Stochastic.Main(0),Stochastic.Signal(0))) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+    if(isDeadCross(Stochastic.Main(1),Stochastic.Signal(1),Stochastic.Main(0),Stochastic.Signal(0))) myPosition.CloseAllPositionsByProfit(POSITION_TYPE_BUY,PriceUnit * TPCoef);
   }
   if(Stochastic.Main(0) < 30) {
-    if(isGoldenCross(Stochastic.Main(1),Stochastic.Signal(1),Stochastic.Main(0),Stochastic.Signal(0))) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+    if(isGoldenCross(Stochastic.Main(1),Stochastic.Signal(1),Stochastic.Main(0),Stochastic.Signal(0))) myPosition.CloseAllPositionsByProfit(POSITION_TYPE_SELL,PriceUnit * TPCoef);
   }
 
   //myPosition.CloseAllPositionsInMinute(positionCloseMin);
@@ -78,12 +79,11 @@ void OnTick() {
   if(StdDev.Main(0) < StdDevCri) return;
 
   if(isDeadCross(myPrice.At(1).close,SAR.Main(1),myPrice.At(0).close,SAR.Main(0))) myTrade.setSignal(ORDER_TYPE_SELL);
-  if(isGoldenCross(myPrice.At(1).close,SAR.Main(1),myPrice.At(0).close,SAR.Main(0)))
-    myTrade.setSignal(ORDER_TYPE_BUY);
+  else if(isGoldenCross(myPrice.At(1).close,SAR.Main(1),myPrice.At(0).close,SAR.Main(0))) myTrade.setSignal(ORDER_TYPE_BUY);
 
-  double PriceUnit = 10 * _Point;
-  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(SAR.Main(0), PriceUnit * TPCoef);
-  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(SAR.Main(0), PriceUnit * TPCoef);
+  
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(SAR.Main(0), myTrade.Ask + 1000*_Point);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(SAR.Main(0), myTrade.Bid - 1000*_Point);
 
 
 }
