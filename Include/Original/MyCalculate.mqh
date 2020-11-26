@@ -31,15 +31,31 @@
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool isBetween(double top, double middle, double bottom) {
-
-   if(top - bottom > 0 && top - middle > 0 && middle - bottom > 0) return true;
-   return false;
+  if(top - bottom > 0 && top - middle > 0 && middle - bottom > 0) return true;
+  return false;
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+bool isDeadCross(double old_main, double old_signal, double new_main, double new_signal) {
+  if(old_main > old_signal && new_main < new_signal) return true;
+  return false;
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool isGoldenCross(double old_main, double old_signal, double new_main, double new_signal) {
+  if(old_main < old_signal && new_main > new_signal) return true;
+  return false;
+}
+
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 double NewBarsCount(datetime LastTime, ENUM_TIMEFRAMES Timeframe) {
-   return Bars(_Symbol, Timeframe, Timeframe, TimeCurrent());
+  return Bars(_Symbol, Timeframe, Timeframe, TimeCurrent());
 }
 //+------------------------------------------------------------------+

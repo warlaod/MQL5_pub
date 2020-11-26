@@ -57,8 +57,8 @@ void OnTick() {
    
    
    double PriceUnit = 10 * _Point;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(PriceUnit * SLCoef, PriceUnit * TPCoef);
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(PriceUnit * SLCoef, PriceUnit * TPCoef);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
 
 
 }
@@ -108,7 +108,7 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
    myTrade.CheckSpread();
-   myDate.isInTime("01:00", "07:00");
+   //myDate.isInTime("01:00", "07:00");
    if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
 //+------------------------------------------------------------------+

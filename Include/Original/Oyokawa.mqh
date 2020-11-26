@@ -6,6 +6,8 @@
 
 #include <Original\MyCalculate.mqh>
 #include <Indicators\Trend.mqh>
+#include <Indicators\TimeSeries.mqh>
+#include <Indicators\Oscilators.mqh>
 
 class CurrencyStrength {
  public:
@@ -96,20 +98,13 @@ class CurrencyStrength {
     return "";
   }
 
-   string Trend(string currency) {
-      string start = StringSubstr(currency, 0, 3);
-      string end = StringSubstr(currency, 3, 3);
-      if(StrongestCurrency() == start && WeakestCurrency() == end) return "buy";
-      else if(StrongestCurrency() == end && WeakestCurrency() == start) return "sell";
-      return "";
-   }
-
  private:
   MqlRates price[];
 
 
   bool isRising(string symbol) {
-    CiMA ciMA;
+  	 CiOsMA Osma;
+  	 CiMA ciMA;
     ciMA.Create(_Symbol,Timeframe,5,0,MODE_EMA,PRICE_CLOSE);
     double Trend = ciMA.Main(0) - ciMA.Main(10);
     if(Trend > 0) return true;
