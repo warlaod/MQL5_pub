@@ -51,6 +51,15 @@ bool isGoldenCross(double old_main, double old_signal, double new_main, double n
   return false;
 }
 
+bool isTurnedToRise(double old_main,double new_main) {
+  if(old_main < 0 && new_main > 0) return true;
+  return false;
+}
+
+bool isTurnedToDown(double old_main,double new_main) {
+  if(old_main > 0 && new_main < 0) return true;
+  return false;
+}
 
 //+------------------------------------------------------------------+
 //|                                                                  |
