@@ -86,7 +86,7 @@ void OnTick() {
     myTrade.signal ="sellsell";
   }
 
-  if(isTurnedToRise(ShortHistogram[2],ShortHistogram[1]) && myTrade.signal == "buybuy") {
+  if(isTurnedToRise(ShortHistogram[2],ShortHistogram[1]) &&  myTrade.signal == "buybuy") {
     myTrade.setSignal(ORDER_TYPE_BUY);
   } else if(isTurnedToDown(ShortHistogram[2],ShortHistogram[1]) && myTrade.signal == "sellsell") {
     myTrade.setSignal(ORDER_TYPE_SELL);
