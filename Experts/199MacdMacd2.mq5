@@ -25,7 +25,7 @@
 
 input double SLCoef,TPCoef;
 input ENUM_TIMEFRAMES Timeframe;
-input int MACDLongPeriod,PricePeriod;
+input int MACDLongPeriod,PricePeriod,ATRPeriod;
 input ENUM_APPLIED_PRICE MacdPriceType;
 bool tradable = false;
 //+------------------------------------------------------------------+
@@ -58,43 +58,41 @@ void OnTick() {
   Refresh();
   Check();
 
-  ATR.Refresh();
   MACDLong.Refresh();
   MACDShort.Refresh();
+  ATR.Refresh();
 
-  myPosition.CloseAllPositionsInMinute(positionCloseMin);
+  //myPosition.CloseAllPositionsInMinute(positionCloseMin);
 
   if(!myTrade.istradable || !tradable) return;
 
-  double LongHistogram[2];
-  double ShortHistogram[2];
-  for(int i=0; i<2; i++) {
+  double LongHistogram[3];
+  double ShortHistogram[3];
+  for(int i=0; i<3; i++) {
     LongHistogram[i] = MACDLong.Main(i) - MACDLong.Signal(i);
     ShortHistogram[i] = MACDShort.Main(i) - MACDShort.Signal(i);
   }
 
-  if(LongHistogram[0] > 0 && MACDLong.Main(0) > 0) {
+  if(isBetween(LongHistogram[0],LongHistogram[1],LongHistogram[2]) && LongHistogram[2] > 0) {
     myTrade.signal ="buybuy";
-  } else if(LongHistogram[0] < 0 && MACDLong.Main(0) < 0) {
+  } else if(isBetween(LongHistogram[2],LongHistogram[1],LongHistogram[0]) && LongHistogram[2] < 0) {
     myTrade.signal ="sellsell";
   }
 
-  if(ShortHistogram[1] < 0 && ShortHistogram[0] > 0 && MACDShort.Main(0) < 0 && myTrade.signal == "buybuy") {
+  if(ShortHistogram[1] > 0 && myTrade.signal == "buybuy") {
     myTrade.setSignal(ORDER_TYPE_BUY);
-  } else if(ShortHistogram[1] > 0 && ShortHistogram[0] < 0 && MACDShort.Main(0) > 0 && myTrade.signal == "sellsell") {
+  } else if(ShortHistogram[1] < 0 && myTrade.signal == "sellsell") {
     myTrade.setSignal(ORDER_TYPE_SELL);
   }
 
   double Highest = myPrice.Highest(0,PricePeriod);
   double Lowest = myPrice.Lowest(0,PricePeriod);
 
-  double PriceUnit = 10 * _Point;
+  double PriceUnit = 10*_Point;
   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 )
-    if(myPosition.isPositionInRange(Highest + PriceUnit * TPCoef - myTrade.Ask,POSITION_TYPE_BUY)) return;
-  myTrade.Buy(Lowest - PriceUnit*SLCoef, Highest + PriceUnit * TPCoef);
+    myTrade.Buy(Lowest - PriceUnit*SLCoef, Highest + PriceUnit * TPCoef);
   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 )
-    if(myPosition.isPositionInRange(Lowest - PriceUnit * TPCoef + myTrade.Bid,POSITION_TYPE_SELL)) return;
-  myTrade.Sell(Highest + PriceUnit * SLCoef, Lowest - PriceUnit * TPCoef);
+    myTrade.Sell(Highest + PriceUnit * SLCoef, Lowest - PriceUnit * TPCoef);
 
 
 }

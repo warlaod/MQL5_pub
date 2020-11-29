@@ -25,8 +25,7 @@
 
 input double SLCoef,TPCoef;
 input ENUM_TIMEFRAMES Timeframe;
-input int MACDLongPeriod,PricePeriod;
-input ENUM_APPLIED_PRICE MacdPriceType;
+input int PricePeriod;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -37,17 +36,14 @@ MyDate myDate();
 MyPrice myPrice(Timeframe, 3);
 MyOrder myOrder(Timeframe);
 CurrencyStrength CS(Timeframe, 1);
-
-CiMACD MACDLong,MACDShort;
-CiATR ATR;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiBands Bands;
 int OnInit() {
   MyUtils myutils(60 * 27);
   myutils.Init();
-  MACDLong.Create(_Symbol,Timeframe,12*MACDLongPeriod,26*MACDLongPeriod,9*MACDLongPeriod,MacdPriceType);
-  MACDShort.Create(_Symbol,Timeframe,12,26,9,MacdPriceType);
+  Bands.Create(_Symbol,Timeframe,20,0,1,PRICE_CLOSE);
   return(INIT_SUCCEEDED);
 }
 
@@ -57,44 +53,22 @@ int OnInit() {
 void OnTick() {
   Refresh();
   Check();
+  Bands.Refresh();
+  myPrice.Refresh();
 
-  ATR.Refresh();
-  MACDLong.Refresh();
-  MACDShort.Refresh();
-
-  myPosition.CloseAllPositionsInMinute(positionCloseMin);
+  //myPosition.CloseAllPositionsInMinute(positionCloseMin);
 
   if(!myTrade.istradable || !tradable) return;
-
-  double LongHistogram[2];
-  double ShortHistogram[2];
-  for(int i=0; i<2; i++) {
-    LongHistogram[i] = MACDLong.Main(i) - MACDLong.Signal(i);
-    ShortHistogram[i] = MACDShort.Main(i) - MACDShort.Signal(i);
-  }
-
-  if(LongHistogram[0] > 0 && MACDLong.Main(0) > 0) {
-    myTrade.signal ="buybuy";
-  } else if(LongHistogram[0] < 0 && MACDLong.Main(0) < 0) {
-    myTrade.signal ="sellsell";
-  }
-
-  if(ShortHistogram[1] < 0 && ShortHistogram[0] > 0 && MACDShort.Main(0) < 0 && myTrade.signal == "buybuy") {
-    myTrade.setSignal(ORDER_TYPE_BUY);
-  } else if(ShortHistogram[1] > 0 && ShortHistogram[0] < 0 && MACDShort.Main(0) > 0 && myTrade.signal == "sellsell") {
-    myTrade.setSignal(ORDER_TYPE_SELL);
-  }
 
   double Highest = myPrice.Highest(0,PricePeriod);
   double Lowest = myPrice.Lowest(0,PricePeriod);
 
+
+
+
   double PriceUnit = 10 * _Point;
-  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 )
-    if(myPosition.isPositionInRange(Highest + PriceUnit * TPCoef - myTrade.Ask,POSITION_TYPE_BUY)) return;
-  myTrade.Buy(Lowest - PriceUnit*SLCoef, Highest + PriceUnit * TPCoef);
-  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 )
-    if(myPosition.isPositionInRange(Lowest - PriceUnit * TPCoef + myTrade.Bid,POSITION_TYPE_SELL)) return;
-  myTrade.Sell(Highest + PriceUnit * SLCoef, Lowest - PriceUnit * TPCoef);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(Bands.Lower(0), Bands.Base(0));
+  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(Bands.Upper(0), Bands.Base(0));
 
 
 }
@@ -105,6 +79,7 @@ void OnTick() {
 void OnTimer() {
   myPosition.Refresh();
   myTrade.Refresh();
+  myDate.Refresh();
 
   tradable = true;
 
@@ -144,7 +119,8 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
   myTrade.CheckSpread();
-  //myDate.isInTime("01:00", "07:00");
+  //myDate.Refresh();
+  //if(!myDate.isInTime("08:00", "12:00")) myTrade.istradable = false;
   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
 //+------------------------------------------------------------------+

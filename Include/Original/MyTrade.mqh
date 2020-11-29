@@ -62,11 +62,11 @@ class MyTrade {
 
   bool isInvalidTrade(double SL, double TP) {
     if(TP > SL) {
-      if(TP - Ask < 20 * _Point || Ask - SL < 20 * _Point) return true;
+      if(TP - Ask < 25 * _Point || Ask - SL < 25 * _Point) return true;
     }
 
     else if(TP < SL) {
-      if(Bid - TP < 20 * _Point  || SL - Bid < 20 * _Point) return true;
+      if(Bid - TP < 25 * _Point  || SL - Bid < 25 * _Point) return true;
     }
     return false;
   }
@@ -95,6 +95,13 @@ class MyTrade {
     if(signal != "sell") return false;
     if(isInvalidTrade(SL, TP)) return false;
     if(trade.Sell(lot, NULL, Bid, SL, TP, NULL)) return true;
+    return false;
+  }
+
+  bool PositionModify(long identifier, double SL, double TP) {
+    CTrade trade;
+    if(isInvalidTrade(SL, TP)) return false;
+    if(trade.PositionModify(identifier,SL,TP)) return true;
     return false;
   }
 

@@ -24,9 +24,10 @@
 #include <Indicators\BillWilliams.mqh>
 
 input double SLCoef,TPCoef;
-input ENUM_TIMEFRAMES Timeframe;
-input int MACDLongPeriod,PricePeriod;
-input ENUM_APPLIED_PRICE MacdPriceType;
+input ENUM_TIMEFRAMES Timeframe,LongTimeframe;
+input int PricePeriod,TrendPeriod;
+input double perBCri;
+input int TrendCri;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -34,20 +35,19 @@ bool tradable = false;
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate();
-MyPrice myPrice(Timeframe, 3);
+MyPrice myPrice(Timeframe, 3),myLongPrice(LongTimeframe,3);
 MyOrder myOrder(Timeframe);
 CurrencyStrength CS(Timeframe, 1);
-
-CiMACD MACDLong,MACDShort;
-CiATR ATR;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiIchimoku Ichimoku;
+CiMA MA;
 int OnInit() {
   MyUtils myutils(60 * 27);
   myutils.Init();
-  MACDLong.Create(_Symbol,Timeframe,12*MACDLongPeriod,26*MACDLongPeriod,9*MACDLongPeriod,MacdPriceType);
-  MACDShort.Create(_Symbol,Timeframe,12,26,9,MacdPriceType);
+  Ichimoku.Create(_Symbol,Timeframe,9,26,52);
+  MA.Create(_Symbol,LongTimeframe,10,0,MODE_EMA,PRICE_CLOSE);
   return(INIT_SUCCEEDED);
 }
 
@@ -57,44 +57,34 @@ int OnInit() {
 void OnTick() {
   Refresh();
   Check();
+  Ichimoku.Refresh();
+  myPrice.Refresh();
+  myLongPrice.Refresh();
+  MA.Refresh();
+  
 
-  ATR.Refresh();
-  MACDLong.Refresh();
-  MACDShort.Refresh();
-
-  myPosition.CloseAllPositionsInMinute(positionCloseMin);
+  //myPosition.CloseAllPositionsInMinute(positionCloseMin);
 
   if(!myTrade.istradable || !tradable) return;
-
-  double LongHistogram[2];
-  double ShortHistogram[2];
-  for(int i=0; i<2; i++) {
-    LongHistogram[i] = MACDLong.Main(i) - MACDLong.Signal(i);
-    ShortHistogram[i] = MACDShort.Main(i) - MACDShort.Signal(i);
-  }
-
-  if(LongHistogram[0] > 0 && MACDLong.Main(0) > 0) {
-    myTrade.signal ="buybuy";
-  } else if(LongHistogram[0] < 0 && MACDLong.Main(0) < 0) {
-    myTrade.signal ="sellsell";
-  }
-
-  if(ShortHistogram[1] < 0 && ShortHistogram[0] > 0 && MACDShort.Main(0) < 0 && myTrade.signal == "buybuy") {
-    myTrade.setSignal(ORDER_TYPE_BUY);
-  } else if(ShortHistogram[1] > 0 && ShortHistogram[0] < 0 && MACDShort.Main(0) > 0 && myTrade.signal == "sellsell") {
-    myTrade.setSignal(ORDER_TYPE_SELL);
-  }
-
+  
   double Highest = myPrice.Highest(0,PricePeriod);
   double Lowest = myPrice.Lowest(0,PricePeriod);
+  
+  double perB = (myPrice.At(0).close - Lowest)/(Highest - Lowest);
+  double Trend = MA.Main(0) - MA.Main(TrendPeriod);
+  
+  if(perB > 1- perBCri || perB < perBCri) return;
+  
+  bool isA_larger = Ichimoku.SenkouSpanA(0) > Ichimoku.SenkouSpanB(0);
+  if(Trend > TrendCri*_Point){
+  	if(MA.Main(0) < myLongPrice.At(0).high){
+  		
+  	}
+  }
 
   double PriceUnit = 10 * _Point;
-  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 )
-    if(myPosition.isPositionInRange(Highest + PriceUnit * TPCoef - myTrade.Ask,POSITION_TYPE_BUY)) return;
-  myTrade.Buy(Lowest - PriceUnit*SLCoef, Highest + PriceUnit * TPCoef);
-  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 )
-    if(myPosition.isPositionInRange(Lowest - PriceUnit * TPCoef + myTrade.Bid,POSITION_TYPE_SELL)) return;
-  myTrade.Sell(Highest + PriceUnit * SLCoef, Lowest - PriceUnit * TPCoef);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
 
 
 }
@@ -105,10 +95,11 @@ void OnTick() {
 void OnTimer() {
   myPosition.Refresh();
   myTrade.Refresh();
+  myDate.Refresh();
 
   tradable = true;
 
-  if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
+  //if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
   myTrade.CheckBalance();
   myTrade.CheckMarginLevel();
 
@@ -144,7 +135,8 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
   myTrade.CheckSpread();
-  //myDate.isInTime("01:00", "07:00");
+  //myDate.Refresh();
+  //if(!myDate.isInTime("08:00", "12:00")) myTrade.istradable = false;
   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
 //+------------------------------------------------------------------+

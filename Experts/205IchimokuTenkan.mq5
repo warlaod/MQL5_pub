@@ -24,6 +24,7 @@
 #include <Indicators\BillWilliams.mqh>
 
 input double SLCoef,TPCoef;
+input int ATRPeriod;
 input ENUM_TIMEFRAMES Timeframe;
 bool tradable = false;
 //+------------------------------------------------------------------+
@@ -39,10 +40,12 @@ CurrencyStrength CS(Timeframe, 1);
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiIchimoku Ichimoku;
+CiATR ATR;
 int OnInit() {
   MyUtils myutils(60 * 27);
   myutils.Init();
   Ichimoku.Create(_Symbol,Timeframe,9,26,52);
+  ATR.Create(_Symbol,Timeframe,ATRPeriod);
   return(INIT_SUCCEEDED);
 }
 
@@ -54,12 +57,13 @@ void OnTick() {
   Check();
   Ichimoku.Refresh();
   myPrice.Refresh();
+  ATR.Refresh();
   //myPosition.CloseAllPositionsInMinute(positionCloseMin);
-
-  if(!myTrade.istradable || !tradable) return;
   
-  bool AAA = isBetween(Ichimoku.SenkouSpanA(1),Ichimoku.SenkouSpanB(1),Ichimoku.KijunSen(1));
-  bool BBb = Ichimoku.KijunSen(1) > Ichimoku.TenkanSen(1) && myPrice.At(1).high < Ichimoku.SenkouSpanB(1);
+  if(myPrice.At(1).close > Ichimoku.SenkouSpanA(1)) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+  if(myPrice.At(1).close < Ichimoku.SenkouSpanA(1)) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+  
+  if(!myTrade.istradable || !tradable) return;
 
   if(isBetween(Ichimoku.SenkouSpanA(1),Ichimoku.SenkouSpanB(1),Ichimoku.KijunSen(1))) {
     if(Ichimoku.KijunSen(1) > Ichimoku.TenkanSen(1) && myPrice.At(1).high < Ichimoku.SenkouSpanB(1))
@@ -70,9 +74,9 @@ void OnTick() {
   }
 
 
-  double PriceUnit = MathAbs(Ichimoku.KijunSen(0) - Ichimoku.TenkanSen(0));
-  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
-  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+  double PriceUnit = ATR.Main(0);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(Ichimoku.SenkouSpanA(0), myTrade.Ask + PriceUnit * TPCoef);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(Ichimoku.SenkouSpanA(0), myTrade.Bid - PriceUnit * TPCoef);
 
 
 }
