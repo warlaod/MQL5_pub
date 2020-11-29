@@ -23,7 +23,7 @@
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
 
-input double SLCoef,TPCoef;
+input double SLWeight,TPWeight;
 input ENUM_TIMEFRAMES Timeframe;
 bool tradable = false;
 //+------------------------------------------------------------------+
@@ -38,6 +38,9 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+int CloseMin = 10*MathPow(2,positionCloseMinPow);
+double TPCoef = MathPow(2,TPWeight);
+double SLCoef = MathPow(2,SLWeight);
 int OnInit() {
   MyUtils myutils(60 * 27);
   myutils.Init();
@@ -51,14 +54,14 @@ void OnTick() {
   Refresh();
   Check();
 
-  //myPosition.CloseAllPositionsInMinute(positionCloseMin);
+  myPosition.CloseAllPositionsInMinute(CloseMin);
 
   if(!myTrade.istradable || !tradable) return;
 
 
   double PriceUnit = 10 * _Point;
-  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
-  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit * SLWeight, myTrade.Ask + PriceUnit * TPWeight);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit * SLWeight, myTrade.Bid - PriceUnit * TPWeight);
 
 
 }

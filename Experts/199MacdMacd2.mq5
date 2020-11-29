@@ -23,10 +23,9 @@
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
 
-input double SLCoef,TPCoef;
+input double SLWeight,TPWeight;
 input ENUM_TIMEFRAMES Timeframe;
-input int MACDLongPeriod,PricePeriod,ATRPeriod;
-input ENUM_APPLIED_PRICE MacdPriceType;
+input int MACDLongPeriod,PricePeriod;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -43,13 +42,20 @@ CiATR ATR;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+int CloseMin = 10*MathPow(2,positionCloseMinPow);
+double TPCoef = MathPow(2,TPWeight);
+double SLCoef = MathPow(2,SLWeight);
 int OnInit() {
   MyUtils myutils(60 * 27);
   myutils.Init();
-  MACDLong.Create(_Symbol,Timeframe,12*MACDLongPeriod,26*MACDLongPeriod,9*MACDLongPeriod,MacdPriceType);
-  MACDShort.Create(_Symbol,Timeframe,12,26,9,MacdPriceType);
+  MACDLong.Create(_Symbol,Timeframe,12*MACDLongPeriod,26*MACDLongPeriod,9*MACDLongPeriod,PRICE_MEDIAN);
+  MACDShort.Create(_Symbol,Timeframe,12,26,9,PRICE_MEDIAN);
   return(INIT_SUCCEEDED);
 }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -60,11 +66,10 @@ void OnTick() {
 
   MACDLong.Refresh();
   MACDShort.Refresh();
-  ATR.Refresh();
 
-  //myPosition.CloseAllPositionsInMinute(positionCloseMin);
+  myPosition.CloseAllPositionsInMinute(CloseMin);
 
-  if(!myTrade.istradable || !tradable) return;
+
 
   double LongHistogram[3];
   double ShortHistogram[3];
@@ -73,15 +78,17 @@ void OnTick() {
     ShortHistogram[i] = MACDShort.Main(i) - MACDShort.Signal(i);
   }
 
+  if(!myTrade.istradable || !tradable) return;
+  
   if(isBetween(LongHistogram[0],LongHistogram[1],LongHistogram[2]) && LongHistogram[2] > 0) {
     myTrade.signal ="buybuy";
   } else if(isBetween(LongHistogram[2],LongHistogram[1],LongHistogram[0]) && LongHistogram[2] < 0) {
     myTrade.signal ="sellsell";
   }
 
-  if(ShortHistogram[1] > 0 && myTrade.signal == "buybuy") {
+  if(isTurnedToRise(ShortHistogram[2],ShortHistogram[1]) && myTrade.signal == "buybuy") {
     myTrade.setSignal(ORDER_TYPE_BUY);
-  } else if(ShortHistogram[1] < 0 && myTrade.signal == "sellsell") {
+  } else if(isTurnedToDown(ShortHistogram[2],ShortHistogram[1]) && myTrade.signal == "sellsell") {
     myTrade.setSignal(ORDER_TYPE_SELL);
   }
 
@@ -103,6 +110,7 @@ void OnTick() {
 void OnTimer() {
   myPosition.Refresh();
   myTrade.Refresh();
+  myDate.Refresh();
 
   tradable = true;
 

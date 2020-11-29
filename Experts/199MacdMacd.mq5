@@ -23,10 +23,9 @@
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
 
-input double SLCoef,TPCoef;
-input ENUM_TIMEFRAMES Timeframe;
+input double SLWeight,TPWeight;
+input ENUM_TIMEFRAMES Timeframe,ATRTimeframe;
 input int MACDLongPeriod,PricePeriod;
-input ENUM_APPLIED_PRICE MacdPriceType;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -43,11 +42,15 @@ CiATR ATR;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+int CloseMin = 10*MathPow(2,positionCloseMinPow);
+double TPCoef = MathPow(2,TPWeight);
+double SLCoef = MathPow(2,SLWeight);
 int OnInit() {
   MyUtils myutils(60 * 27);
   myutils.Init();
-  MACDLong.Create(_Symbol,Timeframe,12*MACDLongPeriod,26*MACDLongPeriod,9*MACDLongPeriod,MacdPriceType);
-  MACDShort.Create(_Symbol,Timeframe,12,26,9,MacdPriceType);
+  MACDLong.Create(_Symbol,Timeframe,12*MACDLongPeriod,26*MACDLongPeriod,9*MACDLongPeriod,PRICE_MEDIAN);
+  MACDShort.Create(_Symbol,Timeframe,12,26,9,PRICE_MEDIAN);
+  ATR.Create(_Symbol,ATRTimeframe,14);
   return(INIT_SUCCEEDED);
 }
 
@@ -62,16 +65,19 @@ void OnTick() {
   MACDLong.Refresh();
   MACDShort.Refresh();
 
-  myPosition.CloseAllPositionsInMinute(positionCloseMin);
-
-  if(!myTrade.istradable || !tradable) return;
-
-  double LongHistogram[2];
-  double ShortHistogram[2];
-  for(int i=0; i<2; i++) {
+  myPosition.CloseAllPositionsInMinute(CloseMin);
+  
+  double LongHistogram[3];
+  double ShortHistogram[3];
+  for(int i=0; i<3; i++) {
     LongHistogram[i] = MACDLong.Main(i) - MACDLong.Signal(i);
     ShortHistogram[i] = MACDShort.Main(i) - MACDShort.Signal(i);
   }
+  
+  if(LongHistogram[2] > 0 && LongHistogram[2] < LongHistogram[1]) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+  if(LongHistogram[2] < 0 && LongHistogram[2] > LongHistogram[1]) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+  
+  if(!myTrade.istradable || !tradable) return;
 
   if(LongHistogram[0] > 0 && MACDLong.Main(0) > 0) {
     myTrade.signal ="buybuy";
@@ -88,7 +94,7 @@ void OnTick() {
   double Highest = myPrice.Highest(0,PricePeriod);
   double Lowest = myPrice.Lowest(0,PricePeriod);
 
-  double PriceUnit = 10 * _Point;
+  double PriceUnit = ATR.Main(0);
   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 )
     if(myPosition.isPositionInRange(Highest + PriceUnit * TPCoef - myTrade.Ask,POSITION_TYPE_BUY)) return;
   myTrade.Buy(Lowest - PriceUnit*SLCoef, Highest + PriceUnit * TPCoef);
@@ -105,6 +111,7 @@ void OnTick() {
 void OnTimer() {
   myPosition.Refresh();
   myTrade.Refresh();
+  myDate.Refresh();
 
   tradable = true;
 
