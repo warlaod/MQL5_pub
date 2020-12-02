@@ -8,7 +8,7 @@
 #include <Trade\Trade.mqh>
 
 input int spread = -1;
-input int denom = 30000;
+input int denom = 100000;
 input int positions = 2;
 input bool isLotModified = false;
 input int StopBalance = 2000;

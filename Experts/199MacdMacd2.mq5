@@ -25,7 +25,8 @@
 
 input double SLWeight,TPWeight;
 input ENUM_TIMEFRAMES Timeframe;
-input int MACDLongPeriod,PricePeriod;
+input int MACDLongPeriod;
+input double PricePeriod;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -78,7 +79,6 @@ void OnTick() {
     ShortHistogram[i] = MACDShort.Main(i) - MACDShort.Signal(i);
   }
 
-
   if(!myTrade.istradable || !tradable) return;
   
   if(isBetween(LongHistogram[0],LongHistogram[1],LongHistogram[2]) && LongHistogram[2] > 0) {
@@ -87,14 +87,15 @@ void OnTick() {
     myTrade.signal ="sellsell";
   }
 
-  if(isTurnedToRise(ShortHistogram[2],ShortHistogram[1]) && myTrade.signal == "buybuy") {
+  if(isTurnedToRise(ShortHistogram[2],ShortHistogram[1]) &&  myTrade.signal == "buybuy") {
     myTrade.setSignal(ORDER_TYPE_BUY);
   } else if(isTurnedToDown(ShortHistogram[2],ShortHistogram[1]) && myTrade.signal == "sellsell") {
     myTrade.setSignal(ORDER_TYPE_SELL);
   }
-
-  double Highest = myPrice.Highest(0,PricePeriod);
-  double Lowest = myPrice.Lowest(0,PricePeriod);
+  
+  int Peri = MathPow(2,PricePeriod);
+  double Highest = myPrice.Highest(0,Peri);
+  double Lowest = myPrice.Lowest(0,Peri);
 
   double PriceUnit = 10*_Point;
   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 )
