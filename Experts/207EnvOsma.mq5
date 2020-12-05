@@ -23,11 +23,10 @@
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
 
-input double SLCoef,TPCoef;
-input int MAPeriod;
-input int TrendPeriod;
-input int TrendCri;
-input ENUM_TIMEFRAMES Timeframe,ATRTimeframe;
+input double SLWeight,TPWeight,OsmaWeight;
+input ENUM_TIMEFRAMES Timeframe;
+input int EnvPeriod;
+input double dev;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -41,17 +40,23 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+int CloseMin = 10*MathPow(2,positionCloseMinPow);
+double TPCoef = MathPow(2,TPWeight);
+double SLCoef = MathPow(2,SLWeight);
+
+CiEnvelopes Envelopes;
 CiOsMA Osma;
-CiMA MA;
-CiATR ATR;
 int OnInit() {
   MyUtils myutils(60 * 27);
   myutils.Init();
-  Osma.Create(_Symbol,Timeframe,12,26,9,PRICE_CLOSE);
-  MA.Create(_Symbol,Timeframe,MAPeriod,0,MODE_EMA,PRICE_CLOSE);
-  ATR.Create(_Symbol,ATRTimeframe,14);
+  Envelopes.Create(_Symbol,Timeframe,EnvPeriod,0,MODE_EMA,PRICE_MEDIAN,dev);
+  Osma.Create(_Symbol,Timeframe,12,26,9,PRICE_MEDIAN);
   return(INIT_SUCCEEDED);
 }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -60,33 +65,20 @@ void OnTick() {
   Refresh();
   Check();
   Osma.Refresh();
-  MA.Refresh();
-  ATR.Refresh();
+  Envelopes.Refresh();
 
-
-  //myPosition.CloseAllPositionsInMinute(positionCloseMin);
+  myPosition.CloseAllPositionsInMinute(CloseMin);
 
   if(!myTrade.istradable || !tradable) return;
-
-  double Trend = MA.Main(0) - MA.Main(TrendPeriod);
-
-  if(Trend > TrendCri*_Point) {
-    if(isTurnedToRise(Osma.Main(2),Osma.Main(1))) myTrade.setSignal(ORDER_TYPE_BUY);
-  }
-
-  if(Trend < -TrendCri*_Point) {
-    if(isTurnedToDown(Osma.Main(2),Osma.Main(1))) myTrade.setSignal(ORDER_TYPE_SELL);
-  }
-
-
+  
+  double OsmaCri = 10*_Point*MathPow(2, OsmaWeight);
+  if(Osma.Main(0) > OsmaCri && Osma.Main(0) > Osma.Main(1)) myTrade.setSignal(ORDER_TYPE_BUY);
+  if(Osma.Main(0) < -OsmaCri && Osma.Main(0) < Osma.Main(1)) myTrade.setSignal(ORDER_TYPE_SELL);
 
 
   double PriceUnit = 10 * _Point;
-  if(!myPosition.isPositionInRange(PriceUnit*TPCoef,myTrade.Ask,POSITION_TYPE_BUY))
-    myTrade.Buy(MA.Main(0), myTrade.Ask + PriceUnit * TPCoef);
-
-  if(!myPosition.isPositionInRange(PriceUnit*TPCoef,myTrade.Bid,POSITION_TYPE_SELL))
-    myTrade.Sell(MA.Main(0), myTrade.Bid - PriceUnit * TPCoef);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(Envelopes.Lower(0), Envelopes.Upper(0));
+  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(Envelopes.Upper(0), Envelopes.Lower(0));
 
 
 }
@@ -101,7 +93,7 @@ void OnTimer() {
 
   tradable = true;
 
-  //if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
+  if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
   myTrade.CheckBalance();
   myTrade.CheckMarginLevel();
 

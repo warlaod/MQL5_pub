@@ -23,11 +23,10 @@
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
 
-input double SLCoef,TPCoef;
-input int MAPeriod;
-input int TrendPeriod;
-input int TrendCri;
-input ENUM_TIMEFRAMES Timeframe,ATRTimeframe;
+input double SLWeight,TPWeight,OsmaWeight;
+input ENUM_TIMEFRAMES Timeframe;
+input int WPRPeriod,WPRCri;
+input double TPPeriod,SLPeriod;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -41,17 +40,23 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+int CloseMin = 10*MathPow(2,positionCloseMinPow);
+double TPCoef = MathPow(2,TPWeight);
+double SLCoef = MathPow(2,SLWeight);
+
+CiWPR WPR;
 CiOsMA Osma;
-CiMA MA;
-CiATR ATR;
 int OnInit() {
   MyUtils myutils(60 * 27);
   myutils.Init();
-  Osma.Create(_Symbol,Timeframe,12,26,9,PRICE_CLOSE);
-  MA.Create(_Symbol,Timeframe,MAPeriod,0,MODE_EMA,PRICE_CLOSE);
-  ATR.Create(_Symbol,ATRTimeframe,14);
+  WPR.Create(_Symbol,Timeframe,WPRPeriod);
+  Osma.Create(_Symbol,Timeframe,12,26,9,PRICE_MEDIAN);
   return(INIT_SUCCEEDED);
 }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -60,34 +65,35 @@ void OnTick() {
   Refresh();
   Check();
   Osma.Refresh();
-  MA.Refresh();
-  ATR.Refresh();
+  WPR.Refresh();
+  myPrice.Refresh();
 
-
-  //myPosition.CloseAllPositionsInMinute(positionCloseMin);
+  myPosition.CloseAllPositionsInMinute(CloseMin);
 
   if(!myTrade.istradable || !tradable) return;
 
-  double Trend = MA.Main(0) - MA.Main(TrendPeriod);
-
-  if(Trend > TrendCri*_Point) {
-    if(isTurnedToRise(Osma.Main(2),Osma.Main(1))) myTrade.setSignal(ORDER_TYPE_BUY);
-  }
-
-  if(Trend < -TrendCri*_Point) {
-    if(isTurnedToDown(Osma.Main(2),Osma.Main(1))) myTrade.setSignal(ORDER_TYPE_SELL);
-  }
-
+  double OsmaCri = 10*_Point*MathPow(2, OsmaWeight);
+  if(Osma.Main(0) > OsmaCri && Osma.Main(0) > Osma.Main(1) && WPR.Main(0) < -100+WPRCri) myTrade.setSignal(ORDER_TYPE_BUY);
+  if(Osma.Main(0) < -OsmaCri && Osma.Main(0) < Osma.Main(1) && WPR.Main(0) > -WPRCri) myTrade.setSignal(ORDER_TYPE_SELL);
 
 
 
   double PriceUnit = 10 * _Point;
-  if(!myPosition.isPositionInRange(PriceUnit*TPCoef,myTrade.Ask,POSITION_TYPE_BUY))
-    myTrade.Buy(MA.Main(0), myTrade.Ask + PriceUnit * TPCoef);
 
-  if(!myPosition.isPositionInRange(PriceUnit*TPCoef,myTrade.Bid,POSITION_TYPE_SELL))
-    myTrade.Sell(MA.Main(0), myTrade.Bid - PriceUnit * TPCoef);
-
+  double SLPeri = MathPow(2,SLPeriod);
+  double TPPeri = MathPow(2,TPPeriod);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
+    double Highest = myPrice.Highest(0,TPPeri);
+    double Lowest = myPrice.Lowest(0,SLPeri);
+    //if(myPosition.isPositionInRange(MathAbs(Highest-myTrade.Ask),POSITION_TYPE_BUY)) return;
+    myTrade.Buy(Lowest, Highest);
+  }
+  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
+    double Highest = myPrice.Highest(0,SLPeri);
+    double Lowest = myPrice.Lowest(0,TPPeri);
+    //if(myPosition.isPositionInRange(MathAbs(Lowest-myTrade.Bid),POSITION_TYPE_SELL)) return;
+    myTrade.Sell(Highest,Lowest);
+  }
 
 }
 
@@ -101,7 +107,7 @@ void OnTimer() {
 
   tradable = true;
 
-  //if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
+  if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
   myTrade.CheckBalance();
   myTrade.CheckMarginLevel();
 
@@ -139,7 +145,8 @@ void Check() {
   myTrade.CheckSpread();
   //myDate.Refresh();
   //if(!myDate.isInTime("08:00", "12:00")) myTrade.istradable = false;
-  if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
+  if(myOrder.wasOrderedInTheSameBar())
+    myTrade.istradable = false;
 }
 //+------------------------------------------------------------------+
 

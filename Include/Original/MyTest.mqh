@@ -57,13 +57,13 @@ class MyTest {
       if(result == -99999999) {
          return result;
       }
-      positiveEffector = min_dd * MathLog(profit_trades);
+      positiveEffector = min_dd * total_trades;
       negativeEffector = 1;
 
-      CheckRatio(short_long_ratio, 0.70);
-      CheckRatio(win_rate, 0.25);
-      CheckRatio(short_win_rate, 0.25);
-      CheckRatio(long_win_rate, 0.25);
+      CheckRatio(short_long_ratio, 0.1);
+      CheckRatio(win_rate, 0.1);
+      CheckRatio(short_win_rate, 0.1);
+      CheckRatio(long_win_rate, 0.1);
       SetResultForBalance();
 
       return result;
@@ -73,13 +73,13 @@ class MyTest {
       if(result == -99999999) {
          return result;
       }
-      positiveEffector = min_dd * MathLog(profit_trades);
+      positiveEffector = min_dd * profit_trades;
       negativeEffector = 1;
 
-      CheckRatio(short_long_ratio, 0.70);
-      CheckRatio(win_rate, 0.25);
-      CheckRatio(short_win_rate, 0.25);
-      CheckRatio(long_win_rate, 0.25);
+      CheckRatio(short_long_ratio, 0.1);
+      CheckRatio(win_rate, 0.1);
+      CheckRatio(short_win_rate, 0.1);
+      CheckRatio(long_win_rate, 0.1);
       SetResultWithOutBalance();
 
       return result;
@@ -92,10 +92,10 @@ class MyTest {
       positiveEffector = min_dd * profit_trades;
       negativeEffector = 1;
 
-      CheckRatio(short_long_ratio, 0.70);
-      CheckRatio(win_rate, 0.25);
-      CheckRatio(short_win_rate, 0.25);
-      CheckRatio(long_win_rate, 0.25);
+      CheckRatio(short_long_ratio, 0.1);
+      CheckRatio(win_rate, 0.1);
+      CheckRatio(short_win_rate, 0.1);
+      CheckRatio(long_win_rate, 0.1);
       SetResultForBalance();
 
       return result;
@@ -113,7 +113,7 @@ class MyTest {
       min_dd = 1 / equity_dd;
       
       long_win_rate = long_profit_trades / (total_trades - short_trades);
-      positiveEffector = min_dd * MathLog(long_profit_trades);
+      positiveEffector = min_dd * long_profit_trades;
       
       if(positiveEffector == 0) return -99999999;
 

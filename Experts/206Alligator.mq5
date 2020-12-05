@@ -23,11 +23,8 @@
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
 
-input double SLCoef,TPCoef;
-input int MAPeriod;
-input int TrendPeriod;
-input int TrendCri;
-input ENUM_TIMEFRAMES Timeframe,ATRTimeframe;
+input double SLWeight,TPWeight,PricePeriod;
+input ENUM_TIMEFRAMES Timeframe;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -41,15 +38,14 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiOsMA Osma;
-CiMA MA;
-CiATR ATR;
+int CloseMin = 10*MathPow(2,positionCloseMinPow);
+double TPCoef = MathPow(2,TPWeight);
+double SLCoef = MathPow(2,SLWeight);
+CiAlligator Alligator;
 int OnInit() {
   MyUtils myutils(60 * 27);
   myutils.Init();
-  Osma.Create(_Symbol,Timeframe,12,26,9,PRICE_CLOSE);
-  MA.Create(_Symbol,Timeframe,MAPeriod,0,MODE_EMA,PRICE_CLOSE);
-  ATR.Create(_Symbol,ATRTimeframe,14);
+  Alligator.Create(_Symbol,Timeframe,13.,8,8,5,5,3,MODE_EMA,PRICE_CLOSE);
   return(INIT_SUCCEEDED);
 }
 
@@ -59,34 +55,28 @@ int OnInit() {
 void OnTick() {
   Refresh();
   Check();
-  Osma.Refresh();
-  MA.Refresh();
-  ATR.Refresh();
 
+  myPosition.CloseAllPositionsInMinute(CloseMin);
 
-  //myPosition.CloseAllPositionsInMinute(positionCloseMin);
+  Alligator.Refresh();
+  myPrice.Refresh();
 
   if(!myTrade.istradable || !tradable) return;
 
-  double Trend = MA.Main(0) - MA.Main(TrendPeriod);
-
-  if(Trend > TrendCri*_Point) {
-    if(isTurnedToRise(Osma.Main(2),Osma.Main(1))) myTrade.setSignal(ORDER_TYPE_BUY);
+  if(isBetween(Alligator.Lips(2),Alligator.Teeth(2),Alligator.Jaw(2)) && Alligator.Teeth(1) > Alligator.Lips(1)) {
+    myPosition.CloseAllPositionsByProfit(POSITION_TYPE_BUY);
+    myTrade.setSignal(ORDER_TYPE_SELL);
   }
-
-  if(Trend < -TrendCri*_Point) {
-    if(isTurnedToDown(Osma.Main(2),Osma.Main(1))) myTrade.setSignal(ORDER_TYPE_SELL);
+  if(isBetween(Alligator.Jaw(2),Alligator.Teeth(2),Alligator.Lips(2)) && Alligator.Teeth(1) < Alligator.Lips(1)) {
+    myPosition.CloseAllPositionsByProfit(POSITION_TYPE_SELL);
+    myTrade.setSignal(ORDER_TYPE_BUY);
   }
-
-
-
 
   double PriceUnit = 10 * _Point;
-  if(!myPosition.isPositionInRange(PriceUnit*TPCoef,myTrade.Ask,POSITION_TYPE_BUY))
-    myTrade.Buy(MA.Main(0), myTrade.Ask + PriceUnit * TPCoef);
-
-  if(!myPosition.isPositionInRange(PriceUnit*TPCoef,myTrade.Bid,POSITION_TYPE_SELL))
-    myTrade.Sell(MA.Main(0), myTrade.Bid - PriceUnit * TPCoef);
+  double Highest = myPrice.Highest(0,PricePeriod);
+  double Lowest = myPrice.Lowest(0,PricePeriod);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(Lowest, myTrade.Ask + PriceUnit * TPWeight);
+  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(Highest, myTrade.Bid - PriceUnit * TPWeight);
 
 
 }
@@ -101,7 +91,7 @@ void OnTimer() {
 
   tradable = true;
 
-  //if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
+  if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
   myTrade.CheckBalance();
   myTrade.CheckMarginLevel();
 
