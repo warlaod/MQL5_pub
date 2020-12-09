@@ -8,11 +8,12 @@
 #include <Trade\Trade.mqh>
 
 input int spread = -1;
-input int denom = 100000;
+input double risk = 0.001;
 input int positions = 2;
 input bool isLotModified = false;
 input int StopBalance = 2000;
 input int StopMarginLevel = 200;
+input double initiallot = 0;
 
 class MyTrade {
 
@@ -37,11 +38,9 @@ class MyTrade {
       if(minlot == 0.01) LotDigits = 2;
       if(minlot == 0.1) LotDigits = 1;
       if(minlot == 1) LotDigits = 0;
-      ModifyLot();
    }
 
    void Refresh() {
-      if(isLotModified) ModifyLot();
       istradable = true;
       signal = "";
 
@@ -87,6 +86,7 @@ class MyTrade {
    bool Buy(double SL, double TP) {
       if(signal != "buy") return false;
       if(isInvalidTrade(SL, TP)) return false;
+      ModifyLot(SL);
       if(trade.Buy(lot, NULL, Ask, SL, TP, NULL)) return true;
       return false;
    }
@@ -94,6 +94,7 @@ class MyTrade {
    bool Sell(double SL, double TP) {
       if(signal != "sell") return false;
       if(isInvalidTrade(SL, TP)) return false;
+      ModifyLot(SL);
       if(trade.Sell(lot, NULL, Bid, SL, TP, NULL)) return true;
       return false;
    }
@@ -106,8 +107,13 @@ class MyTrade {
 
 
  private:
-   void ModifyLot() {
-      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / denom, LotDigits);
+   void ModifyLot(double SL) {
+      if(initiallot > 0) {
+         lot = initiallot;
+      } else {
+         double TradeRisk = MathAbs(SL - Ask)/(10*_Point);
+         lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY)* risk / TradeRisk, LotDigits);
+      }
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;
    }
