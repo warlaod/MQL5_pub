@@ -131,7 +131,7 @@ class MyTest {
       }
       int AAGP = (gross_profit * profit_trades) * sqrt(profit_trades);
       int AAGL = (gross_loss * loss_trades) * sqrt(loss_trades);
-      positiveEffector = (AAGP - AAGL) / AAGL;
+      positiveEffector = (AAGP - AAGL) / gross_loss;
       negativeEffector = 1;
 
       CheckRatio(short_long_ratio, 0.1);
