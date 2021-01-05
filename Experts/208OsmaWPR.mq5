@@ -112,8 +112,7 @@ void OnTimer() {
   myTrade.CheckMarginLevel();
 
   if(!myTrade.istradable) {
-    myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-    myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+
     tradable = false;
   }
 }

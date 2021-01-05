@@ -8,12 +8,11 @@
 #include <Trade\Trade.mqh>
 
 input int spread = -1;
-input double risk = 0.001;
+input double risk = 0.01;
 input int positions = 2;
 input bool isLotModified = false;
 input int StopBalance = 2000;
 input int StopMarginLevel = 200;
-input double initiallot = 0;
 
 class MyTrade {
 
@@ -26,6 +25,7 @@ class MyTrade {
    double balance;
    double minlot;
    double maxlot;
+   double InitialDeposit;
    int LotDigits;
    MqlDateTime dt;
    CTrade trade;
@@ -33,6 +33,7 @@ class MyTrade {
    void MyTrade() {
       minlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
       maxlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
+      InitialDeposit = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY),1);
       trade.SetDeviationInPoints(10);
       if(minlot == 0.001) LotDigits = 3;
       if(minlot == 0.01) LotDigits = 2;
@@ -49,8 +50,7 @@ class MyTrade {
    }
 
    void setSignal(ENUM_ORDER_TYPE OrderType) {
-      if(OrderType == ORDER_TYPE_BUY) signal = "buy";
-      if(OrderType == ORDER_TYPE_SELL) signal = "sell";
+      signal = OrderType;
    }
 
    void CheckSpread() {
@@ -84,7 +84,7 @@ class MyTrade {
    }
 
    bool Buy(double SL, double TP) {
-      if(signal != "buy") return false;
+      if(signal != ORDER_TYPE_BUY) return false;
       if(isInvalidTrade(SL, TP)) return false;
       ModifyLot(SL);
       if(trade.Buy(lot, NULL, Ask, SL, TP, NULL)) return true;
@@ -92,7 +92,7 @@ class MyTrade {
    }
 
    bool Sell(double SL, double TP) {
-      if(signal != "sell") return false;
+      if(signal != ORDER_TYPE_SELL) return false;
       if(isInvalidTrade(SL, TP)) return false;
       ModifyLot(SL);
       if(trade.Sell(lot, NULL, Bid, SL, TP, NULL)) return true;
@@ -108,11 +108,11 @@ class MyTrade {
 
  private:
    void ModifyLot(double SL) {
-      if(initiallot > 0) {
-         lot = initiallot;
+      double TradeRisk = MathAbs(SL - Ask)/(10*_Point);
+      if(isLotModified) {
+         lot = NormalizeDouble(InitialDeposit* risk / TradeRisk, LotDigits);
       } else {
-         double TradeRisk = MathAbs(SL - Ask)/(10*_Point);
-         lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY)* risk / TradeRisk, LotDigits);
+         lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY)* risk/100 / TradeRisk, LotDigits);
       }
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;

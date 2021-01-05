@@ -68,7 +68,7 @@ class MyTest {
 
       return result;
    }
-   
+
    double min_dd_and_mathsqrt_profit_trades_without_balance() {
       if(result == -99999999) {
          return result;
@@ -84,7 +84,7 @@ class MyTest {
 
       return result;
    }
-   
+
    double min_dd_and_profit_trades() {
       if(result == -99999999) {
          return result;
@@ -109,18 +109,36 @@ class MyTest {
       if(balance_dd == 0 && equity_dd == 0) {
          return -99999999;
       }
-      
+
       min_dd = 1 / equity_dd;
-      
+
       long_win_rate = long_profit_trades / (total_trades - short_trades);
       positiveEffector = min_dd * long_profit_trades;
-      
+
       if(positiveEffector == 0) return -99999999;
 
       negativeEffector = 1;
 
       CheckRatio(long_win_rate, 0.25);
       SetResultForBalance();
+
+      return result;
+   }
+
+   double PROM() {
+      if(result == -99999999) {
+         return result;
+      }
+      int AAGP = (gross_profit * profit_trades) * sqrt(profit_trades);
+      int AAGL = (gross_loss * loss_trades) * sqrt(loss_trades);
+      positiveEffector = (AAGP - AAGL) / AAGL;
+      negativeEffector = 1;
+
+      CheckRatio(short_long_ratio, 0.1);
+      CheckRatio(win_rate, 0.1);
+      CheckRatio(short_win_rate, 0.1);
+      CheckRatio(long_win_rate, 0.1);
+      SetResultWithOutBalance();
 
       return result;
    }
@@ -133,12 +151,12 @@ class MyTest {
 
    void SetResultForBalance() {
       if(balance > 0) {
-         result = balance* positiveEffector / negativeEffector ;
+         result = balance * positiveEffector / negativeEffector ;
       } else {
          result = balance / positiveEffector * negativeEffector ;
       }
    }
-   
+
    void SetResultWithOutBalance() {
       if(balance > 0) {
          result =  positiveEffector / negativeEffector ;
