@@ -33,110 +33,111 @@
 input int FridayEndHour = 23;
 class MyDate {
  public:
-  CDateTime dt;
-  datetime  timeCurrent;
-  bool isDSTOnUSA;
-  bool isDSTOnEU;
-  void MyDate() {
+   CDateTime dt;
+   datetime  timeCurrent;
+   bool isDSTOnUSA;
+   bool isDSTOnEU;
+   void MyDate() {
 
-  }
+   }
 
-  void Refresh() {
-    timeCurrent = TimeCurrent();
-    TimeToStruct(timeCurrent, dt);
-    // if(SetDSTOnEU) {
-    //    checkDST_EU();
-    //    if(isDSTOnEU) TimeToStruct(TimeCurrent() + 3600, dt);
-    // } else if(SetDSTOnUSA) {
-    //    checkDST_USA();
-    //    if(isDSTOnUSA) TimeToStruct(TimeCurrent() + 3600, dt);
-    //    double dawdwa = 123;
-    // }
-  }
+   void Refresh() {
+      timeCurrent = TimeCurrent();
+      TimeToStruct(timeCurrent, dt);
+      // if(SetDSTOnEU) {
+      //    checkDST_EU();
+      //    if(isDSTOnEU) TimeToStruct(TimeCurrent() + 3600, dt);
+      // } else if(SetDSTOnUSA) {
+      //    checkDST_USA();
+      //    if(isDSTOnUSA) TimeToStruct(TimeCurrent() + 3600, dt);
+      //    double dawdwa = 123;
+      // }
+   }
 
-  bool isInTime(string start, string end) {
-    if(isBetween(StringToTime(end), timeCurrent, StringToTime(start))) return true;
-    return false;
-  }
+   bool isInTime(string start, string end) {
+      if(isBetween(StringToTime(end), timeCurrent, StringToTime(start))) return true;
+      return false;
+   }
 
-  bool isYearEnd() {
-    if(dt.mon == 12 && dt.day > 25) return true;
-    if(dt.mon == 1 && dt.day < 5) return true;
-    return false;
-  }
+   bool isYearEnd() {
+      if(dt.mon == 12 && dt.day > 25) return true;
+      if(dt.mon == 1 && dt.day < 5) return true;
+      return false;
+   }
 
-  bool isFridayEnd() {
-    if(dt.day_of_week == FRIDAY) {
-      if((dt.hour >= FridayEndHour-1)) return true;
-    }
-    return false;
-  }
+   bool isFridayEnd() {
+      if(dt.day_of_week == FRIDAY) {
+         if((dt.hour >= FridayEndHour - 1))
+            return true;
+      }
+      return false;
+   }
 
-  void checkDST_USA() {
-    double CurrentTime = TimeCurrent();
-    double StartTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 3, DST_USA_Startday()));
-    double EndTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 11, DST_USA_Endday()));
-    if(isBetween(EndTime, CurrentTime, StartTime))
-      isDSTOnUSA = true;
-    else
-      isDSTOnUSA = false;
-  }
+   void checkDST_USA() {
+      double CurrentTime = TimeCurrent();
+      double StartTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 3, DST_USA_Startday()));
+      double EndTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 11, DST_USA_Endday()));
+      if(isBetween(EndTime, CurrentTime, StartTime))
+         isDSTOnUSA = true;
+      else
+         isDSTOnUSA = false;
+   }
 
-  void checkDST_EU() {
-    double CurrentTime = TimeCurrent();
-    double StartTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 3, DST_EU_Startday()));
-    double EndTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 10, DST_EU_Endday()));
-    if(isBetween(EndTime, CurrentTime, StartTime))
-      isDSTOnEU = true;
-    else
-      isDSTOnEU = false;
-  }
+   void checkDST_EU() {
+      double CurrentTime = TimeCurrent();
+      double StartTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 3, DST_EU_Startday()));
+      double EndTime = StringToTime(StringFormat("%04d-%02d-%02d", dt.year, 10, DST_EU_Endday()));
+      if(isBetween(EndTime, CurrentTime, StartTime))
+         isDSTOnEU = true;
+      else
+         isDSTOnEU = false;
+   }
 
  private:
 
-  int DST_USA_Startday() {
-    CDateTime StartDt;
-    StartDt.Year(dt.year);
-    StartDt.Mon(3);
-    for(int day = 8; day <= 14; day++) {
-      StartDt.Day(day);
-      if(StartDt.day_of_week == SUNDAY) break;
-    }
-    return StartDt.day;
-  }
+   int DST_USA_Startday() {
+      CDateTime StartDt;
+      StartDt.Year(dt.year);
+      StartDt.Mon(3);
+      for(int day = 8; day <= 14; day++) {
+         StartDt.Day(day);
+         if(StartDt.day_of_week == SUNDAY) break;
+      }
+      return StartDt.day;
+   }
 
-  int DST_USA_Endday() {
-    CDateTime EndDt;
-    EndDt.Year(dt.year);
-    EndDt.Mon(11);
-    for(int day = 1; day <= 7; day++) {
-      EndDt.Day(day);
-      if(EndDt.day_of_week == SUNDAY) break;
-    }
-    return EndDt.day;
-  }
+   int DST_USA_Endday() {
+      CDateTime EndDt;
+      EndDt.Year(dt.year);
+      EndDt.Mon(11);
+      for(int day = 1; day <= 7; day++) {
+         EndDt.Day(day);
+         if(EndDt.day_of_week == SUNDAY) break;
+      }
+      return EndDt.day;
+   }
 
-  int DST_EU_Startday() {
-    CDateTime StartDt;
-    StartDt.Year(dt.year);
-    StartDt.Mon(3);
-    for(int day = 25; day <= 31; day++) {
-      StartDt.Day(day);
-      if(StartDt.day_of_week == SUNDAY) break;
-    }
-    return StartDt.day;
-  }
+   int DST_EU_Startday() {
+      CDateTime StartDt;
+      StartDt.Year(dt.year);
+      StartDt.Mon(3);
+      for(int day = 25; day <= 31; day++) {
+         StartDt.Day(day);
+         if(StartDt.day_of_week == SUNDAY) break;
+      }
+      return StartDt.day;
+   }
 
-  int DST_EU_Endday() {
-    CDateTime EndDt;
-    EndDt.Year(dt.year);
-    EndDt.Mon(10);
-    for(int day = 25; day <= 31; day++) {
-      EndDt.Day(day);
-      if(EndDt.day_of_week == SUNDAY) break;
-    }
-    return EndDt.day;
-  }
+   int DST_EU_Endday() {
+      CDateTime EndDt;
+      EndDt.Year(dt.year);
+      EndDt.Mon(10);
+      for(int day = 25; day <= 31; day++) {
+         EndDt.Day(day);
+         if(EndDt.day_of_week == SUNDAY) break;
+      }
+      return EndDt.day;
+   }
 
 
 
@@ -148,18 +149,18 @@ class MyDate {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-  void check_DST_EU(int month, int day, int hour, int day_of_week) {
+   void check_DST_EU(int month, int day, int hour, int day_of_week) {
 
-    if(day_of_week == MONDAY) {
-      if(month == 3 && 25 < day && day <= 31) {
+      if(day_of_week == MONDAY) {
+         if(month == 3 && 25 < day && day <= 31) {
+         }
       }
-    }
 
-    if(day_of_week == MONDAY) {
-      if(month == 10 && 25 < day && day <= 31) {
+      if(day_of_week == MONDAY) {
+         if(month == 10 && 25 < day && day <= 31) {
+         }
       }
-    }
-  }
+   }
 
 
 };

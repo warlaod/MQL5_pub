@@ -50,6 +50,8 @@ class MyTest {
    double marginlevel_min;
    double positiveEffector;
    double negativeEffector;
+   double conlossMax;
+   double maxConloss;
 
 
  public:
@@ -131,7 +133,7 @@ class MyTest {
       }
       int AAGP = (gross_profit * profit_trades) * sqrt(profit_trades);
       int AAGL = (gross_loss * loss_trades) * sqrt(loss_trades);
-      positiveEffector = (AAGP - AAGL) / gross_loss;
+      positiveEffector = (AAGP - AAGL) / gross_loss / maxConloss;
       negativeEffector = 1;
 
       CheckRatio(short_long_ratio, 0.1);
@@ -180,6 +182,8 @@ class MyTest {
       marginlevel_min  = TesterStatistics(STAT_MIN_MARGINLEVEL);
       balance_dd = TesterStatistics(STAT_BALANCE_DD);
       equity_dd = TesterStatistics(STAT_EQUITY_DD);
+      conlossMax = TesterStatistics(STAT_CONLOSSMAX);
+      maxConloss = TesterStatistics(STAT_MAX_CONLOSSES);
       average_profit = 0;
       average_loss = 0;
       win_rate = 0;

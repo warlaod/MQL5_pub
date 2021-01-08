@@ -1,13 +1,7 @@
 //+------------------------------------------------------------------+
-//|                                            1009ScalpFractals.mq5 |
-//|                        Copyright 2020, MetaQuotes Software Corp. |
-//|                                             https://www.mql5.com |
-//+------------------------------------------------------------------+
-#property copyright "Copyright 2020, MetaQuotes Software Corp."
-#property link      "https://www.mql5.com"
-#property version   "1.00"
-//+------------------------------------------------------------------+
-//| Expert initialization function                                   |
+//|                                                      ProjectName |
+//|                                      Copyright 2020, CompanyName |
+//|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
 #include <Original\MyUtils.mqh>
 #include <Original\MyTrade.mqh>
@@ -23,25 +17,34 @@
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
 #include <Indicators\Volumes.mqh>
-
-input double SLCoef,TPCoef;
-input ENUM_TIMEFRAMES Timeframe;
+CTrade trade;
+CiMACD ciLongMACD, ciShortMACD;
+CiATR ciATR;
+input ENUM_TIMEFRAMES Timeframe, MacdLongTimeframe;
+input int ATRPeriod;
 bool tradable = false;
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+
+input double TPCoef,SLCoef;
+//+-------------------------
+
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate();
 MyPrice myPrice(Timeframe, 3);
 MyOrder myOrder(Timeframe);
 CurrencyStrength CS(Timeframe, 1);
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    MyUtils myutils(60 * 27);
    myutils.Init();
+   trade.SetExpertMagicNumber(MagicNumber);
+
+   ciLongMACD.Create(_Symbol, MacdLongTimeframe, 12, 26, 9, PRICE_CLOSE);
+   ciShortMACD.Create(_Symbol, Timeframe, 12, 26, 9, PRICE_CLOSE);
+   ciATR.Create(_Symbol, Timeframe, ATRPeriod);
    return(INIT_SUCCEEDED);
 }
 
@@ -49,31 +52,52 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
+   if(Timeframe >= MacdLongTimeframe) return;
    Refresh();
    Check();
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
-   
-   
-   double PriceUnit = 10 * _Point;
+
+   ciLongMACD.Refresh();
+   ciShortMACD.Refresh();
+   ciATR.Refresh();
+
+   double LongHistogram[2];
+   double ShortHistogram[2];
+   for(int i = 0; i < 2; i++) {
+      LongHistogram[i] = ciLongMACD.Main(i) - ciLongMACD.Signal(i);
+      ShortHistogram[i] = ciShortMACD.Main(i) - ciShortMACD.Signal(i);
+   }
+
+   if(LongHistogram[0] > 0 && ciLongMACD.Main(0) > 0) {
+      myTrade.signal = "buybuy";
+   } else if(LongHistogram[0] < 0 && ciLongMACD.Main(0) < 0) {
+      myTrade.signal = "sellsell";
+   }
+
+   if(ShortHistogram[1] < 0 && ShortHistogram[0] > 0 && ciShortMACD.Main(0) < 0 && myTrade.signal == "buybuy") {
+      myTrade.setSignal(ORDER_TYPE_BUY);
+   } else if(ShortHistogram[1] > 0 && ShortHistogram[0] < 0 && ciShortMACD.Main(0) > 0 && myTrade.signal == "sellsell") {
+      myTrade.setSignal(ORDER_TYPE_SELL);
+   }
+
+   double PriceUnit = ciATR.Main(0);
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
 
 
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
    myPosition.Refresh();
    myTrade.Refresh();
-   myDate.Refresh();
 
    tradable = true;
-	
-	if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
+
+   if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
 
@@ -101,7 +125,7 @@ double OnTester() {
 void Refresh() {
    myPosition.Refresh();
    myTrade.Refresh();
-   myOrder.Refresh();
+   //myOrder.Refresh();
 }
 
 //+------------------------------------------------------------------+
@@ -116,3 +140,4 @@ void Check() {
 
 //+------------------------------------------------------------------+
 
+//+------------------------------------------------------------------+

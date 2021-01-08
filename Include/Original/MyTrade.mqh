@@ -8,11 +8,11 @@
 #include <Trade\Trade.mqh>
 
 input int spread = -1;
-input double risk = 0.01;
+input double risk = 0.0001;
 input int positions = 2;
 input bool isLotModified = false;
 input int StopBalance = 2000;
-input int StopMarginLevel = 200;
+input int StopMarginLevel = 300;
 
 class MyTrade {
 
@@ -33,7 +33,7 @@ class MyTrade {
    void MyTrade() {
       minlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
       maxlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
-      InitialDeposit = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY),1);
+      InitialDeposit = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY), 1);
       trade.SetDeviationInPoints(10);
       if(minlot == 0.001) LotDigits = 3;
       if(minlot == 0.01) LotDigits = 2;
@@ -86,7 +86,7 @@ class MyTrade {
    bool Buy(double SL, double TP) {
       if(signal != ORDER_TYPE_BUY) return false;
       if(isInvalidTrade(SL, TP)) return false;
-      ModifyLot(SL);
+      if(!ModifyLot(SL)) return false;
       if(trade.Buy(lot, NULL, Ask, SL, TP, NULL)) return true;
       return false;
    }
@@ -94,7 +94,7 @@ class MyTrade {
    bool Sell(double SL, double TP) {
       if(signal != ORDER_TYPE_SELL) return false;
       if(isInvalidTrade(SL, TP)) return false;
-      ModifyLot(SL);
+      if(!ModifyLot(SL)) return false;
       if(trade.Sell(lot, NULL, Bid, SL, TP, NULL)) return true;
       return false;
    }
@@ -107,15 +107,18 @@ class MyTrade {
 
 
  private:
-   void ModifyLot(double SL) {
-      double TradeRisk = MathAbs(SL - Ask)/(10*_Point);
+   bool ModifyLot(double SL) {
+      double TradeRisk = MathAbs(SL - Ask) / (10 * _Point);
+      if(TradeRisk == 0) return false;
       if(isLotModified) {
-         lot = NormalizeDouble(InitialDeposit* risk / TradeRisk, LotDigits);
+         lot = NormalizeDouble(InitialDeposit * risk / TradeRisk, LotDigits);
       } else {
-         lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY)* risk/100 / TradeRisk, LotDigits);
+         lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / TradeRisk, LotDigits);
       }
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;
+
+      return true;
    }
 
 };

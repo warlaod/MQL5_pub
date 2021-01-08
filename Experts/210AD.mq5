@@ -24,8 +24,9 @@
 #include <Indicators\BillWilliams.mqh>
 #include <Indicators\Volumes.mqh>
 
-input double SLCoef,TPCoef;
+input double SLCoef, TPCoef;
 input ENUM_TIMEFRAMES Timeframe;
+input int PriceRange;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -33,15 +34,19 @@ bool tradable = false;
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate();
-MyPrice myPrice(Timeframe, 3);
+MyPrice myPrice(Timeframe, PriceRange);
 MyOrder myOrder(Timeframe);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiOBV OBV;
+CiBands Band;
 int OnInit() {
    MyUtils myutils(60 * 27);
    myutils.Init();
+   OBV.Create(_Symbol, Timeframe, VOLUME_TICK);
+   Band.Create(_Symbol, Timeframe, 20, 0, 2, PRICE_CLOSE);
    return(INIT_SUCCEEDED);
 }
 
@@ -54,11 +59,32 @@ void OnTick() {
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
-   
-   
-   double PriceUnit = 10 * _Point;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+
+   OBV.Refresh();
+   myPrice.Refresh();
+   Band.Refresh();
+
+   CArrayDouble OBVArray;
+   for(int i = 5; i < PriceRange; i++) {
+      OBVArray.Add(OBV.Main(i));
+   }
+
+   int max = OBVArray.Maximum(1, PriceRange);
+   int min = OBVArray.Minimum(1, PriceRange);
+
+   if(OBVArray.At(max) < OBV.Main(0)) {
+      if(myPrice.At(1).high > Band.Upper(1)) myTrade.setSignal(ORDER_TYPE_BUY);
+   }
+
+   if(OBVArray.At(min) > OBV.Main(0)) {
+      if(myPrice.At(1).low < Band.Lower(1))  myTrade.setSignal(ORDER_TYPE_SELL);
+   }
+
+   double PriceUnit = Band.Upper(0) - Band.Base(0);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 )
+      myTrade.Buy(Band.Lower(0), myTrade.Ask + PriceUnit * TPCoef);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 )
+      myTrade.Sell(Band.Upper(0), myTrade.Bid - PriceUnit * TPCoef);
 
 
 }
@@ -72,8 +98,9 @@ void OnTimer() {
    myDate.Refresh();
 
    tradable = true;
-	
-	if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
+
+   if(myDate.isFridayEnd() || myDate.isYearEnd())
+      myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
 
@@ -116,3 +143,4 @@ void Check() {
 
 //+------------------------------------------------------------------+
 
+//+------------------------------------------------------------------+
