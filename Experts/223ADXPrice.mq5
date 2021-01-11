@@ -17,6 +17,7 @@
 #include <Original\MyTest.mqh>
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
+#include <Original\Optimization.mqh>
 #include <Original\MyOrder.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
@@ -25,8 +26,9 @@
 #include <Indicators\Volumes.mqh>
 
 input double SLCoef, TPCoef;
-input ENUM_TIMEFRAMES Timeframe;
-input int PriceRange;
+input mis_MarcosTMP timeFrame;
+ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
+input int ADXPeriod,MAPeriod;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -34,19 +36,23 @@ bool tradable = false;
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate();
-MyPrice myPrice(Timeframe, PriceRange);
+MyPrice myPrice(Timeframe, 3);
 MyOrder myOrder(Timeframe);
 CurrencyStrength CS(Timeframe, 1);
+
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiOBV OBV;
-CiBands Band;
+CiADX ADX;
+CiMA MA;
 int OnInit() {
    MyUtils myutils(60 * 27);
    myutils.Init();
-   OBV.Create(_Symbol, Timeframe, VOLUME_TICK);
-   Band.Create(_Symbol, Timeframe, 20, 0, 2, PRICE_CLOSE);
+
+   ADX.Create(_Symbol, Timeframe, ADXPeriod);
+   MA.Create(_Symbol, Timeframe, MAPeriod, 0, MODE_EMA, PRICE_CLOSE);
+
    return(INIT_SUCCEEDED);
 }
 
@@ -57,34 +63,30 @@ void OnTick() {
    Refresh();
    Check();
 
-   myPosition.CloseAllPositionsInMinute();
+   //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
 
-   OBV.Refresh();
+   MA.Refresh();
+   ADX.Refresh();
    myPrice.Refresh();
-   Band.Refresh();
 
-   CArrayDouble OBVArray;
-   for(int i = 1; i < PriceRange; i++) {
-      OBVArray.Add(OBV.Main(i));
+   if(MA.Main(0) > myPrice.At(0).close) {
+      if(isGoldenCross(ADX.Plus(2), ADX.Minus(2), ADX.Plus(1), ADX.Minus(1)))
+         myTrade.setSignal(ORDER_TYPE_BUY);
+   }
+   
+   if(MA.Main(0) < myPrice.At(0).close) {
+      if(isGoldenCross(ADX.Minus(2), ADX.Plus(2), ADX.Minus(1), ADX.Plus(1)))
+         myTrade.setSignal(ORDER_TYPE_SELL);
    }
 
-   int max = OBVArray.Maximum(1, PriceRange);
-   int min = OBVArray.Minimum(1, PriceRange);
-
-   if(OBVArray.At(max) < OBV.Main(0)) {
-      if(myPrice.At(0).high > Band.Upper(0)) myTrade.setSignal(ORDER_TYPE_BUY);
+   double PriceUnit = 10 * _Point;
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
+      myTrade.Buy(myPrice.Lowest(0,5), MA.Main(0));
    }
-
-   if(OBVArray.At(min) > OBV.Main(0)) {
-      if(myPrice.At(0).low < Band.Lower(0))  myTrade.setSignal(ORDER_TYPE_SELL);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
+      myTrade.Sell(myPrice.Highest(0,5),MA.Main(0));
    }
-
-   double PriceUnit = 10*_Point;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 )
-      myTrade.Buy(Band.Lower(0), myTrade.Ask + PriceUnit * TPCoef);
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 )
-      myTrade.Sell(Band.Upper(0), myTrade.Bid - PriceUnit * TPCoef);
 
 
 }
@@ -98,9 +100,8 @@ void OnTimer() {
    myDate.Refresh();
 
    tradable = true;
-   
-   if(myDate.isFridayEnd() || myDate.isYearEnd())
-      myTrade.istradable = false;
+
+   if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
 
@@ -118,7 +119,7 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.PROM();
+   double result =  myTest.PROM_mk2();
    return  result;
 }
 
@@ -136,8 +137,7 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
    //myTrade.CheckSpread();
-   if(!myDate.isInTime("15:00", "17:00")) myTrade.istradable = false;
-   //if(!myDate.isInTime("01:00", "05:00")) myTrade.istradable = false;
+   //if(!myDate.isInTime("10:00", "13:00")) myTrade.istradable = false;
    if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
 //+------------------------------------------------------------------+

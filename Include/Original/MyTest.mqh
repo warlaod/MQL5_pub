@@ -133,17 +133,44 @@ class MyTest {
       }
       int AAGP = (gross_profit * profit_trades) * sqrt(profit_trades);
       int AAGL = (gross_loss * loss_trades) * sqrt(loss_trades);
-      positiveEffector = (AAGP - AAGL) / gross_loss / maxConloss;
+      positiveEffector = (AAGP - AAGL) / gross_loss;
       negativeEffector = 1;
 
       CheckRatio(short_long_ratio, 0.1);
       CheckRatio(win_rate, 0.1);
       CheckRatio(short_win_rate, 0.1);
       CheckRatio(long_win_rate, 0.1);
-      SetResultWithOutBalance();
+
+      result = positiveEffector * negativeEffector;
 
       return result;
    }
+
+   double PROM_mk2() {
+      if(result == -99999999) {
+         return result;
+      }
+      int  AWT = profit_trades - sqrt(profit_trades);
+      int ALT = loss_trades + sqrt(loss_trades);
+      int AAGP = (gross_profit / profit_trades) * sqrt(profit_trades);
+      int AAGL = (gross_loss / loss_trades) * sqrt(loss_trades);
+      positiveEffector = (AAGP - AAGL) * min_dd;
+      negativeEffector = 1;
+
+      CheckRatio(short_long_ratio, 0.1);
+      CheckRatio(win_rate, 0.1);
+      CheckRatio(short_win_rate, 0.1);
+      CheckRatio(long_win_rate, 0.1);
+
+      if(positiveEffector > 0) {
+         result =  positiveEffector / negativeEffector ;
+      } else {
+         result = - 1 / positiveEffector * negativeEffector ;
+      }
+      
+      return result;
+   }
+
 
  private:
    void CheckRatio(double ratio, double criterion) {
@@ -163,7 +190,7 @@ class MyTest {
       if(balance > 0) {
          result =  positiveEffector / negativeEffector ;
       } else {
-         result = 1 / positiveEffector * negativeEffector ;
+         result = - 1 / positiveEffector * negativeEffector ;
       }
    }
 

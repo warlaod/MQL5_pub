@@ -24,7 +24,7 @@
 #include <Indicators\BillWilliams.mqh>
 #include <Indicators\Volumes.mqh>
 
-input double SLCoef,TPCoef;
+input double SLCoef, TPCoef;
 input ENUM_TIMEFRAMES Timeframe;
 bool tradable = false;
 //+------------------------------------------------------------------+
@@ -54,11 +54,15 @@ void OnTick() {
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
-   
-   
+
+
    double PriceUnit = 10 * _Point;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
+      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+   }
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
+      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+   }
 
 
 }
@@ -72,8 +76,8 @@ void OnTimer() {
    myDate.Refresh();
 
    tradable = true;
-	
-	if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
+
+   if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
 
@@ -109,10 +113,13 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
    //myTrade.CheckSpread();
-   //myDate.isInTime("01:00", "07:00");
+   //if(!myDate.isInTime("01:00", "07:00")) myTrade.istradable = false;
    if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
-//+------------------------------------------------------------------+
+
 
 //+------------------------------------------------------------------+
 
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+

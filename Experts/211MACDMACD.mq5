@@ -44,7 +44,7 @@ int OnInit() {
 
    ciLongMACD.Create(_Symbol, MacdLongTimeframe, 12, 26, 9, PRICE_CLOSE);
    ciShortMACD.Create(_Symbol, Timeframe, 12, 26, 9, PRICE_CLOSE);
-   ciATR.Create(_Symbol, Timeframe, ATRPeriod);
+   ciATR.Create(_Symbol, MacdLongTimeframe, ATRPeriod);
    return(INIT_SUCCEEDED);
 }
 
@@ -62,6 +62,7 @@ void OnTick() {
    ciLongMACD.Refresh();
    ciShortMACD.Refresh();
    ciATR.Refresh();
+   myPrice.Refresh();
 
    double LongHistogram[2];
    double ShortHistogram[2];
@@ -83,8 +84,8 @@ void OnTick() {
    }
 
    double PriceUnit = ciATR.Main(0);
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myPrice.Lowest(0,10), myTrade.Ask + PriceUnit * TPCoef);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myPrice.Highest(0,10), myTrade.Bid - PriceUnit * TPCoef);
 
 
 }
@@ -125,7 +126,7 @@ double OnTester() {
 void Refresh() {
    myPosition.Refresh();
    myTrade.Refresh();
-   //myOrder.Refresh();
+   myOrder.Refresh();
 }
 
 //+------------------------------------------------------------------+
