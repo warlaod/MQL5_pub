@@ -168,6 +168,10 @@ class MyTest {
          result = - 1 / positiveEffector * negativeEffector ;
       }
       
+      if(balance < 0 && positiveEffector > 0){
+         result = result = - 1 / positiveEffector * negativeEffector ;
+      }
+      
       return result;
    }
 

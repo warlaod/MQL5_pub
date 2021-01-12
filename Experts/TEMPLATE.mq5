@@ -18,6 +18,7 @@
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
 #include <Original\MyOrder.mqh>
+#include <Original\Optimization.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -25,7 +26,8 @@
 #include <Indicators\Volumes.mqh>
 
 input double SLCoef, TPCoef;
-input ENUM_TIMEFRAMES Timeframe;
+input mis_MarcosTMP timeFrame;
+ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |

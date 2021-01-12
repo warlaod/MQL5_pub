@@ -12,6 +12,7 @@
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
 #include <Original\MyOrder.mqh>
+#include <Original\Optimization.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -20,8 +21,10 @@
 CTrade trade;
 CiMACD ciLongMACD, ciShortMACD;
 CiATR ciATR;
-input ENUM_TIMEFRAMES Timeframe, MacdLongTimeframe;
-input int ATRPeriod;
+input mis_MarcosTMP timeFrame,macdLongTimeframe;
+ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
+ENUM_TIMEFRAMES MacdLongTimeframe= defMarcoTiempo(macdLongTimeframe);
+input int ATRPeriod,LosscutRange;
 bool tradable = false;
 
 input double TPCoef,SLCoef;
@@ -44,7 +47,7 @@ int OnInit() {
 
    ciLongMACD.Create(_Symbol, MacdLongTimeframe, 12, 26, 9, PRICE_CLOSE);
    ciShortMACD.Create(_Symbol, Timeframe, 12, 26, 9, PRICE_CLOSE);
-   ciATR.Create(_Symbol, MacdLongTimeframe, ATRPeriod);
+   ciATR.Create(_Symbol, Timeframe, ATRPeriod);
    return(INIT_SUCCEEDED);
 }
 
@@ -84,8 +87,8 @@ void OnTick() {
    }
 
    double PriceUnit = ciATR.Main(0);
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myPrice.Lowest(0,10), myTrade.Ask + PriceUnit * TPCoef);
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myPrice.Highest(0,10), myTrade.Bid - PriceUnit * TPCoef);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) myTrade.Buy(myTrade.Ask - PriceUnit*SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) myTrade.Sell(myTrade.Bid + PriceUnit*SLCoef, myTrade.Bid - PriceUnit * TPCoef);
 
 
 }
@@ -95,9 +98,12 @@ void OnTick() {
 void OnTimer() {
    myPosition.Refresh();
    myTrade.Refresh();
+   myOrder.Refresh();
+   
 
    tradable = true;
 
+   //if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
    if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
@@ -116,7 +122,7 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.PROM();
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
    return  result;
 }
 
@@ -126,16 +132,15 @@ double OnTester() {
 void Refresh() {
    myPosition.Refresh();
    myTrade.Refresh();
-   myOrder.Refresh();
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   //myTrade.CheckSpread();
+   myTrade.CheckSpread();
    //myDate.isInTime("01:00", "07:00");
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
+   
 }
 //+------------------------------------------------------------------+
 

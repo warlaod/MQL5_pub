@@ -47,7 +47,7 @@ CurrencyStrength CS(Timeframe, 1);
 CiADX ADX;
 CiMA MA;
 int OnInit() {
-   MyUtils myutils(60 * 27);
+   MyUtils myutils(60 * 1);
    myutils.Init();
 
    ADX.Create(_Symbol, Timeframe, ADXPeriod);
@@ -137,7 +137,7 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
    //myTrade.CheckSpread();
-   //if(!myDate.isInTime("10:00", "13:00")) myTrade.istradable = false;
+   if(!myDate.isInTime("00:00", "01:00")) myTrade.istradable = false;
    if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
 //+------------------------------------------------------------------+
