@@ -35,15 +35,22 @@ bool tradable = false;
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate();
-MyPrice myPrice(Timeframe, 3);
+MyPrice myPrice(Timeframe, 7);
 MyOrder myOrder(Timeframe);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CiATR ATR;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
+
+   ATR.Create(_Symbol, Timeframe, 14);
    return(INIT_SUCCEEDED);
 }
 
@@ -57,13 +64,35 @@ void OnTick() {
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
 
+   myPrice.Refresh();
+   ATR.Refresh();
 
-   double PriceUnit = 10 * _Point;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
-      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+   double LLowest = myPrice.Lowest(5, 20);
+   double SLowest = myPrice.Lowest(3, 3);
+   double LHighest = myPrice.Highest(5, 20);
+   double SHighest = myPrice.Highest(3, 3);
+
+   if(LLowest == myPrice.At(5).low) {
+      if(SHighest == myPrice.At(3).high) {
+         if(myPrice.At(0).low < LLowest)
+            myTrade.setSignal(ORDER_TYPE_SELL);
+      }
    }
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
-      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+
+   if(LHighest == myPrice.At(5).high) {
+      if(SLowest == myPrice.At(3).low) {
+         if(myPrice.At(0).high < LHighest)
+            myTrade.setSignal(ORDER_TYPE_BUY);
+      }
+   }
+
+
+   double PriceUnit = ATR.Main(0);
+   if(myPosition.Total < positions / 2 ) {
+      myTrade.Buy(SLowest - PriceUnit * SLCoef, LHighest + PriceUnit * TPCoef);
+   }
+   if(myPosition.Total < positions / 2 ) {
+      myTrade.Sell(SHighest + PriceUnit * SLCoef, LLowest - PriceUnit * TPCoef);
    }
 
 
@@ -77,10 +106,9 @@ void OnTimer() {
    myTrade.Refresh();
    myDate.Refresh();
    myOrder.Refresh();
-   
+
    tradable = true;
-   
-   //if(!myDate.isInTime("01:00", "07:00")) myTrade.istradable = false;
+   //if(!myDate.isInTime("00:00", "07:00")) myTrade.istradable = false;
    if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 
    if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
@@ -118,7 +146,7 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
    //myTrade.CheckSpread();
-   
+
 }
 
 

@@ -26,8 +26,11 @@
 #include <Indicators\Volumes.mqh>
 
 input double SLCoef, TPCoef;
-input mis_MarcosTMP timeFrame;
+input mis_MarcosTMP timeFrame, stoctimeFrame;
+input int BandPeriod;
+input double Dev;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
+ENUM_TIMEFRAMES StocTimeframe = defMarcoTiempo(stoctimeFrame);
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -35,15 +38,23 @@ bool tradable = false;
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate();
-MyPrice myPrice(Timeframe, 3);
+MyPrice myPrice(Timeframe, 7);
 MyOrder myOrder(Timeframe);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiBands Band;
+CiStochastic Stoc;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
+
+   Band.Create(_Symbol, Timeframe, BandPeriod, 0, Dev, PRICE_CLOSE);
+   Stoc.Create(_Symbol, StocTimeframe, 5, 3, 3, MODE_EMA, STO_LOWHIGH);
+   
+   if(Timeframe <= StocTimeframe) return(INIT_PARAMETERS_INCORRECT);
+
    return(INIT_SUCCEEDED);
 }
 
@@ -51,19 +62,39 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
+   
+
    Refresh();
    Check();
+   Band.Refresh();
+   Stoc.Refresh();
+   myPrice.Refresh();
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
 
+   if(myPrice.At(0).high > Band.Upper(0)) {
+      for(int i = 1; i <= 4; i++) {
+         if(myPrice.At(i).high > Band.Upper(i)) return;
+      }
+      if(isDeadCross(Stoc.Main(1), Stoc.Signal(1), Stoc.Main(0), Stoc.Signal(0)))
+         myTrade.setSignal(ORDER_TYPE_BUY);
+   }
 
-   double PriceUnit = 10 * _Point;
+   if(myPrice.At(0).low < Band.Lower(0)) {
+      for(int i = 1; i <= 4; i++) {
+         if(myPrice.At(i).low < Band.Lower(i)) return;
+      }
+      if(isGoldenCross(Stoc.Main(1), Stoc.Signal(1), Stoc.Main(0), Stoc.Signal(0)))
+         myTrade.setSignal(ORDER_TYPE_SELL);
+   }
+
+   double PriceUnit = Band.Upper(0) - Band.Base(0);
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
-      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, Band.Base(0));
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
-      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, Band.Base(0));
    }
 
 
@@ -77,9 +108,9 @@ void OnTimer() {
    myTrade.Refresh();
    myDate.Refresh();
    myOrder.Refresh();
-   
+
    tradable = true;
-   
+
    //if(!myDate.isInTime("01:00", "07:00")) myTrade.istradable = false;
    if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 
@@ -118,7 +149,7 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
    //myTrade.CheckSpread();
-   
+
 }
 
 

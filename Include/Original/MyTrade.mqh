@@ -8,7 +8,7 @@
 #include <Trade\Trade.mqh>
 
 input int spread = -1;
-input double risk = 0.0001;
+input double risk = 0.001;
 input int positions = 2;
 input bool isLotModified = false;
 input int StopBalance = 2000;

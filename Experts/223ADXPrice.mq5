@@ -28,7 +28,7 @@
 input double SLCoef, TPCoef;
 input mis_MarcosTMP timeFrame;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
-input int ADXPeriod,MAPeriod;
+input int ADXPeriod, MAPeriod, LosscutRange;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -45,13 +45,16 @@ CurrencyStrength CS(Timeframe, 1);
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiADX ADX;
-CiMA MA;
+CiMA MA, MALong;
+CiATR ATR;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
 
    ADX.Create(_Symbol, Timeframe, ADXPeriod);
    MA.Create(_Symbol, Timeframe, MAPeriod, 0, MODE_EMA, PRICE_CLOSE);
+   MALong.Create(_Symbol, Timeframe, MAPeriod * 5, 0, MODE_EMA, PRICE_CLOSE);
+   ATR.Create(_Symbol, Timeframe, 14);
 
    return(INIT_SUCCEEDED);
 }
@@ -69,23 +72,25 @@ void OnTick() {
    MA.Refresh();
    ADX.Refresh();
    myPrice.Refresh();
+   ATR.Refresh();
+   MALong.Refresh();
 
-   if(MA.Main(0) > myPrice.At(0).close) {
+   if(isBetween(MALong.Main(0),MA.Main(0),myPrice.At(0).close)) {
       if(isGoldenCross(ADX.Plus(2), ADX.Minus(2), ADX.Plus(1), ADX.Minus(1)))
          myTrade.setSignal(ORDER_TYPE_BUY);
    }
-   
-   if(MA.Main(0) < myPrice.At(0).close) {
+
+   if(isBetween(myPrice.At(0).close,MA.Main(0),MALong.Main(0))) {
       if(isGoldenCross(ADX.Minus(2), ADX.Plus(2), ADX.Minus(1), ADX.Plus(1)))
          myTrade.setSignal(ORDER_TYPE_SELL);
    }
 
-   double PriceUnit = 10 * _Point;
+   double PriceUnit = ATR.Main(0);
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
-      myTrade.Buy(myPrice.Lowest(0,5), MA.Main(0));
+      myTrade.Buy(myPrice.Lowest(0, LosscutRange) - PriceUnit * SLCoef, MALong.Main(0));
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
-      myTrade.Sell(myPrice.Highest(0,5),MA.Main(0));
+      myTrade.Sell(myPrice.Highest(0, LosscutRange) + PriceUnit * SLCoef,MALong.Main(0));
    }
 
 
@@ -98,8 +103,12 @@ void OnTimer() {
    myPosition.Refresh();
    myTrade.Refresh();
    myDate.Refresh();
+   myOrder.Refresh();
 
    tradable = true;
+
+   //if(!myDate.isInTime("01:00", "07:00")) myTrade.istradable = false;
+   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 
    if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
    myTrade.CheckBalance();
@@ -119,7 +128,7 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.PROM_mk2();
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
    return  result;
 }
 
@@ -129,7 +138,6 @@ double OnTester() {
 void Refresh() {
    myPosition.Refresh();
    myTrade.Refresh();
-   myOrder.Refresh();
 }
 
 //+------------------------------------------------------------------+
@@ -137,11 +145,5 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
    //myTrade.CheckSpread();
-   if(!myDate.isInTime("00:00", "01:00")) myTrade.istradable = false;
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
-//+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+

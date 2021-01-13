@@ -34,7 +34,7 @@ enum mis_MarcosTMP {
    _H1 = PERIOD_H1,
    _H2 = PERIOD_H2,
    _H4 = PERIOD_H4,
-//   _H8= PERIOD_H8,
+   _H8= PERIOD_H8,
    _D1 = PERIOD_D1,
    _W1 = PERIOD_W1,
    _MN1 = PERIOD_MN1
@@ -69,7 +69,9 @@ ENUM_TIMEFRAMES defMarcoTiempo(mis_MarcosTMP marco) {
    case _H4:
       resp = PERIOD_H4;
       break;
-   //case _H8: resp= PERIOD_H8; break;
+   case _H8:
+      resp = PERIOD_H8;
+      break;
    case _D1:
       resp = PERIOD_D1;
       break;
