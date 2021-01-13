@@ -59,10 +59,6 @@ void OnTick() {
    Refresh();
    Check();
    
-   myPosition.CloseAllPositionsByHalfSLProfit(POSITION_TYPE_BUY);
-   myPosition.CloseAllPositionsByHalfSLProfit(POSITION_TYPE_SELL);
-   myPosition.Trailings(POSITION_TYPE_BUY,myTrade.Ask - 50*_Point, myTrade.Ask + 50*_Point);
-   myPosition.Trailings(POSITION_TYPE_SELL,myTrade.Ask - 50*_Point, myTrade.Ask + 50*_Point);
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
 
