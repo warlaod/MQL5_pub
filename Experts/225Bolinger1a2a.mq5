@@ -25,6 +25,7 @@
 #include <Indicators\BillWilliams.mqh>
 #include <Indicators\Volumes.mqh>
 #include <Trade\PositionInfo.mqh>
+#include <Arrays\ArrayLong.mqh>
 
 input double SLCoef, TPCoef;
 input mis_MarcosTMP timeFrame;
@@ -34,6 +35,7 @@ bool tradable = false;
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
+CPositionInfo cPositionInfo;
 MyTrade myTrade();
 MyDate myDate();
 MyPrice myPrice(Timeframe, 7);
@@ -58,7 +60,10 @@ int OnInit() {
 void OnTick() {
    Refresh();
    Check();
-   
+
+   myPosition.Trailings(POSITION_TYPE_BUY, myPrice.Lowest(0, 2), myTrade.Ask + 50 * _Point);
+   myPosition.Trailings(POSITION_TYPE_SELL, myPrice.Highest(0, 2), myTrade.Bid - 50 * _Point);
+
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
 
@@ -73,6 +78,17 @@ void OnTick() {
       myTrade.setSignal(ORDER_TYPE_BUY);
    }
 
+   if(Band2.Base(0) < myPrice.At(0).high) {
+      CArrayLong Tickets = myPosition.BuyTickets;
+      for(int i = 0; i < Tickets.Total(); i++) {
+         ulong ticket = Tickets.At(i);
+         cPositionInfo.SelectByTicket(ticket);
+         if(cPositionInfo.StopLoss() < 2 * cPositionInfo.Profit())
+            myPosition.AddListForTrailings(ticket);
+      }
+   }
+
+
    if(myPrice.At(1).close < Band1.Upper(1) && myPrice.At(0).close > Band1.Base(0)) {
       for(int i = 2; i <= 5; i++) {
          if(myPrice.At(i).close < Band1.Upper(i)) return;
@@ -80,14 +96,19 @@ void OnTick() {
       myTrade.setSignal(ORDER_TYPE_SELL);
    }
 
+   if(myPrice.At(1).close > Band1.Lower(1) && myPrice.At(0).close < Band1.Base(0)) {
+      for(int i = 2; i <= 5; i++) {
+         if(myPrice.At(i).close > Band1.Lower(i)) return;
+      }
+      myTrade.setSignal(ORDER_TYPE_BUY);
+   }
 
-   double PriceUnit = 10*_Point;
+
+   double PriceUnit = Band2.Upper(0) - Band2.Base(0);
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
       myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
    }
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
-      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
-   }
+
 
 
 }
@@ -105,9 +126,6 @@ void OnTimer() {
 
    //if(!myDate.isInTime("01:00", "07:00")) myTrade.istradable = false;
    if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
-   
-   myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-
    if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();

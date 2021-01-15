@@ -24,6 +24,7 @@
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
 #include <Indicators\Volumes.mqh>
+#include <Trade\PositionInfo.mqh>
 
 input double SLCoef, TPCoef;
 input mis_MarcosTMP timeFrame;
