@@ -99,6 +99,7 @@ void OnTimer() {
    myPosition.Refresh();
    myTrade.Refresh();
    myOrder.Refresh();
+   myDate.Refresh();
    
 
    tradable = true;

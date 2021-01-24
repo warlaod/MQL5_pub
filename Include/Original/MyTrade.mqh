@@ -111,9 +111,9 @@ class MyTrade {
       double TradeRisk = MathAbs(SL - Ask) / (10 * _Point);
       if(TradeRisk == 0) return false;
       if(isLotModified) {
-         lot = NormalizeDouble(InitialDeposit * risk / TradeRisk, LotDigits);
-      } else {
          lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / TradeRisk, LotDigits);
+      } else {
+         lot = NormalizeDouble(InitialDeposit * risk / TradeRisk, LotDigits);
       }
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;
