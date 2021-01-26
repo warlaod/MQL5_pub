@@ -54,7 +54,7 @@ class MyTrade {
    }
 
    void CheckSpread() {
-      int currentSpread = SymbolInfoInteger(_Symbol, SYMBOL_SPREAD) * topips;
+      int currentSpread = SymbolInfoInteger(_Symbol, SYMBOL_SPREAD);
       if(spread == -1)
          return;
       if(currentSpread >= spread)
@@ -111,12 +111,14 @@ class MyTrade {
  private:
    double topips;
    bool ModifyLot(double SL) {
-      double TradeRisk = MathAbs(SL - Ask) * topips;
-      if(TradeRisk == 0) return false;
+      // double TradeRisk = MathAbs(SL - Ask) * topips;
+      //if(TradeRisk == 0) return false;
       if(isLotModified) {
-         lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / (ContractSize * TradeRisk), LotDigits);
+         lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / risk, LotDigits);
+         //lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / (ContractSize * TradeRisk), LotDigits);
       } else {
-         lot = NormalizeDouble(InitialDeposit / risk / TradeRisk, LotDigits);
+         lot = NormalizeDouble(InitialDeposit / risk, LotDigits);
+         //lot = NormalizeDouble(InitialDeposit / risk / TradeRisk, LotDigits);
       }
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;

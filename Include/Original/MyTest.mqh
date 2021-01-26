@@ -56,11 +56,11 @@ class MyTest {
 
 
  public:
-   double min_dd_and_mathsqrt_profit_trades() {
+   double min_dd_and_mathsqrt_trades() {
       if(result < 0) {
          return result;
       }
-      positiveEffector = min_dd * total_trades;
+      positiveEffector = min_dd * MathSqrt(total_trades);
       negativeEffector = 1;
 
       CheckRatio(long_ratio, 0.1);
