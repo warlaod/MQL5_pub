@@ -25,20 +25,20 @@ class MyTrade {
    double balance;
    double minlot;
    double maxlot;
+   double ContractSize;
    double InitialDeposit;
    int LotDigits;
    MqlDateTime dt;
    CTrade trade;
 
    void MyTrade() {
-      minlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
-      maxlot = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
+      minlot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+      maxlot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
       InitialDeposit = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY), 1);
+      ContractSize = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_CONTRACT_SIZE);
       trade.SetDeviationInPoints(10);
-      if(minlot == 0.001) LotDigits = 3;
-      if(minlot == 0.01) LotDigits = 2;
-      if(minlot == 0.1) LotDigits = 1;
-      if(minlot == 1) LotDigits = 0;
+      LotDigits = -MathLog10(minlot);
+      topips = ToPips();
    }
 
    void Refresh() {
@@ -54,7 +54,7 @@ class MyTrade {
    }
 
    void CheckSpread() {
-      int currentSpread = SymbolInfoInteger(_Symbol, SYMBOL_SPREAD);
+      int currentSpread = SymbolInfoInteger(_Symbol, SYMBOL_SPREAD) * topips;
       if(spread == -1)
          return;
       if(currentSpread >= spread)
@@ -63,11 +63,11 @@ class MyTrade {
 
    bool isInvalidTrade(double SL, double TP) {
       if(TP > SL) {
-         if(TP - Ask < 25 * _Point || Ask - SL < 25 * _Point) return true;
+         if((TP - Ask)*topips < 2 || (Ask - SL)*topips < 2) return true;
       }
 
       else if(TP < SL) {
-         if(Bid - TP < 25 * _Point  || SL - Bid < 25 * _Point) return true;
+         if( (Bid - TP)*topips < 2  || (SL - Bid)*topips < 2) return true;
       }
       return false;
    }
@@ -87,7 +87,8 @@ class MyTrade {
       if(signal != ORDER_TYPE_BUY) return false;
       if(isInvalidTrade(SL, TP)) return false;
       if(!ModifyLot(SL)) return false;
-      if(trade.Buy(lot, NULL, Ask, SL, TP, NULL)) return true;
+      if(trade.Buy(lot, NULL, Ask, SL, TP, NULL))
+         return true;
       return false;
    }
 
@@ -95,7 +96,8 @@ class MyTrade {
       if(signal != ORDER_TYPE_SELL) return false;
       if(isInvalidTrade(SL, TP)) return false;
       if(!ModifyLot(SL)) return false;
-      if(trade.Sell(lot, NULL, Bid, SL, TP, NULL)) return true;
+      if(trade.Sell(lot, NULL, Bid, SL, TP, NULL))
+         return true;
       return false;
    }
 
@@ -107,13 +109,14 @@ class MyTrade {
 
 
  private:
+   double topips;
    bool ModifyLot(double SL) {
-      double TradeRisk = MathAbs(SL - Ask) / (10 * _Point);
+      double TradeRisk = MathAbs(SL - Ask) * topips;
       if(TradeRisk == 0) return false;
       if(isLotModified) {
-         lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / TradeRisk, LotDigits);
+         lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / (ContractSize * TradeRisk), LotDigits);
       } else {
-         lot = NormalizeDouble(InitialDeposit * risk / TradeRisk, LotDigits);
+         lot = NormalizeDouble(InitialDeposit / risk / TradeRisk, LotDigits);
       }
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;
