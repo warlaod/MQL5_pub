@@ -44,7 +44,8 @@ class MyTest {
    double average_profit;
    double average_loss;
    double win_rate;
-   double short_long_ratio;
+   double long_ratio;
+   double short_ratio;
    double  short_win_rate;
    double long_win_rate;
    double marginlevel_min;
@@ -56,13 +57,14 @@ class MyTest {
 
  public:
    double min_dd_and_mathsqrt_profit_trades() {
-      if(result == -99999999) {
+      if(result < 0) {
          return result;
       }
       positiveEffector = min_dd * total_trades;
       negativeEffector = 1;
 
-      CheckRatio(short_long_ratio, 0.1);
+      CheckRatio(long_ratio, 0.1);
+      CheckRatio(short_ratio, 0.1);
       CheckRatio(win_rate, 0.1);
       CheckRatio(short_win_rate, 0.1);
       CheckRatio(long_win_rate, 0.1);
@@ -71,14 +73,15 @@ class MyTest {
       return result;
    }
 
-   double min_dd_and_mathsqrt_profit_trades_without_balance() {
-      if(result == -99999999) {
+   double min_dd_and_mathsqrt_trades_without_balance() {
+      if(result < 0) {
          return result;
       }
-      positiveEffector = min_dd * profit_trades;
+      positiveEffector = min_dd * MathSqrt(total_trades);
       negativeEffector = 1;
 
-      CheckRatio(short_long_ratio, 0.1);
+      CheckRatio(long_ratio, 0.1);
+      CheckRatio(short_ratio, 0.1);
       CheckRatio(win_rate, 0.1);
       CheckRatio(short_win_rate, 0.1);
       CheckRatio(long_win_rate, 0.1);
@@ -87,14 +90,15 @@ class MyTest {
       return result;
    }
 
-   double min_dd_and_profit_trades() {
-      if(result == -99999999) {
+   double min_dd_and_trades() {
+      if(result < 0) {
          return result;
       }
-      positiveEffector = min_dd * profit_trades;
+      positiveEffector = min_dd * total_trades;
       negativeEffector = 1;
 
-      CheckRatio(short_long_ratio, 0.1);
+      CheckRatio(long_ratio, 0.1);
+      CheckRatio(short_ratio, 0.1);
       CheckRatio(win_rate, 0.1);
       CheckRatio(short_win_rate, 0.1);
       CheckRatio(long_win_rate, 0.1);
@@ -103,48 +107,36 @@ class MyTest {
       return result;
    }
 
-   double min_dd_and_mathsqrt_profit_trades_only_longs() {
-
-      if(long_profit_trades <= 10) {
-         return -99999999;
+   double min_dd_and_mathsqrt_long_trades() {
+      if(result < 0) {
+         return result;
       }
-      if(balance_dd == 0 && equity_dd == 0) {
-         return -99999999;
-      }
-      positiveEffector = min_dd * long_profit_trades;
-
-      if(positiveEffector == 0) return -99999999;
+      positiveEffector = min_dd * MathSqrt(long_trades);
 
       negativeEffector = 1;
 
-      CheckRatio(long_win_rate, 0.1);
+      CheckRatio(win_rate, 0.1);
       SetResultForBalance();
 
       return result;
    }
-   
-     double min_dd_and_mathsqrt_profit_trades_only_shorts() {
 
-      if(short_profit_trades <= 10) {
-         return -99999999;
+   double min_dd_and_mathsqrt_short_trades() {
+      if(result < 0) {
+         return result;
       }
-      if(balance_dd == 0 && equity_dd == 0) {
-         return -99999999;
-      }
-      positiveEffector = min_dd * short_profit_trades;
-
-      if(positiveEffector == 0) return -99999999;
+      positiveEffector = min_dd * MathSqrt(short_trades);
 
       negativeEffector = 1;
 
-      CheckRatio(long_win_rate, 0.1);
+      CheckRatio(win_rate, 0.1);
       SetResultForBalance();
 
       return result;
    }
 
    double PROM() {
-      if(result == -99999999) {
+      if(result < 0) {
          return result;
       }
       int AAGP = (gross_profit * profit_trades) * sqrt(profit_trades);
@@ -152,7 +144,8 @@ class MyTest {
       positiveEffector = (AAGP - AAGL) / gross_loss;
       negativeEffector = 1;
 
-      CheckRatio(short_long_ratio, 0.1);
+      CheckRatio(long_ratio, 0.1);
+      CheckRatio(short_ratio, 0.1);
       CheckRatio(win_rate, 0.1);
       CheckRatio(short_win_rate, 0.1);
       CheckRatio(long_win_rate, 0.1);
@@ -163,7 +156,7 @@ class MyTest {
    }
 
    double PROM_mk2() {
-      if(result == -99999999) {
+      if(result < 0) {
          return result;
       }
       int  AWT = profit_trades - sqrt(profit_trades);
@@ -173,7 +166,8 @@ class MyTest {
       positiveEffector = (AAGP - AAGL) * min_dd;
       negativeEffector = 1;
 
-      CheckRatio(short_long_ratio, 0.1);
+      CheckRatio(long_ratio, 0.1);
+      CheckRatio(short_ratio, 0.1);
       CheckRatio(win_rate, 0.1);
       CheckRatio(short_win_rate, 0.1);
       CheckRatio(long_win_rate, 0.1);
@@ -183,11 +177,11 @@ class MyTest {
       } else {
          result = - 1 / positiveEffector * negativeEffector ;
       }
-      
-      if(balance < 0 && positiveEffector > 0){
+
+      if(balance < 0 && positiveEffector > 0) {
          result = result = - 1 / positiveEffector * negativeEffector ;
       }
-      
+
       return result;
    }
 
@@ -234,19 +228,17 @@ class MyTest {
       average_profit = 0;
       average_loss = 0;
       win_rate = 0;
-      short_long_ratio = 0;
+      long_ratio = 0;
+      short_ratio = 0;
       short_win_rate = 0;
       long_win_rate = 0;
 
 
-      if(long_trades <= 10 || short_trades <= 10) {
+      if(total_trades <= 10) {
          result = -99999999;
          return;
       }
-      if(long_profit_trades <= 10 || short_profit_trades <= 10) {
-         result = -99999999;
-         return;
-      }
+
       if(balance_dd == 0 && equity_dd == 0) {
          result = -99999999;
          return;
@@ -260,10 +252,8 @@ class MyTest {
          return;
       }
 
-      short_long_ratio = short_trades / long_trades;
-      if(short_long_ratio > 1) {
-         short_long_ratio = 1 / short_long_ratio ;
-      }
+      long_ratio = long_trades / total_trades;
+      short_ratio = short_trades / total_trades;
 
       win_rate = (loss_trades == 0) ? 1 : profit_trades / total_trades ;
       short_win_rate = short_profit_trades / (total_trades - long_trades);

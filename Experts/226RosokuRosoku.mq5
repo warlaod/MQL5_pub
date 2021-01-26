@@ -30,7 +30,7 @@
 input double SLCoef, TPCoef;
 input mis_MarcosTMP timeFrame;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
-input int SPriceRange, LPriceRange, RSIPeriod, perBLine, ATRPeriod;
+input int SPriceRange, LPriceRange, RSIPeriod, perBLine, ATRPeriod,TrailingPeriod;
 bool tradable = false;
 double topips = ToPips();
 //+------------------------------------------------------------------+
@@ -84,9 +84,9 @@ void OnTick() {
    }
 
    double PriceUnit = ATR.Main(0);
-   myPosition.Trailings(POSITION_TYPE_BUY,PriceUnit*2,PriceUnit*2);
-    myPosition.Trailings(POSITION_TYPE_SELL,PriceUnit*2,PriceUnit*2);
-   
+   myPosition.Trailings(POSITION_TYPE_BUY, myPrice.Lowest(0,TrailingPeriod),myTrade.Ask + 500*_Point);
+   myPosition.Trailings(POSITION_TYPE_SELL,  myPrice.Highest(0,TrailingPeriod),myTrade.Bid - 500*_Point);
+
 
 
 
@@ -110,21 +110,16 @@ void OnTick() {
          myTrade.setSignal(ORDER_TYPE_SELL);
    }
 
-   if(perB < perBLine) {
-      if(RSI.Main(2) < 30 && RSI.Main(1) > 30)
-         myTrade.setSignal(ORDER_TYPE_BUY);
-   }
-
 
 
 
 
 
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
-      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * 5 * SLCoef);
+      myTrade.Buy(LLowest, myTrade.Ask + 1000 * _Point);
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
-      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * 5 * SLCoef);
+      myTrade.Sell(LHighest, myTrade.Bid - 1000 * _Point);
    }
 
 
@@ -161,7 +156,7 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
+   double result =  myTest.min_dd_and_mathsqrt_profit_trades_only_shorts();
    return  result;
 }
 
