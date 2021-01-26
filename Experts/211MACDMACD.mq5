@@ -59,7 +59,7 @@ void OnTick() {
    Refresh();
    Check();
 
-   //myPosition.CloseAllPositionsInMinute();
+   myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
 
    ciLongMACD.Refresh();
@@ -104,7 +104,7 @@ void OnTimer() {
 
    tradable = true;
 
-   //if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
+   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
    if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
