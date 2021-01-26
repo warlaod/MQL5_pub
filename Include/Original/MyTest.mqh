@@ -111,17 +111,33 @@ class MyTest {
       if(balance_dd == 0 && equity_dd == 0) {
          return -99999999;
       }
-
-      min_dd = 1 / equity_dd;
-
-      long_win_rate = long_profit_trades / (total_trades - short_trades);
       positiveEffector = min_dd * long_profit_trades;
 
       if(positiveEffector == 0) return -99999999;
 
       negativeEffector = 1;
 
-      CheckRatio(long_win_rate, 0.25);
+      CheckRatio(long_win_rate, 0.1);
+      SetResultForBalance();
+
+      return result;
+   }
+   
+     double min_dd_and_mathsqrt_profit_trades_only_shorts() {
+
+      if(short_profit_trades <= 10) {
+         return -99999999;
+      }
+      if(balance_dd == 0 && equity_dd == 0) {
+         return -99999999;
+      }
+      positiveEffector = min_dd * short_profit_trades;
+
+      if(positiveEffector == 0) return -99999999;
+
+      negativeEffector = 1;
+
+      CheckRatio(long_win_rate, 0.1);
       SetResultForBalance();
 
       return result;
