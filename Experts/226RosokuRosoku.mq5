@@ -73,6 +73,17 @@ void OnTick() {
          }
       }
    }
+   
+   for(int i = 0; i < myPosition.BuyTickets.Total(); i++) {
+      ulong ticket = myPosition.BuyTickets.At(i);
+      myPosition.Select(ticket);
+      if(myPosition.StopLoss() < myPosition.CurrentProfit()) {
+         if(myPosition.AddListForTrailings(ticket)) {
+            myTrade.PositionModify(ticket, myTrade.Ask - myPosition.CurrentProfit() / 2, myTrade.Ask + 200 * _Point);
+            myPosition.ClosePartial(ticket, 0.5);
+         }
+      }
+   }
 
 
    double PriceUnit = ATR.Main(0);
@@ -87,19 +98,23 @@ void OnTick() {
    ATR.Refresh();
 
 
-//myPosition.CloseAllPositionsInMinute();
+myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
 
 
 
-
-   double LHighest = NormalizeDouble(myPrice.Highest(1, LPriceRange) + 0.0005, 3);
-   double LLowest = NormalizeDouble(myPrice.Lowest(1, LPriceRange) - 0.0005, 3);
+   double LHighest = NormalizeDouble(myPrice.Highest(1, LPriceRange) + 0.005, 2);
+   double LLowest = NormalizeDouble(myPrice.Lowest(1, LPriceRange) - 0.005, 2);
    double perB = (myPrice.At(0).close - LLowest) / (LHighest - LLowest) * 100;
 
    if(perB > 100 - perBLine) {
       if(RSI.Main(2) > 70 && RSI.Main(1) < 70)
          myTrade.setSignal(ORDER_TYPE_SELL);
+   }
+   
+   if(perB < perBLine) {
+      if(RSI.Main(2) < 30 && RSI.Main(1) > 30)
+         myTrade.setSignal(ORDER_TYPE_BUY);
    }
 
 
@@ -109,6 +124,10 @@ void OnTick() {
 
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
       myTrade.Sell(LHighest, myTrade.Bid - 1000 * _Point);
+   }
+   
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
+      myTrade.Buy(LLowest, myTrade.Ask + 1000 * _Point);
    }
 
 
@@ -126,7 +145,7 @@ void OnTimer() {
 
    tradable = true;
 
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
+  
    if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
@@ -136,6 +155,7 @@ void OnTimer() {
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       tradable = false;
    }
+   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
 
 //+------------------------------------------------------------------+
@@ -161,7 +181,7 @@ void Refresh() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   //myTrade.CheckSpread();
+   myTrade.CheckSpread();
 
 }
 

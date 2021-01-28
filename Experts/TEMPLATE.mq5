@@ -78,14 +78,13 @@ void OnTick() {
 void OnTimer() {
    myPosition.Refresh();
    myTrade.Refresh();
-   myDate.Refresh();
    myOrder.Refresh();
-   
-   tradable = true;
-   
-   //if(!myDate.isInTime("01:00", "07:00")) myTrade.istradable = false;
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
+   myDate.Refresh();
 
+
+   tradable = true;
+
+  
    if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
@@ -95,6 +94,7 @@ void OnTimer() {
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       tradable = false;
    }
+   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
 
 //+------------------------------------------------------------------+
@@ -104,7 +104,7 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_profit_trades();
+   double result =  myTest.min_dd_and_mathsqrt_trades();
    return  result;
 }
 
