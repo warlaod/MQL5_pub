@@ -101,9 +101,9 @@ class MyTrade {
       return false;
    }
 
-   bool PositionModify(long identifier, double SL, double TP) {
+   bool PositionModify(ulong ticket, double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return false;
-      if(trade.PositionModify(identifier, SL, TP)) return true;
+      if(trade.PositionModify(ticket, SL, TP)) return true;
       return false;
    }
 

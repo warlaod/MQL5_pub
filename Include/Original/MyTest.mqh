@@ -256,8 +256,8 @@ class MyTest {
       short_ratio = short_trades / total_trades;
 
       win_rate = (loss_trades == 0) ? 1 : profit_trades / total_trades ;
-      short_win_rate = short_profit_trades / (total_trades - long_trades);
-      long_win_rate = long_profit_trades / (total_trades - short_trades);
+      short_win_rate = short_profit_trades / (total_trades - long_trades+0.1);
+      long_win_rate = long_profit_trades / (total_trades - short_trades+0.1);
       average_profit = gross_profit / profit_trades;
       if(loss_trades != 0) {
          average_loss = gross_loss / loss_trades;

@@ -30,7 +30,7 @@
 input double SLCoef, TPCoef;
 input mis_MarcosTMP timeFrame;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
-input int SPriceRange, LPriceRange, RSIPeriod, perBLine, ATRPeriod,TrailingPeriod;
+input int SPriceRange, LPriceRange, RSIPeriod, perBLine, ATRPeriod, TrailingPeriod;
 bool tradable = false;
 double topips = ToPips();
 //+------------------------------------------------------------------+
@@ -63,29 +63,21 @@ void OnTick() {
    Refresh();
    Check();
 
-
-
-   CPositionInfo cPositionInfo;
    for(int i = 0; i < myPosition.SellTickets.Total(); i++) {
       ulong ticket = myPosition.SellTickets.At(i);
-      cPositionInfo.SelectByTicket(ticket);
-      if(cPositionInfo.StopLoss() < 2 * cPositionInfo.Profit()) {
-         myPosition.AddListForTrailings(ticket);
-         myPosition.ClosePartial(ticket, 0.5);
-      }
-   }
-   for(int i = 0; i < myPosition.BuyTickets.Total(); i++) {
-      ulong ticket = myPosition.SellTickets.At(i);
-      cPositionInfo.SelectByTicket(ticket);
-      if(cPositionInfo.StopLoss() < 2 * cPositionInfo.Profit()) {
-         myPosition.AddListForTrailings(ticket);
-         myPosition.ClosePartial(ticket, 0.5);
+      myPosition.Select(ticket);
+      if(myPosition.StopLoss() < myPosition.CurrentProfit()) {
+         if(myPosition.AddListForTrailings(ticket)) {
+            myTrade.PositionModify(ticket, myTrade.Bid + myPosition.CurrentProfit() / 2, myTrade.Bid - 200 * _Point);
+            myPosition.ClosePartial(ticket, 0.5);
+         }
       }
    }
 
+
    double PriceUnit = ATR.Main(0);
-   myPosition.Trailings(POSITION_TYPE_BUY, myPrice.Lowest(0,TrailingPeriod),myTrade.Ask + 500*_Point);
-   myPosition.Trailings(POSITION_TYPE_SELL,  myPrice.Highest(0,TrailingPeriod),myTrade.Bid - 500*_Point);
+   myPosition.Trailings(POSITION_TYPE_BUY, myPrice.Lowest(1, TrailingPeriod), myTrade.Ask + 500 * _Point);
+   myPosition.Trailings(POSITION_TYPE_SELL,  myPrice.Highest(1, TrailingPeriod), myTrade.Bid - 500 * _Point);
 
 
 
@@ -101,8 +93,8 @@ void OnTick() {
 
 
 
-   double LHighest = NormalizeDouble(myPrice.Highest(0, LPriceRange) + 0.0005, 3);
-   double LLowest = NormalizeDouble(myPrice.Lowest(0, LPriceRange) - 0.0005, 3);
+   double LHighest = NormalizeDouble(myPrice.Highest(1, LPriceRange) + 0.0005, 3);
+   double LLowest = NormalizeDouble(myPrice.Lowest(1, LPriceRange) - 0.0005, 3);
    double perB = (myPrice.At(0).close - LLowest) / (LHighest - LLowest) * 100;
 
    if(perB > 100 - perBLine) {
@@ -115,9 +107,6 @@ void OnTick() {
 
 
 
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
-      myTrade.Buy(LLowest, myTrade.Ask + 1000 * _Point);
-   }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
       myTrade.Sell(LHighest, myTrade.Bid - 1000 * _Point);
    }
@@ -137,7 +126,7 @@ void OnTimer() {
 
    tradable = true;
 
-   //if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
+   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
    if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
@@ -156,7 +145,7 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_long_trades();
+   double result =  myTest.min_dd_and_mathsqrt_short_trades();
    return  result;
 }
 
