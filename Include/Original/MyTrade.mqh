@@ -9,7 +9,6 @@
 
 input int spread = -1;
 input double risk = 50000;
-input int positions = 2;
 input bool isLotModified = false;
 input int StopBalance = 2000;
 input int StopMarginLevel = 300;
@@ -17,7 +16,7 @@ input int StopMarginLevel = 300;
 class MyTrade {
 
  public:
-   bool istradable;
+   bool isCurrentTradable;
    string signal;
    double lot;
    double Ask;
@@ -30,6 +29,7 @@ class MyTrade {
    int LotDigits;
    MqlDateTime dt;
    CTrade trade;
+   bool isTradable;
 
    void MyTrade() {
       minlot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
@@ -42,7 +42,7 @@ class MyTrade {
    }
 
    void Refresh() {
-      istradable = true;
+      isCurrentTradable = true;
       signal = "";
 
       Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
@@ -58,7 +58,7 @@ class MyTrade {
       if(spread == -1)
          return;
       if(currentSpread >= spread)
-         istradable = false;
+         isCurrentTradable = false;
    }
 
    bool isInvalidTrade(double SL, double TP) {
@@ -71,15 +71,15 @@ class MyTrade {
       return false;
    }
 
-   void CheckBalance() {
-      if(NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE), 1) < StopBalance) {
-         istradable = false;
-      }
+   bool isLowerBalance() {
+      if(NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE), 1) < StopBalance) return true;
+      return false;
    }
 
-   void CheckMarginLevel() {
+   bool isLowerMarginLevel() {
       double marginlevel = AccountInfoDouble(ACCOUNT_MARGIN_LEVEL);
-      if(marginlevel < StopMarginLevel && marginlevel != 0 ) istradable = false;
+      if(marginlevel < StopMarginLevel && marginlevel != 0 ) return true;
+      return false;
    }
 
    bool Buy(double SL, double TP) {

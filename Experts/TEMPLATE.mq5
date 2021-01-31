@@ -46,7 +46,7 @@ CurrencyStrength CS(Timeframe, 1);
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
-   MyUtils myutils(60 * 1);
+   MyUtils myutils(60 * 50);
    myutils.Init();
    return(INIT_SUCCEEDED);
 }
@@ -59,14 +59,14 @@ void OnTick() {
    Check();
 
    //myPosition.CloseAllPositionsInMinute();
-   if(!myTrade.istradable || !tradable) return;
+   if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
 
 
    double PriceUnit = pips;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
       myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
    }
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
       myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
    }
 
@@ -79,23 +79,15 @@ void OnTick() {
 void OnTimer() {
    myPosition.Refresh();
    myTrade.Refresh();
-   myOrder.Refresh();
    myDate.Refresh();
 
-
-   tradable = true;
-
-  
-   if(myDate.isFridayEnd() || myDate.isYearEnd() || myDate.isMondayStart()) myTrade.istradable = false;
-   myTrade.CheckBalance();
-   myTrade.CheckMarginLevel();
-
-   if(!myTrade.istradable) {
+   if(myDate.isFridayEnd() || myDate.isYearEnd() || myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      tradable = false;
+      myTrade.isTradable = false;
+   } else {
+      myTrade.isTradable = true;
    }
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.istradable = false;
 }
 
 //+------------------------------------------------------------------+
@@ -122,12 +114,9 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
    //myTrade.CheckSpread();
-   
+   myDate.Refresh();
+   myOrder.Refresh();
+   if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
+   if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
 }
-
-
-//+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+

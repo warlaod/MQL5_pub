@@ -66,7 +66,8 @@ class MyDate {
    }
 
    bool isMondayStart() {
-      if(dt.day_of_week = MONDAY && dt.hour <= 3) return true;
+      if(dt.day_of_week = MONDAY && dt.hour <= 3) 
+      return true;
       return false;
    }
 
