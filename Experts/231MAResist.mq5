@@ -28,6 +28,7 @@
 #include <Trade\PositionInfo.mqh>
 
 input double SLCoef, TPCoef;
+input double perBCri;
 input mis_MarcosTMP timeFrame, slTimeframe;
 input int EntryPeriod, SLPeriod;
 input int ShortPeriod, MiddlePeriod, LongPeriod;
@@ -65,7 +66,7 @@ void OnTick() {
    Refresh();
    Check();
 
-   //myPosition.CloseAllPositionsInMinute();
+   myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
 
    ShortMA.Refresh();
@@ -110,6 +111,8 @@ void OnTick() {
 
    double Lowest = myPrice.Lowest(0, SLPeriod);
    double Highest = myPrice.Highest(0, SLPeriod);
+   double perB = (myPrice.At(0).close -Lowest) / (Highest-Lowest);
+   if(perB < perBCri || perB > 1 - perBCri) return;
    if(myPrice.At(0).close < (Lowest + Highest) / 2 ) {
       if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
          if(myPosition.isPositionInRange(MathAbs(LongMA.Main(0) - myTrade.Ask), POSITION_TYPE_BUY))return;
@@ -165,7 +168,7 @@ void Refresh() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   //myTrade.CheckSpread();
+   myTrade.CheckSpread();
    myDate.Refresh();
    myOrder.Refresh();
    if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
