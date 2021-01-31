@@ -29,6 +29,8 @@
 
 input double SLCoef, TPCoef;
 input mis_MarcosTMP timeFrame;
+input int OsmaPeriod;
+input int FastPeriod, SlowPeriod, SignalPeriod,SLPeriod;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 bool tradable = false;
 double PriceToPips = PriceToPips();
@@ -45,9 +47,13 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiOsMA Osma;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
+   Osma.Create(_Symbol, Timeframe, FastPeriod, SlowPeriod, SignalPeriod, PRICE_CLOSE);
+
+   if(FastPeriod >= SlowPeriod) return INIT_PARAMETERS_INCORRECT;
    return(INIT_SUCCEEDED);
 }
 
@@ -57,17 +63,40 @@ int OnInit() {
 void OnTick() {
    Refresh();
    Check();
-
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
+
+   Osma.Refresh();
+
+
+   double BCount, SCount = 0;
+   for(int i = OsmaPeriod; i > 0; i--) {
+      if(Osma.Main(i + 1) > Osma.Main(i)) {
+         if(i = 1) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+         break;
+      }
+      BCount++;
+   }
+   for(int i = OsmaPeriod; i > 0; i--) {
+      if(Osma.Main(i + 1) < Osma.Main(i)) {
+         if(i = 1) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+         break;
+      }
+      SCount++;
+   }
+
+   if(BCount == OsmaPeriod) myTrade.setSignal(ORDER_TYPE_BUY);
+   if(SCount == OsmaPeriod) myTrade.setSignal(ORDER_TYPE_SELL);
+
+
 
 
    double PriceUnit = pips;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
-      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+      myTrade.Buy(myPrice.Lowest(0,SLPeriod), myTrade.Ask + PriceUnit * TPCoef);
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
-      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+      myTrade.Sell(myPrice.Highest(0,SLPeriod), myTrade.Bid - PriceUnit * TPCoef);
    }
 
 
@@ -85,7 +114,7 @@ void OnTimer() {
 
    tradable = true;
 
-  
+
    if(myDate.isFridayEnd() || myDate.isYearEnd() || myDate.isMondayStart()) myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
@@ -122,9 +151,11 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
    //myTrade.CheckSpread();
-   
+
 }
 
+
+//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 

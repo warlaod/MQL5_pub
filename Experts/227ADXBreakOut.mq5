@@ -28,7 +28,9 @@
 #include <Trade\PositionInfo.mqh>
 
 input double SLCoef, TPCoef;
+input int BreakPip, EntryPip;
 input mis_MarcosTMP timeFrame;
+input int ADXPeriod;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 bool tradable = false;
 double PriceToPips = PriceToPips();
@@ -45,9 +47,11 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiADX ADX;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
+   ADX.Create(_Symbol, Timeframe, ADXPeriod);
    return(INIT_SUCCEEDED);
 }
 
@@ -61,13 +65,30 @@ void OnTick() {
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.istradable || !tradable) return;
 
+   ADX.Refresh();
+   myPrice.Refresh();
+
+   if( ADX.Main(2) > ADX.Main(1)) {
+      if(myPrice.At(1).low  - BreakPip * pips > myPrice.At(0).low) {
+         if(myPrice.At(1).high + EntryPip * pips < myPrice.At(0).close )
+            myTrade.setSignal(ORDER_TYPE_BUY);
+      }
+   }
+   
+   if(ADX.Main(2) > ADX.Main(1)) {
+      if(myPrice.At(1).high + BreakPip * pips < myPrice.At(0).high ) {
+         if(myPrice.At(1).low - EntryPip * pips > myPrice.At(0).close )
+            myTrade.setSignal(ORDER_TYPE_SELL);
+      }
+   }
+
 
    double PriceUnit = pips;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions / 2 ) {
-      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+      myTrade.Buy(myPrice.At(1).low, myTrade.Ask + MathAbs(myPrice.At(1).low - myTrade.Ask)*2);
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions / 2 ) {
-      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+      myTrade.Sell(myPrice.At(1).high, myTrade.Bid - MathAbs(myPrice.At(1).high - myTrade.Bid)*2);
    }
 
 
@@ -85,8 +106,8 @@ void OnTimer() {
 
    tradable = true;
 
-  
-   if(myDate.isFridayEnd() || myDate.isYearEnd() || myDate.isMondayStart()) myTrade.istradable = false;
+
+   if(myDate.isFridayEnd() || myDate.isYearEnd()) myTrade.istradable = false;
    myTrade.CheckBalance();
    myTrade.CheckMarginLevel();
 
@@ -122,7 +143,7 @@ void Refresh() {
 //+------------------------------------------------------------------+
 void Check() {
    //myTrade.CheckSpread();
-   
+
 }
 
 

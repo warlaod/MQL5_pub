@@ -65,6 +65,11 @@ class MyDate {
       return false;
    }
 
+   bool isMondayStart() {
+      if(dt.day_of_week = MONDAY && dt.hour <= 3) return true;
+      return false;
+   }
+
    bool isFridayEnd() {
       if(dt.day_of_week == FRIDAY) {
          if((dt.hour >= FridayEndHour - 1))

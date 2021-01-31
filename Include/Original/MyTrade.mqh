@@ -8,7 +8,7 @@
 #include <Trade\Trade.mqh>
 
 input int spread = -1;
-input double risk = 0.001;
+input double risk = 50000;
 input int positions = 2;
 input bool isLotModified = false;
 input int StopBalance = 2000;
@@ -38,7 +38,7 @@ class MyTrade {
       ContractSize = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_CONTRACT_SIZE);
       trade.SetDeviationInPoints(10);
       LotDigits = -MathLog10(minlot);
-      topips = ToPips();
+      topips = PriceToPips();
    }
 
    void Refresh() {
@@ -65,7 +65,6 @@ class MyTrade {
       if(TP > SL) {
          if((TP - Ask)*topips < 2 || (Ask - SL)*topips < 2) return true;
       }
-
       else if(TP < SL) {
          if( (Bid - TP)*topips < 2  || (SL - Bid)*topips < 2) return true;
       }

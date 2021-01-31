@@ -189,7 +189,12 @@ class MyTest {
  private:
    void CheckRatio(double ratio, double criterion) {
       if(ratio > criterion) return;
-      negativeEffector = negativeEffector / ratio;
+      if(ratio == 0.0){
+         negativeEffector = negativeEffector / 0.0001;
+      }else{
+         negativeEffector = negativeEffector / ratio;
+      }
+      
    }
 
    void SetResultForBalance() {
