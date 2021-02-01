@@ -111,19 +111,19 @@ void OnTick() {
 
    double Lowest = myPrice.Lowest(0, SLPeriod);
    double Highest = myPrice.Highest(0, SLPeriod);
-   double perB = (myPrice.At(0).close -Lowest) / (Highest-Lowest);
+   double perB = (myPrice.At(0).close - Lowest) / (Highest - Lowest);
    if(perB < perBCri || perB > 1 - perBCri) return;
-   if(myPrice.At(0).close < (Lowest + Highest) / 2 ) {
+
+   if(perB < 0.5) {
       if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-         if(myPosition.isPositionInRange(MathAbs(LongMA.Main(0) - myTrade.Ask), POSITION_TYPE_BUY))return;
          myTrade.Buy(myPrice.Lowest(0, 2), LongMA.Main(0));
       }
    } else {
       if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-         if(myPosition.isPositionInRange(MathAbs(LongMA.Main(0) - myTrade.Bid), POSITION_TYPE_SELL))return;
          myTrade.Sell(myPrice.Highest(0, 2), LongMA.Main(0));
       }
    }
+
 
 
 }
