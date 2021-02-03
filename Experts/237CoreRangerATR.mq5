@@ -18,16 +18,23 @@
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
 #include <Original\MyOrder.mqh>
+#include <Original\MyCHart.mqh>
+#include <Original\Optimization.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
+#include <Indicators\Volumes.mqh>
+#include <Trade\PositionInfo.mqh>
 
-input double SLWeight,TPWeight,OsmaWeight;
-input ENUM_TIMEFRAMES Timeframe;
-input int WPRPeriod,WPRCri;
-input double TPPeriod,SLPeriod;
+input double SLCoef, TPCoef;
+input int PricePeriod;
+input mis_MarcosTMP timeFrame, shortTimeframe;
+ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
+ENUM_TIMEFRAMES ShortTimeframe = defMarcoTiempo(shortTimeframe);
 bool tradable = false;
+double PriceToPips = PriceToPips();
+double pips = PointToPips();
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -35,64 +42,28 @@ MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate();
 MyPrice myPrice(Timeframe, 3);
-MyOrder myOrder(Timeframe);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double TPCoef = MathPow(2,TPWeight);
-double SLCoef = MathPow(2,SLWeight);
-
-CiWPR WPR;
-CiOsMA Osma;
+CiATR ATR;
+CiOsMA OsmaLong, OsmaShort;
 int OnInit() {
-  MyUtils myutils(60 * 27);
-  myutils.Init();
-  WPR.Create(_Symbol,Timeframe,WPRPeriod);
-  Osma.Create(_Symbol,Timeframe,12,26,9,PRICE_MEDIAN);
-  return(INIT_SUCCEEDED);
+   MyUtils myutils(60 * 1);
+   myutils.Init();
+   ATR.Create(_Symbol, PERIOD_W1, 2);
+   OsmaLong.Create(_Symbol, Timeframe, 12, 26, 9, PRICE_WEIGHTED);
+   OsmaShort.Create(_Symbol, ShortTimeframe, 12, 26, 9, PRICE_WEIGHTED);
+   
+   if(Timeframe <= ShortTimeframe) return INIT_PARAMETERS_INCORRECT;
+   return(INIT_SUCCEEDED);
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
 void OnTick() {
-  Refresh();
-  Check();
-  Osma.Refresh();
-  WPR.Refresh();
-  myPrice.Refresh();
 
-  myPosition.CloseAllPositionsInMinute();
-
- if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
-
-  double OsmaCri = 10*_Point*MathPow(2, OsmaWeight);
-  if(Osma.Main(0) > OsmaCri && Osma.Main(0) > Osma.Main(1) && WPR.Main(0) < -100+WPRCri) myTrade.setSignal(ORDER_TYPE_BUY);
-  if(Osma.Main(0) < -OsmaCri && Osma.Main(0) < Osma.Main(1) && WPR.Main(0) > -WPRCri) myTrade.setSignal(ORDER_TYPE_SELL);
-
-
-
-  double PriceUnit = 10 * _Point;
-
-  double SLPeri = MathPow(2,SLPeriod);
-  double TPPeri = MathPow(2,TPPeriod);
-  if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions ) {
-    double Highest = myPrice.Highest(0,TPPeri);
-    double Lowest = myPrice.Lowest(0,SLPeri);
-    //if(myPosition.isPositionInRange(MathAbs(Highest-myTrade.Ask),POSITION_TYPE_BUY)) return;
-    myTrade.Buy(Lowest, Highest);
-  }
-  if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions ) {
-    double Highest = myPrice.Highest(0,SLPeri);
-    double Lowest = myPrice.Lowest(0,TPPeri);
-    //if(myPosition.isPositionInRange(MathAbs(Lowest-myTrade.Bid),POSITION_TYPE_SELL)) return;
-    myTrade.Sell(Highest,Lowest);
-  }
 
 }
 
@@ -104,12 +75,46 @@ void OnTimer() {
    myTrade.Refresh();
    myDate.Refresh();
 
-   if(myDate.isFridayEnd() || myDate.isYearEnd() || myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       myTrade.isTradable = false;
    } else {
       myTrade.isTradable = true;
+   }
+
+   {
+      Refresh();
+      Check();
+
+      //myPosition.CloseAllPositionsInMinute();
+      if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
+
+      myPrice.Refresh();
+      ATR.Refresh();
+      OsmaLong.Refresh();
+      OsmaShort.Refresh();
+
+      double Highest = myPrice.Highest(0, PricePeriod);
+      double Lowest = myPrice.Lowest(0, PricePeriod);
+      double perB = (myPrice.At(0).close - Lowest) / (Highest - Lowest);
+
+      if(perB > 0.5) {
+         if(OsmaLong.Main(1) > OsmaLong.Main(0) && OsmaShort.Main(2) < OsmaShort.Main(1) )
+            myTrade.setSignal(ORDER_TYPE_SELL);
+      }
+
+      if(perB < 0.5) {
+         if(OsmaLong.Main(1) < OsmaLong.Main(0) && OsmaShort.Main(2) > OsmaShort.Main(1) )
+            myTrade.setSignal(ORDER_TYPE_BUY);
+      }
+
+      double PriceUnit = ATR.Main(0);
+      if(myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoef)) return;
+      myTrade.Buy(0.01, myTrade.Ask + PriceUnit * TPCoef);
+
+      if(myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit * TPCoef)) return;
+      myTrade.Sell(5, myTrade.Bid - PriceUnit * TPCoef);
    }
 }
 
@@ -136,15 +141,6 @@ void Refresh() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   //myTrade.CheckSpread();
-   myDate.Refresh();
-   myOrder.Refresh();
-   if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
+   myTrade.CheckSpread();
 }
-//+--
-//+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+

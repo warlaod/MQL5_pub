@@ -239,7 +239,7 @@ class MyTest {
       long_win_rate = 0;
 
 
-      if(total_trades <= 10) {
+      if(total_trades <= 2) {
          result = -99999999;
          return;
       }
