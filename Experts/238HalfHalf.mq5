@@ -57,7 +57,6 @@ int OnInit() {
    myutils.Init();
    ATR.Create(_Symbol, ATRTimeframe, ATRPeriod);
    ADX.Create(_Symbol, ShortTimeframe, ADXPeriod);
-   
 
    if(Timeframe <= ShortTimeframe) return INIT_PARAMETERS_INCORRECT;
    return(INIT_SUCCEEDED);
@@ -96,7 +95,6 @@ void OnTimer() {
       myPrice.Refresh();
       ATR.Refresh();
       ADX.Refresh();
-      MFI.Refresh();
 
       double Highest = myPrice.Highest(0, PricePeriod);
       double Lowest = myPrice.Lowest(0, PricePeriod);
