@@ -29,7 +29,7 @@
 
 input double SLCoef, TPCoef;
 input int PricePeriod, ATRPeriod;
-input int MAPeriod, TrendPeriod;
+input int ADXPeriod, TrendPeriod,MFIPeriod;
 input mis_MarcosTMP timeFrame, shortTimeframe, atrTimeframe;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ShortTimeframe = defMarcoTiempo(shortTimeframe);
@@ -51,13 +51,13 @@ CurrencyStrength CS(Timeframe, 1);
 CiATR ATR;
 CiADX ADX;
 CiSAR SAR;
-CiForce Force;
+CiMFI MFI;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
    ATR.Create(_Symbol, ATRTimeframe, ATRPeriod);
-   ADX.Create(_Symbol, ShortTimeframe, MAPeriod);
-   Force.Create(_Symbol, Timeframe, TrendPeriod, MODE_EMA, VOLUME_TICK);
+   ADX.Create(_Symbol, ShortTimeframe, ADXPeriod);
+   
 
    if(Timeframe <= ShortTimeframe) return INIT_PARAMETERS_INCORRECT;
    return(INIT_SUCCEEDED);
@@ -96,7 +96,7 @@ void OnTimer() {
       myPrice.Refresh();
       ATR.Refresh();
       ADX.Refresh();
-      Force.Refresh();
+      MFI.Refresh();
 
       double Highest = myPrice.Highest(0, PricePeriod);
       double Lowest = myPrice.Lowest(0, PricePeriod);
