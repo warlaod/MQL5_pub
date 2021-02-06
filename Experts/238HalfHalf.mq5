@@ -28,9 +28,9 @@
 #include <Trade\PositionInfo.mqh>
 
 input double SLCoef, TPCoef;
-input int PricePeriod,ATRPeriod;
-input int MAPeriod,TrendPeriod;
-input mis_MarcosTMP timeFrame, shortTimeframe,atrTimeframe;
+input int PricePeriod, ATRPeriod;
+input int MAPeriod, TrendPeriod;
+input mis_MarcosTMP timeFrame, shortTimeframe, atrTimeframe;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ShortTimeframe = defMarcoTiempo(shortTimeframe);
 ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
@@ -50,12 +50,15 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 CiATR ATR;
 CiADX ADX;
+CiSAR SAR;
+CiForce Force;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
    ATR.Create(_Symbol, ATRTimeframe, ATRPeriod);
-   ADX.Create(_Symbol,ShortTimeframe,MAPeriod);
-   
+   ADX.Create(_Symbol, ShortTimeframe, MAPeriod);
+   Force.Create(_Symbol, Timeframe, TrendPeriod, MODE_EMA, VOLUME_TICK);
+
    if(Timeframe <= ShortTimeframe) return INIT_PARAMETERS_INCORRECT;
    return(INIT_SUCCEEDED);
 }
@@ -74,7 +77,6 @@ void OnTick() {
 void OnTimer() {
    myPosition.Refresh();
    myTrade.Refresh();
-   myDate.Refresh();
 
    if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
@@ -94,22 +96,25 @@ void OnTimer() {
       myPrice.Refresh();
       ATR.Refresh();
       ADX.Refresh();
+      Force.Refresh();
 
       double Highest = myPrice.Highest(0, PricePeriod);
       double Lowest = myPrice.Lowest(0, PricePeriod);
       double perB = (myPrice.At(0).close - Lowest) / (Highest - Lowest);
 
       if(perB > 0.5) {
-         if(ADX.Minus(0) > ADX.Plus(0) && ADX.Minus(2) < ADX.Minus(1))
+         if(ADX.Minus(0) > ADX.Plus(0) && ADX.Minus(2) < ADX.Minus(1)) {
             myTrade.setSignal(ORDER_TYPE_SELL);
+         }
       }
 
       if(perB < 0.5) {
-         if(ADX.Plus(0) > ADX.Minus(0) && ADX.Plus(2) < ADX.Plus(1))
+         if(ADX.Plus(0) > ADX.Minus(0) && ADX.Plus(2) < ADX.Plus(1)) {
             myTrade.setSignal(ORDER_TYPE_BUY);
+         }
       }
-      
-      
+
+
 
       double PriceUnit = ATR.Main(0);
       if(myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoef)) return;
