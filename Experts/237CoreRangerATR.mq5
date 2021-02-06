@@ -49,6 +49,7 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 CiATR ATR;
 CiStochastic Sto;
+CiMA MA;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();

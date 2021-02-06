@@ -28,12 +28,8 @@
 #include <Trade\PositionInfo.mqh>
 
 input double SLCoef, TPCoef;
-input int PricePeriod,ATRPeriod;
-input int MAPeriod,TrendPeriod;
-input mis_MarcosTMP timeFrame, shortTimeframe,atrTimeframe;
+input mis_MarcosTMP timeFrame;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
-ENUM_TIMEFRAMES ShortTimeframe = defMarcoTiempo(shortTimeframe);
-ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
 bool tradable = false;
 double PriceToPips = PriceToPips();
 double pips = PointToPips();
@@ -43,20 +39,17 @@ double pips = PointToPips();
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate();
-MyPrice myPrice(PERIOD_MN1, 10);
+MyPrice myPrice(Timeframe, 3);
+MyOrder myOrder(Timeframe);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiATR ATR;
-CiMA MA;
+CiStochastic Sto;
 int OnInit() {
-   MyUtils myutils(60 * 1);
+   MyUtils myutils(60 * 50);
    myutils.Init();
-   ATR.Create(_Symbol, ATRTimeframe, ATRPeriod);
-   MA.Create(_Symbol,Timeframe,MAPeriod,0,MODE_EMA,PRICE_TYPICAL);
-
-   if(Timeframe <= ShortTimeframe) return INIT_PARAMETERS_INCORRECT;
+   Sto.Create(_Symbol,Timeframe,5,3,3,MODE_EMA,STO_LOWHIGH);
    return(INIT_SUCCEEDED);
 }
 
@@ -64,6 +57,20 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
+   Refresh();
+   Check();
+
+   //myPosition.CloseAllPositionsInMinute();
+   if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
+
+
+   double PriceUnit = pips;
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
+      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+   }
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
+      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+   }
 
 
 }
@@ -76,53 +83,12 @@ void OnTimer() {
    myTrade.Refresh();
    myDate.Refresh();
 
-   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+   if(myDate.isFridayEnd() || myDate.isYearEnd() || myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       myTrade.isTradable = false;
    } else {
       myTrade.isTradable = true;
-   }
-
-   {
-      Refresh();
-      Check();
-
-      //myPosition.CloseAllPositionsInMinute();
-      if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
-
-      myPrice.Refresh();
-      ATR.Refresh();
-      MA.Refresh();
-
-      double Highest = myPrice.Highest(0, PricePeriod);
-      double Lowest = myPrice.Lowest(0, PricePeriod);
-      double perB = (myPrice.At(0).close - Lowest) / (Highest - Lowest);
-
-      if(perB > 0.5) {
-         for(int i=0;i<TrendPeriod;i++)
-           {
-            if(MA.Main(i) < myPrice.At(i).low) return;
-           }
-            myTrade.setSignal(ORDER_TYPE_SELL);
-      }
-
-      if(perB < 0.5) {
-         for(int i=0;i<TrendPeriod;i++)
-           {
-            if(MA.Main(i) > myPrice.At(i).high) return;
-           }
-            myTrade.setSignal(ORDER_TYPE_BUY);
-      }
-      
-      
-
-      double PriceUnit = ATR.Main(0);
-      if(myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoef)) return;
-      myTrade.Buy(0.01, myTrade.Ask + PriceUnit * TPCoef);
-
-      if(myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit * TPCoef)) return;
-      myTrade.Sell(5, myTrade.Bid - PriceUnit * TPCoef);
    }
 }
 
@@ -149,6 +115,10 @@ void Refresh() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   myTrade.CheckSpread();
+   //myTrade.CheckSpread();
+   myDate.Refresh();
+   myOrder.Refresh();
+   if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
+   if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
 }
 //+------------------------------------------------------------------+
