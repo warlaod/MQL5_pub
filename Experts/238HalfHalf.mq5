@@ -49,13 +49,13 @@ CurrencyStrength CS(Timeframe, 1);
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiATR ATR;
-CiMA MA;
+CiADX ADX;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
    ATR.Create(_Symbol, ATRTimeframe, ATRPeriod);
-   MA.Create(_Symbol,Timeframe,MAPeriod,0,MODE_EMA,PRICE_TYPICAL);
-
+   ADX.Create(_Symbol,ShortTimeframe,MAPeriod);
+   
    if(Timeframe <= ShortTimeframe) return INIT_PARAMETERS_INCORRECT;
    return(INIT_SUCCEEDED);
 }
@@ -93,17 +93,19 @@ void OnTimer() {
 
       myPrice.Refresh();
       ATR.Refresh();
-      MA.Refresh();
+      ADX.Refresh();
 
       double Highest = myPrice.Highest(0, PricePeriod);
       double Lowest = myPrice.Lowest(0, PricePeriod);
       double perB = (myPrice.At(0).close - Lowest) / (Highest - Lowest);
 
       if(perB > 0.5) {
+         if(ADX.Minus(0) > ADX.Plus(0) && ADX.Minus(2) < ADX.Minus(1))
             myTrade.setSignal(ORDER_TYPE_SELL);
       }
 
       if(perB < 0.5) {
+         if(ADX.Plus(0) > ADX.Minus(0) && ADX.Plus(2) < ADX.Plus(1))
             myTrade.setSignal(ORDER_TYPE_BUY);
       }
       

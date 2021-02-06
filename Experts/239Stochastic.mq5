@@ -29,6 +29,7 @@
 
 input double SLCoef, TPCoef;
 input mis_MarcosTMP timeFrame;
+input int CrossPeriod;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 bool tradable = false;
 double PriceToPips = PriceToPips();
@@ -49,7 +50,7 @@ CiStochastic Sto;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
-   Sto.Create(_Symbol,Timeframe,5,3,3,MODE_EMA,STO_LOWHIGH);
+   Sto.Create(_Symbol, Timeframe, 5, 3, 3, MODE_EMA, STO_LOWHIGH);
    return(INIT_SUCCEEDED);
 }
 
@@ -62,6 +63,24 @@ void OnTick() {
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
+
+   Sto.Refresh();
+
+   for(int i = 0; i < CrossPeriod; i++) {
+      if(isGoldenCross(Sto.Main(i + 1), Sto.Signal(i + 1), Sto.Main(i), Sto.Signal(i))) {
+      if(Sto.Signal(i + 1) < 30) {
+            myTrade.signal = "BUY";
+         }
+      }
+   }
+   
+   for(int i = 0; i < CrossPeriod; i++) {
+      if(isDeadCross(Sto.Main(i + 1), Sto.Signal(i + 1), Sto.Main(i), Sto.Signal(i))) {
+      if(Sto.Signal(i + 1) > 70) {
+            myTrade.signal = "SELL";
+         }
+      }
+   }
 
 
    double PriceUnit = pips;
