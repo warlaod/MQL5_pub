@@ -27,12 +27,12 @@
 #include <Indicators\Volumes.mqh>
 #include <Trade\PositionInfo.mqh>
 
-input double TPCoefRange, TPCoefHalf;
-input int PricePeriod,ATRPeriod;
-input double perBCri;
-input mis_MarcosTMP timeFrame, shortTimeframe;
+input double SLCoef, TPCoef;
+input int PricePeriod, ATRPeriod;
+input mis_MarcosTMP timeFrame, shortTimeframe, atrTimeframe;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ShortTimeframe = defMarcoTiempo(shortTimeframe);
+ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
 bool tradable = false;
 double PriceToPips = PriceToPips();
 double pips = PointToPips();
@@ -48,12 +48,13 @@ CurrencyStrength CS(Timeframe, 1);
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiATR ATR;
-CiStochastic Sto;
+CiOsMA OsmaLong, OsmaShort;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
-   ATR.Create(_Symbol, Timeframe, ATRPeriod);
-   Sto.Create(_Symbol, Timeframe, 5, 3, 3, MODE_EMA, STO_LOWHIGH);
+   ATR.Create(_Symbol, ATRTimeframe, ATRPeriod);
+   OsmaLong.Create(_Symbol, Timeframe, 12, 26, 9, PRICE_WEIGHTED);
+   OsmaShort.Create(_Symbol, ShortTimeframe, 12, 26, 9, PRICE_WEIGHTED);
 
    if(Timeframe <= ShortTimeframe) return INIT_PARAMETERS_INCORRECT;
    return(INIT_SUCCEEDED);
@@ -92,40 +93,29 @@ void OnTimer() {
 
       myPrice.Refresh();
       ATR.Refresh();
-      Sto.Refresh();
+      OsmaLong.Refresh();
+      OsmaShort.Refresh();
 
       double Highest = myPrice.Highest(0, PricePeriod);
       double Lowest = myPrice.Lowest(0, PricePeriod);
       double perB = (myPrice.At(0).close - Lowest) / (Highest - Lowest);
-      double PriceUnit = ATR.Main(0);
 
-      if(isGoldenCross(Sto.Main(2), Sto.Signal(2), Sto.Main(1), Sto.Signal(1))) {
-         myTrade.setSignal(ORDER_TYPE_BUY);
-      }
-
-      if(isDeadCross(Sto.Main(2), Sto.Signal(2), Sto.Main(1), Sto.Signal(1))) {
+      if(perB > 0.5) {
          myTrade.setSignal(ORDER_TYPE_SELL);
       }
 
-      if(isBetween(0.5 + perBCri, perB, 0.5 - perBCri)) {
-         if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoefRange)) {
-            myTrade.Buy(0.01, myTrade.Ask + PriceUnit * TPCoefRange);
-         }
-
-         if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit * TPCoefRange)) {
-            myTrade.Sell(5, myTrade.Bid - PriceUnit * TPCoefRange);
-         }
+      if(perB < 0.5) {
+         myTrade.setSignal(ORDER_TYPE_BUY);
       }
 
-      if(perB > 0.5 + perBCri) {
-         if(myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit * TPCoefHalf)) return;
-         myTrade.Sell(5, myTrade.Bid - PriceUnit * TPCoefHalf);
-      }
 
-      if(perB < 0.5 - perBCri) {
-         if(myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoefHalf)) return;
-         myTrade.Buy(0.01, myTrade.Ask + PriceUnit * TPCoefHalf);
-      }
+
+      double PriceUnit = MathAbs(perB - 0.5) < 0.1 ? ATR.Main(0) * 0.1 : ATR.Main(0) * MathAbs(perB - 0.5);
+      if(myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoef)) return;
+      myTrade.Buy(0.01, myTrade.Ask + PriceUnit * TPCoef);
+
+      if(myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit * TPCoef)) return;
+      myTrade.Sell(5, myTrade.Bid - PriceUnit * TPCoef);
    }
 }
 
