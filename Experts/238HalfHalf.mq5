@@ -100,18 +100,10 @@ void OnTimer() {
       double perB = (myPrice.At(0).close - Lowest) / (Highest - Lowest);
 
       if(perB > 0.5) {
-         for(int i=0;i<TrendPeriod;i++)
-           {
-            if(MA.Main(i) < myPrice.At(i).low) return;
-           }
             myTrade.setSignal(ORDER_TYPE_SELL);
       }
 
       if(perB < 0.5) {
-         for(int i=0;i<TrendPeriod;i++)
-           {
-            if(MA.Main(i) > myPrice.At(i).high) return;
-           }
             myTrade.setSignal(ORDER_TYPE_BUY);
       }
       
