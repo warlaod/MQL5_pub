@@ -29,7 +29,7 @@
 
 input double SLCoef, TPCoef;
 input int PricePeriod, ATRPeriod;
-input int ADXPeriod, TrendPeriod,MFIPeriod;
+input int ADXPeriod;
 input mis_MarcosTMP timeFrame, shortTimeframe, atrTimeframe;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ShortTimeframe = defMarcoTiempo(shortTimeframe);
@@ -50,8 +50,6 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 CiATR ATR;
 CiADX ADX;
-CiSAR SAR;
-CiMFI MFI;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
@@ -115,11 +113,15 @@ void OnTimer() {
 
 
       double PriceUnit = ATR.Main(0);
-      if(myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoef)) return;
-      myTrade.Buy(0.01, myTrade.Ask + PriceUnit * TPCoef);
+      if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
+         if(myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoef)) return;
+         myTrade.Buy(0.01, myTrade.Ask + PriceUnit * TPCoef);
+      }
 
-      if(myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit * TPCoef)) return;
-      myTrade.Sell(5, myTrade.Bid - PriceUnit * TPCoef);
+      if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
+         if(myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit * TPCoef)) return;
+         myTrade.Sell(5, myTrade.Bid - PriceUnit * TPCoef);
+      }
    }
 }
 
