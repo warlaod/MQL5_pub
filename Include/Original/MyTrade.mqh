@@ -9,6 +9,7 @@
 
 input int spread = -1;
 input double risk = 50000;
+input double InitialLot = 0.1;
 input bool isLotModified = false;
 input int StopBalance = 2000;
 input int StopMarginLevel = 300;
@@ -39,6 +40,7 @@ class MyTrade {
       trade.SetDeviationInPoints(10);
       LotDigits = -MathLog10(minlot);
       topips = PriceToPips();
+      lot = NormalizeDouble(InitialLot, LotDigits);
    }
 
    void Refresh() {
@@ -64,8 +66,7 @@ class MyTrade {
    bool isInvalidTrade(double SL, double TP) {
       if(TP > SL) {
          if((TP - Ask)*topips < 2 || (Ask - SL)*topips < 2) return true;
-      }
-      else if(TP < SL) {
+      } else if(TP < SL) {
          if( (Bid - TP)*topips < 2  || (SL - Bid)*topips < 2) return true;
       }
       return false;
@@ -115,10 +116,9 @@ class MyTrade {
       if(isLotModified) {
          lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / risk, LotDigits);
          //lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / (ContractSize * TradeRisk), LotDigits);
-      } else {
-         lot = NormalizeDouble(InitialDeposit / risk, LotDigits);
-         //lot = NormalizeDouble(InitialDeposit / risk / TradeRisk, LotDigits);
       }
+      //lot = NormalizeDouble(InitialDeposit / risk / TradeRisk, LotDigits);
+
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;
 
