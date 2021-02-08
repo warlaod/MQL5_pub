@@ -28,11 +28,15 @@
 #include <Trade\PositionInfo.mqh>
 
 input double SLCoef, TPCoef;
-input mis_MarcosTMP timeFrame;
+input mis_MarcosTMP timeFrame,shortTimeframe;
+input int ATRPeriod, ADXPeriod,ATRArrayPeriod,PricePeriod
+;
+input double ATRCri;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
+ENUM_TIMEFRAMES ShortTimeframe = defMarcoTiempo(shortTimeframe);
 bool tradable = false;
 double PriceToPips = PriceToPips();
-double pips = ToPips();
+double pips = PointToPips();
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -45,9 +49,16 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiADX ADX;
+CiATR ATR;
+CArrayDouble ATRArray;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
+   ADX.Create(_Symbol, Timeframe, ADXPeriod);
+   ATR.Create(_Symbol, ShortTimeframe, ATRPeriod);
+   
+   if(Timeframe <= ShortTimeframe) return INIT_PARAMETERS_INCORRECT;
    return(INIT_SUCCEEDED);
 }
 
@@ -60,6 +71,32 @@ void OnTick() {
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
+
+   ADX.Refresh();
+   ATR.Refresh();
+   myPrice.Refresh();
+
+   if(ADX.Main(0) > 20)
+      return;
+   
+   for(int i=0;i<ATRArrayPeriod;i++)
+     {
+      ATRArray.Add(ATR.Main(i));
+     }
+   if(ATRArray.At(ATRArray.Minimum(0,ATRArrayPeriod)) /ATR.Main(0) > ATRCri)
+      return;
+
+   double Highest = myPrice.Highest(0,  ADXPeriod);
+   double Lowest = myPrice.Lowest(0, ADXPeriod);
+   double perB = (myPrice.At(0).close - Lowest) / (Highest - Lowest);
+
+   if(isBetween(1, perB, 0.8)) {
+      myTrade.setSignal(ORDER_TYPE_SELL);
+   }
+
+   if(isBetween(0.2, perB, 0)) {
+      myTrade.setSignal(ORDER_TYPE_BUY);
+   }
 
 
    double PriceUnit = pips;

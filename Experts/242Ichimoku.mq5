@@ -45,11 +45,17 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiIchimoku Ichimoku;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
+   Ichimoku.Create(_Symbol, Timeframe, 9, 26, 52);
    return(INIT_SUCCEEDED);
 }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -57,20 +63,54 @@ int OnInit() {
 void OnTick() {
    Refresh();
    Check();
+   
+   Ichimoku.Refresh();
+   myPrice.Refresh();
+   myPosition.Trailings(POSITION_TYPE_BUY,Ichimoku.TenkanSen(0),10*pips);
+   myPosition.Trailings(POSITION_TYPE_SELL,Ichimoku.TenkanSen(0),10*pips);
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
 
+   
+
+   if(isIchimokuPerferctOrder(1, ORDER_TYPE_BUY)) {
+      if(isIchimokuPerferctOrder(2, ORDER_TYPE_BUY)) return;
+
+      myTrade.setSignal(ORDER_TYPE_BUY);
+   }
+   if(isIchimokuPerferctOrder(1, ORDER_TYPE_SELL)) {
+      if(isIchimokuPerferctOrder(2, ORDER_TYPE_SELL)) return;
+
+      myTrade.setSignal(ORDER_TYPE_BUY);
+   }
+
 
    double PriceUnit = pips;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+      if(myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef)) {
+         for(int i = 0; i < myPosition.BuyTickets.Total(); i++) {
+            myPosition.AddListForTrailings(myPosition.BuyTickets.At(i));
+         }
+      }
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+      if(myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef)) {
+         for(int i = 0; i < myPosition.SellTickets.Total(); i++) {
+            myPosition.AddListForTrailings(myPosition.SellTickets.At(i));
+         }
+      }
    }
+}
 
-
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool isIchimokuPerferctOrder(int i, ENUM_ORDER_TYPE OrderType) {
+   if(ORDER_TYPE_BUY) {
+      return (isBetween(myPrice.At(i).low, Ichimoku.TenkanSen(i), Ichimoku.KijunSen(i)) && isBetween(Ichimoku.KijunSen(i), Ichimoku.SenkouSpanA(i), Ichimoku.SenkouSpanB(i)));
+   } else
+      return (isBetween(Ichimoku.SenkouSpanB(i), Ichimoku.SenkouSpanA(i), Ichimoku.KijunSen(i)) && isBetween(Ichimoku.KijunSen(i), Ichimoku.TenkanSen(i), myPrice.At(i).high));
 }
 
 //+------------------------------------------------------------------+

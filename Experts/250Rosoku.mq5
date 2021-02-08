@@ -45,9 +45,12 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiMA MA;
+CiStochastic Sto;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
+   MA.Create(_Symbol,Timeframe,10,0,MODE_EMA,PRICE_TYPICAL);
    return(INIT_SUCCEEDED);
 }
 
@@ -60,8 +63,10 @@ void OnTick() {
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
-
-
+   
+   MA.Refresh();
+   myPrice.Refresh();
+   
    double PriceUnit = pips;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
       myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);

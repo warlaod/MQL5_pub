@@ -28,11 +28,12 @@
 #include <Trade\PositionInfo.mqh>
 
 input double TPCoefRange, TPCoefHalf;
-input int PricePeriod,ATRPeriod;
-input double perBCri;
-input mis_MarcosTMP timeFrame, shortTimeframe;
+input int PricePeriod, ATRPeriod;
+input double CoreRange, UntradeRange;
+input mis_MarcosTMP timeFrame, shortTimeframe, atrTimeframe;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ShortTimeframe = defMarcoTiempo(shortTimeframe);
+ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
 bool tradable = false;
 double PriceToPips = PriceToPips();
 double pips = PointToPips();
@@ -48,15 +49,15 @@ CurrencyStrength CS(Timeframe, 1);
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiATR ATR;
-CiStochastic Sto;
-CiMA MA;
+CiOsMA Osma;
 int OnInit() {
-   MyUtils myutils(60 * 1);
+   MyUtils myutils(60 * 5);
    myutils.Init();
-   ATR.Create(_Symbol, Timeframe, ATRPeriod);
-   Sto.Create(_Symbol, Timeframe, 5, 3, 3, MODE_EMA, STO_LOWHIGH);
+   ATR.Create(_Symbol, ATRTimeframe, ATRPeriod);
+   Osma.Create(_Symbol, Timeframe, 12, 26, 9, PRICE_TYPICAL);
 
    if(Timeframe <= ShortTimeframe) return INIT_PARAMETERS_INCORRECT;
+   if(CoreRange + UntradeRange >= 0.5) return INIT_PARAMETERS_INCORRECT;
    return(INIT_SUCCEEDED);
 }
 
@@ -74,7 +75,6 @@ void OnTick() {
 void OnTimer() {
    myPosition.Refresh();
    myTrade.Refresh();
-   myDate.Refresh();
 
    if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
@@ -93,38 +93,40 @@ void OnTimer() {
 
       myPrice.Refresh();
       ATR.Refresh();
-      Sto.Refresh();
+      Osma.Refresh();
 
       double Highest = myPrice.Highest(0, PricePeriod);
       double Lowest = myPrice.Lowest(0, PricePeriod);
       double perB = (myPrice.At(0).close - Lowest) / (Highest - Lowest);
       double PriceUnit = ATR.Main(0);
 
-      if(isGoldenCross(Sto.Main(2), Sto.Signal(2), Sto.Main(1), Sto.Signal(1))) {
-         myTrade.setSignal(ORDER_TYPE_BUY);
+      if(perB < UntradeRange || perB > 1 - UntradeRange) return;
+
+
+      if(Osma.Main(1) > 0 && Osma.Main(1) < Osma.Main(0)) {
+         if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions)
+            myTrade.setSignal(ORDER_TYPE_BUY);
       }
 
-      if(isDeadCross(Sto.Main(2), Sto.Signal(2), Sto.Main(1), Sto.Signal(1))) {
-         myTrade.setSignal(ORDER_TYPE_SELL);
+      if(Osma.Main(1) < 0 && Osma.Main(1) > Osma.Main(0)) {
+         if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions)
+            myTrade.setSignal(ORDER_TYPE_SELL);
       }
 
-      if(isBetween(0.5 + perBCri, perB, 0.5 - perBCri)) {
-         if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoefRange)) {
+      if(isBetween(0.5 + CoreRange, perB, 0.5 - CoreRange)) {
+         PriceUnit = PriceUnit * TPCoefRange;
+         if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit)) {
             myTrade.Buy(0.01, myTrade.Ask + PriceUnit * TPCoefRange);
-         }
-
-         if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit * TPCoefRange)) {
+         } else if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit)) {
             myTrade.Sell(5, myTrade.Bid - PriceUnit * TPCoefRange);
          }
-      }
-
-      if(perB > 0.5 + perBCri) {
-         if(myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit * TPCoefHalf)) return;
+      } else if(isBetween(0.5 + CoreRange, perB, 1 - UntradeRange)) {
+         PriceUnit = PriceUnit * TPCoefRange * TPCoefHalf;
+         if(myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit)) return;
          myTrade.Sell(5, myTrade.Bid - PriceUnit * TPCoefHalf);
-      }
-
-      if(perB < 0.5 - perBCri) {
-         if(myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoefHalf)) return;
+      } else if(isBetween(UntradeRange, perB, 0.5 - CoreRange)) {
+         PriceUnit = PriceUnit * TPCoefRange * TPCoefHalf;
+         if(myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit)) return;
          myTrade.Buy(0.01, myTrade.Ask + PriceUnit * TPCoefHalf);
       }
    }
@@ -153,6 +155,6 @@ void Refresh() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   myTrade.CheckSpread();
+   //myTrade.CheckSpread();
 }
 //+------------------------------------------------------------------+

@@ -29,6 +29,7 @@
 
 input double SLCoef, TPCoef;
 input mis_MarcosTMP timeFrame;
+input int TrendPeriod;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 bool tradable = false;
 double PriceToPips = PriceToPips();
@@ -45,9 +46,12 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiForce Force,ShortForce;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
+   Force.Create(_Symbol,Timeframe,13,MODE_EMA,VOLUME_TICK);
+   ShortForce.Create(_Symbol,Timeframe,2,MODE_EMA,VOLUME_TICK);
    return(INIT_SUCCEEDED);
 }
 
@@ -58,16 +62,29 @@ void OnTick() {
    Refresh();
    Check();
 
-   //myPosition.CloseAllPositionsInMinute();
+   myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
+   
+   ShortForce.Refresh();
+   Force.Refresh();
+   
+   if(MathAbs(ShortForce.Main(0)) < 0.01) return
+   
+   if(isAllAbove(Force,0,TrendPeriod)){
+      if(isTurnedToDown(ShortForce,0)) myTrade.setSignal(ORDER_TYPE_BUY);
+   }
+   
+   if(isAllUnder(Force,0,TrendPeriod)){
+      if(isTurnedToRise(ShortForce,0)) myTrade.setSignal(ORDER_TYPE_SELL);
+   }
 
 
    double PriceUnit = pips;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+      myTrade.Buy(myPrice.Lowest(1,4) - PriceUnit*SLCoef, myPrice.Highest(0,4) + PriceUnit * TPCoef);
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+      myTrade.Sell(myPrice.Highest(1,4) + PriceUnit*SLCoef, myPrice.Lowest(0,4) - PriceUnit * TPCoef);
    }
 
 
