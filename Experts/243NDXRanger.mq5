@@ -90,20 +90,12 @@ void OnTick() {
          return;
       myTrade.setSignal(ORDER_TYPE_BUY);
    }
-   if(MA.Main(0) < 0) {
-      if(myPrice.At(1).high < myPrice.At(0).close)
-         return;
-      myTrade.setSignal(ORDER_TYPE_SELL);
-   }
+
 
    double PriceUnit = ATR.Main(0);
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
       if(myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoef)) return;
       myTrade.Buy(myPrice.Lowest(0, SLPeriod), myTrade.Ask + PriceUnit * TPCoef);
-   }
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-   if(myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit * TPCoef)) return;
-      myTrade.Sell(myPrice.Highest(0, SLPeriod), myTrade.Bid - PriceUnit * TPCoef);
    }
 
 
