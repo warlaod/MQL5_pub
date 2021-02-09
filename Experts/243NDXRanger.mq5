@@ -28,9 +28,10 @@
 #include <Trade\PositionInfo.mqh>
 
 input double SLCoef, TPCoef;
-input mis_MarcosTMP timeFrame;
-input int ForcePeriod,FLongPeriod;
+input mis_MarcosTMP timeFrame, shortTimeframe;
+input int ATRPeriod, MAPeriod, DayEndHour, SLPeriod;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
+ENUM_TIMEFRAMES ShortTimeframe = defMarcoTiempo(shortTimeframe);
 bool tradable = false;
 double PriceToPips = PriceToPips();
 double pips = ToPips();
@@ -40,18 +41,28 @@ double pips = ToPips();
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate();
-MyPrice myPrice(Timeframe, 3);
-MyOrder myOrder(Timeframe);
+MyPrice myPrice(PERIOD_D1, 3);
+MyPrice myShortPrice(Timeframe, 3);
+MyOrder myOrder(ShortTimeframe);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiForce Force, ShortForce;
+CiATR ATR;
+CiMA MA;
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
-   Force.Create(_Symbol, Timeframe, ForcePeriod*FLongPeriod, MODE_EMA, VOLUME_TICK);
-   ShortForce.Create(_Symbol, Timeframe, ForcePeriod, MODE_EMA, VOLUME_TICK);
+   ATR.Create(_Symbol, ShortTimeframe, ATRPeriod);
+   MA.Create(_Symbol, Timeframe, MAPeriod, 0, MODE_EMA, PRICE_TYPICAL);
+
+   if(ShortTimeframe >= Timeframe) {
+      return INIT_PARAMETERS_INCORRECT;
+   }
    return(INIT_SUCCEEDED);
 }
 
@@ -62,34 +73,31 @@ void OnTick() {
    Refresh();
    Check();
 
-   myPosition.CloseAllPositionsInMinute();
+   //myPosition.CloseAllPositionsInMinute();
+
+
+   myPrice.Refresh();
+
+   if(myPrice.At(1).low > myPrice.At(0).close)
+      return;
+
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
 
-   ShortForce.Refresh();
-   Force.Refresh();
+   MA.Refresh();
+   ATR.Refresh();
 
-   if(isTurnedToRise(ShortForce, 0)) {
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-   } else if(isTurnedToDown(ShortForce, 0)) {
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+   if(MA.Main(0) > 0)
+      myTrade.setSignal(ORDER_TYPE_BUY);
+
+
+   double PriceUnit = ATR.Main(0);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
+      if(myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit * TPCoef)) return;
+      myTrade.Buy(myPrice.Lowest(0, SLPeriod), myTrade.Ask + PriceUnit * TPCoef);
    }
-
-   if(isAbsUnder(Force.Main(1),0.01)) return;
-   
-   if(ShortForce.Main(1) < 0) {
-      if(isTurnedToDown(Force, 1)) myTrade.setSignal(ORDER_TYPE_SELL);
-   } else if(ShortForce.Main(1) > 0) {
-      if(isTurnedToRise(Force, 1)) myTrade.setSignal(ORDER_TYPE_BUY);
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
+      myTrade.Sell(myPrice.Highest(0, SLPeriod), myTrade.Bid - PriceUnit * TPCoef);
    }
-
-
-   //double PriceUnit = pips;
-   //if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-   //   myTrade.Buy(myPrice.Lowest(1, 4) - PriceUnit * SLCoef, myPrice.Highest(0, 4) + PriceUnit * TPCoef);
-   //}
-   //if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-   //   myTrade.Sell(myPrice.Highest(1, 4) + PriceUnit * SLCoef, myPrice.Lowest(0, 4) - PriceUnit * TPCoef);
-   //}
 
 
 }
@@ -102,7 +110,7 @@ void OnTimer() {
    myTrade.Refresh();
    myDate.Refresh();
 
-   if(myDate.isFridayEnd() || myDate.isYearEnd() || myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+   if(isDayEnd() || myDate.isYearEnd() || myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       myTrade.isTradable = false;
@@ -118,7 +126,7 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_trades();
+   double result =  myTest.min_dd_and_mathsqrt_long_trades();
    return  result;
 }
 
@@ -137,7 +145,17 @@ void Check() {
    //myTrade.CheckSpread();
    myDate.Refresh();
    myOrder.Refresh();
-   if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
+   //if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
+   //if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
+}
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool isDayEnd() {
+   if((myDate.dt.hour >= DayEndHour - 1))
+      return true;
+   return false;
 }
 //+------------------------------------------------------------------+

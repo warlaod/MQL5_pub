@@ -27,6 +27,7 @@
 //+------------------------------------------------------------------+
 #include <Trade\OrderInfo.mqh>
 #include <Trade\HistoryOrderInfo.mqh>
+#include <Trade\DealInfo.mqh>
 #include <Original\MyUtils.mqh>
 
 class MyOrder {
@@ -34,6 +35,8 @@ class MyOrder {
    int HistoryTotal;
    ENUM_TIMEFRAMES Timeframe;
    CHistoryOrderInfo HistoryOrderInfo;
+   CDealInfo DealInfo;
+
    datetime last_bartime;
    datetime new_bartime;
 
@@ -42,13 +45,15 @@ class MyOrder {
    }
 
    void Refresh() {
-      new_bartime = iTime(_Symbol, Timeframe, 0);
+      HistorySelect(0,TimeCurrent());
    }
 
 
    bool wasOrderedInTheSameBar() {
-      if(last_bartime == new_bartime) return true;
-      last_bartime = new_bartime;
+      
+      HistoryOrderInfo.SelectByIndex(HistoryOrdersTotal() - 1);
+      if( Bars(_Symbol, Timeframe, HistoryOrderInfo.TimeDone(), TimeCurrent()) == 0)
+         return true;
       return false;
    }
 
