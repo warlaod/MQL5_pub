@@ -36,7 +36,7 @@ class MyChart {
       return true;
    }
 
-   bool HLine(int Start_Time, double Val, string ChartName = "MyHLine") {
+   bool HLine(double Val,int Start_Time = 0, string ChartName = "MyHLine") {
       string chartName = ChartName;
       ObjectDelete(_Symbol, chartName);
       ObjectCreate(_Symbol, chartName, OBJ_HLINE, 0, Start_Time, Val);
