@@ -19,6 +19,7 @@
 #include <Original\MyPosition.mqh>
 #include <Original\MyOrder.mqh>
 #include <Original\MyCHart.mqh>
+#include <Original\MyFractal.mqh>
 #include <Original\Optimization.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
@@ -26,6 +27,7 @@
 #include <Indicators\BillWilliams.mqh>
 #include <Indicators\Volumes.mqh>
 #include <Trade\PositionInfo.mqh>
+#include <ChartObjects\ChartObjectsLines.mqh>
 
 input double SLCoef, TPCoef;
 input mis_MarcosTMP timeFrame;
@@ -45,9 +47,12 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+MyFractal myFractal(4);
+CChartObjectHLine HLine;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
+   myFractal.Create(_Symbol,Timeframe);
    return(INIT_SUCCEEDED);
 }
 
@@ -57,6 +62,11 @@ int OnInit() {
 void OnTick() {
    Refresh();
    Check();
+
+   myFractal.myRefresh();
+   double dwa  = myFractal.MUpper.At(0);
+   HLine.Create(0,"Upper",0,myFractal.MUpper.At(0));
+
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
