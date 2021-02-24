@@ -36,12 +36,11 @@ class MyChart {
       return true;
    }
 
-   bool HLine(double Val,int Start_Time = 0, string ChartName = "MyHLine") {
-      string chartName = ChartName;
-      ObjectDelete(_Symbol, chartName);
-      ObjectCreate(_Symbol, chartName, OBJ_HLINE, 0, Start_Time, Val);
-      ObjectSetInteger(0, chartName, OBJPROP_COLOR, clrYellow);
-      ObjectSetInteger(0, chartName, OBJPROP_RAY_RIGHT, true);
+   bool HLine(double Val, int Start_Time = 0, string ChartName = "MyHLine",long Clr =  clrYellow) {
+      ObjectDelete(_Symbol, ChartName);
+      ObjectCreate(_Symbol, ChartName, OBJ_HLINE, 0, Start_Time, Val);
+      ObjectSetInteger(0, ChartName, OBJPROP_COLOR, Clr);
+      ObjectSetInteger(0, ChartName, OBJPROP_RAY_RIGHT, true);
       return true;
    }
 
