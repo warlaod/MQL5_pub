@@ -32,15 +32,20 @@ class MyChart {
       ObjectDelete(_Symbol, ChartName);
       ObjectCreate(_Symbol, ChartName, OBJ_CHANNEL, Lowest_Start_Time, Lowest_Val, Highest_Start_Time, Highest_Val);
       ObjectSetInteger(0, ChartName, OBJPROP_COLOR, clrYellow);
-      ObjectSetInteger(0, ChartName, OBJPROP_RAY_RIGHT, true);
       return true;
    }
 
-   bool HLine(double Val, int Start_Time = 0, string ChartName = "MyHLine",long Clr =  clrYellow) {
+   bool HLine(double Val, datetime Start_Time = 0, string ChartName = "MyHLine",long Clr =  clrYellow) {
       ObjectDelete(_Symbol, ChartName);
       ObjectCreate(_Symbol, ChartName, OBJ_HLINE, 0, Start_Time, Val);
       ObjectSetInteger(0, ChartName, OBJPROP_COLOR, Clr);
-      ObjectSetInteger(0, ChartName, OBJPROP_RAY_RIGHT, true);
+      return true;
+   }
+   
+   bool HalfLine(double Val, datetime Start_Time = 0, string ChartName = "MyHLine",long Clr =  clrYellow) {
+      ObjectDelete(_Symbol, ChartName);
+      ObjectCreate(_Symbol, ChartName, OBJ_TREND, 0, Start_Time, Val,TimeCurrent(),Val);
+      ObjectSetInteger(0, ChartName, OBJPROP_COLOR, Clr);
       return true;
    }
 
