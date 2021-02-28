@@ -51,7 +51,7 @@ MyFractal myFractal(4);
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
-   myFractal.Create(_Symbol,Timeframe);
+   myFractal.Create(_Symbol, Timeframe);
    return(INIT_SUCCEEDED);
 }
 
@@ -63,20 +63,40 @@ void OnTick() {
    Check();
 
    myFractal.myRefresh();
-   myFractal.SearchLong();
+   myFractal.SearchMiddle();
+
+   for(int i=0;i<myPosition.BuyTickets.Total();i++)
+     {
+      ulong ticket = myPosition.BuyTickets.At(i);
+      myPosition.Select(ticket);
+      if(myPosition.PositionInfo.PriceOpen())
+     }
    
-   myPosition.Trailings(POSITION_TYPE_BUY,myFractal.SLower.At(0),)
+   myPrice.Refresh();
+
+   myPosition.Trailings(POSITION_TYPE_BUY, myFractal.SLower.At(0), myTrade.Ask + 30 * pips);
+   myPosition.Trailings(POSITION_TYPE_SELL,myFractal.SUpper.At(0), myTrade.Bid - 30 * pips);
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
 
+   if(!myFractal.isMSLinedCorrectly()) return;
+
+   if(myFractal.isRecentFractal(true, myFractal.SUpper.At(0))) {
+      myTrade.setSignal(ORDER_TYPE_SELL);
+   }
+
+   if(myFractal.isRecentFractal(false, myFractal.SLower.At(0))) {
+      myTrade.setSignal(ORDER_TYPE_BUY);
+   }
+
 
    double PriceUnit = pips;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+      myTrade.Buy(myFractal.MLower.At(0), myTrade.Ask + PriceUnit * TPCoef);
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+      myTrade.Sell(myFractal.MUpper.At(0), myTrade.Bid - PriceUnit * TPCoef);
    }
 
 
