@@ -47,11 +47,14 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-MyFractal myFractal(4);
+MyFractal myFractal();
+CiStochastic Sto;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
    myFractal.Create(_Symbol, Timeframe);
+   Sto.Create(_Symbol,Timeframe,5,3,3,MODE_SMA,STO_LOWHIGH);
+   
    return(INIT_SUCCEEDED);
 }
 
@@ -63,40 +66,33 @@ void OnTick() {
    Check();
 
    myFractal.myRefresh();
-   myFractal.SearchMUpperIndex();
-
-//   for(int i = 0; i < myPosition.BuyTickets.Total(); i++) {
-//      ulong ticket = myPosition.BuyTickets.At(i);
-//      myPosition.SelectByTicket(ticket);
-//      if(myPosition.TargetPriceProfit(myFractal.SLower.At(0)) > 0)
-//         myPosition.AddListForTrailings(ticket);
-//   }
-//   
-//   for(int i = 0; i < myPosition.SellTickets.Total(); i++) {
-//      ulong ticket = myPosition.SellTickets.At(i);
-//      myPosition.SelectByTicket(ticket);
-//      if(myPosition.TargetPriceProfit(myFractal.SUpper.At(0)) > 0)
-//         myPosition.AddListForTrailings(ticket);
-//   }
+   myFractal.SearchMiddle();
 
    myPrice.Refresh();
-
-   //myPosition.Trailings(POSITION_TYPE_BUY, myFractal.SLower.At(0), myTrade.Ask + 30*pips);
-   //myPosition.Trailings(POSITION_TYPE_SELL, myFractal.SUpper.At(0), myTrade.Bid - 30*pips);
+   Sto.Refresh();
+   if(isGoldenCross(Sto,1)) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+   if(isDeadCross(Sto,1)) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+   
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
 
    if(!myFractal.isMSLinedCorrectly()) return;
-
+   
+   if(myFractal.fractal(MUpper,0) < myPrice.At(1).close){
+      myTrade.setSignal(ORDER_TYPE_BUY);
+   }
+   if(myFractal.fractal(MLower,0) > myPrice.At(1).close){
+      myTrade.setSignal(ORDER_TYPE_SELL);
+   }
 
    double PriceUnit = pips;
-   //if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-   //   myTrade.Buy(myFractal.MLower.At(0), myTrade.Ask + PriceUnit * TPCoef);
-   //}
-   //if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-   //   myTrade.Sell(myFractal.MUpper.At(0), myTrade.Bid - PriceUnit * TPCoef);
-   //}
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
+      myTrade.Buy(myFractal.fractal(SLower,0), myTrade.Ask + PriceUnit * TPCoef);
+   }
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
+      myTrade.Sell(myFractal.fractal(SUpper,0), myTrade.Bid - PriceUnit * TPCoef);
+   }
 
 
 }
