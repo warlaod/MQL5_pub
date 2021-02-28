@@ -53,8 +53,8 @@ int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
    myFractal.Create(_Symbol, Timeframe);
-   Sto.Create(_Symbol,Timeframe,5,3,3,MODE_SMA,STO_LOWHIGH);
-   
+   Sto.Create(_Symbol, Timeframe, 5, 3, 3, MODE_SMA, STO_LOWHIGH);
+
    return(INIT_SUCCEEDED);
 }
 
@@ -70,28 +70,28 @@ void OnTick() {
 
    myPrice.Refresh();
    Sto.Refresh();
-   if(isGoldenCross(Sto,1)) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-   if(isDeadCross(Sto,1)) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-   
+   if(isGoldenCross(Sto, 1)) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+   if(isDeadCross(Sto, 1)) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
 
    if(!myFractal.isMSLinedCorrectly()) return;
-   
-   if(myFractal.fractal(MUpper,0) < myPrice.At(1).close){
+
+   if(myFractal.fractal(Middle, Up, 0) < myPrice.At(1).close) {
       myTrade.setSignal(ORDER_TYPE_BUY);
    }
-   if(myFractal.fractal(MLower,0) > myPrice.At(1).close){
+   if(myFractal.fractal(Middle, Low, 0) > myPrice.At(1).close) {
       myTrade.setSignal(ORDER_TYPE_SELL);
    }
 
    double PriceUnit = pips;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      myTrade.Buy(myFractal.fractal(SLower,0), myTrade.Ask + PriceUnit * TPCoef);
+      myTrade.Buy(myFractal.fractal(Short, Low, 0), myTrade.Ask + PriceUnit * TPCoef);
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-      myTrade.Sell(myFractal.fractal(SUpper,0), myTrade.Bid - PriceUnit * TPCoef);
+      myTrade.Sell(myFractal.fractal(Short, Up, 0), myTrade.Bid - PriceUnit * TPCoef);
    }
 
 
