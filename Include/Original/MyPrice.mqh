@@ -42,13 +42,13 @@ class MyPrice {
    }
 
    double RosokuHigh(int index) {
-      if(RosokuIsPlus(index)) return  price[index].high - price[index].close;
-      return  price[index].high - price[index].open;
+      double higher = price[index].close < price[index].open ? price[index].open : price[index].close;
+      return  price[index].high - higher;
    }
 
    double RosokuLow(int index) {
-      if(RosokuIsPlus(index)) return  price[index].open - price[index].low;
-      return  price[index].close - price[index].low;
+      double lower = price[index].close > price[index].open ? price[index].open : price[index].close;
+      return  lower - price[index].low;
    }
 
    double RosokuBody(int index) {

@@ -47,11 +47,9 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-MyFractal myFractal(4);
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
-   myFractal.Create(_Symbol,Timeframe);
    return(INIT_SUCCEEDED);
 }
 
@@ -61,9 +59,6 @@ int OnInit() {
 void OnTick() {
    Refresh();
    Check();
-
-   myFractal.myRefresh();
-   myFractal.SearchLong();
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;

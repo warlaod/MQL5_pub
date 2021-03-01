@@ -31,9 +31,9 @@
 
 input double SLCoef, TPCoef;
 input mis_MarcosTMP timeFrame;
+input double RosokuCri;
+input int MAPeriod;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
-input int MiddlePositions, ShortPositions;
-input int MiddleSL, ShortSL;
 bool tradable = false;
 double PriceToPips = PriceToPips();
 double pips = ToPips();
@@ -49,77 +49,59 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-MyFractal myFractal();
+CiMA MA;
 int OnInit() {
-   MyUtils myutils(60 * 1);
+   MyUtils myutils(60 * 50);
    myutils.Init();
-   myFractal.Create(_Symbol, Timeframe);
+   MA.Create(_Symbol, Timeframe, MAPeriod, 0, MODE_EMA, PRICE_TYPICAL);
    return(INIT_SUCCEEDED);
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+void OnTick() {
+   Refresh();
+   Check();
 
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void buy(double SL, double Range) {
+   //myPosition.CloseAllPositionsInMinute();
+   if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
+
+   myPrice.Refresh();
+   MA.Refresh();
+   
+      if(myPrice.RosokuIsPlus(1) && (myPrice.RosokuHigh(1) / (myPrice.RosokuBody(1) + myPrice.RosokuHigh(1)) < RosokuCri))
+         myTrade.setSignal(ORDER_TYPE_SELL);
+
+
+      if(!myPrice.RosokuIsPlus(1) && (myPrice.RosokuLow(1) / (myPrice.RosokuBody(1) + myPrice.RosokuLow(1)) < RosokuCri))
+         myTrade.setSignal(ORDER_TYPE_BUY);
+         
+   double PriceUnit = pips;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      if(myPosition.isPositionInRange(POSITION_TYPE_BUY, Range)) return;
-      myTrade.Buy(SL, myTrade.Ask + Range);
+      myTrade.Buy(MA.Main(0), myPrice.Highest(0, 5));
    }
-}
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void sell(double SL, double Range) {
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-      if(myPosition.isPositionInRange(POSITION_TYPE_SELL, Range)) return;
-      myTrade.Sell(SL, myTrade.Bid - Range);
+      myTrade.Sell(MA.Main(0), myPrice.Lowest(0, 5));
    }
+
+
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
+   myPosition.Refresh();
+   myTrade.Refresh();
+   myDate.Refresh();
 
-   {
-      Refresh();
-      Check();
-
-      myFractal.myRefresh();
-      myFractal.SearchMiddle();
-      myPrice.Refresh();
-      
-      if(!myFractal.isMSLinedCorrectly()) return;
-
-      double MiddleGap = myFractal.fractal(Middle, Up, 0) - myFractal.fractal(Middle, Low, 0);
-      double ShortGap = myFractal.fractal(Short, Up, 0) - myFractal.fractal(Short, Low, 0);
-
-      if(myFractal.isRecentShortFractal(Up))
-         myTrade.setSignal(ORDER_TYPE_SELL);
-      if(myFractal.isRecentShortFractal(Low))
-         myTrade.setSignal(ORDER_TYPE_BUY);
-
-      double Range, SL;
-      if(isBetween(myFractal.fractal(Middle, Up, 0), myPrice.At(0).close, myFractal.fractal(Short, Up, 0))) {
-         Range = MiddleGap / MiddlePositions;
-         sell(myFractal.fractal(Middle, Up, 0) + MiddleSL * pips, Range);
-      }
-
-      if(isBetween(myFractal.fractal(Short, Up, 0), myPrice.At(0).close, myFractal.fractal(Short, Low, 0))) {
-         Range = ShortGap / ShortPositions;
-         sell(myFractal.fractal(Short, Up, 0) + ShortSL * pips, Range);
-         buy(myFractal.fractal(Short, Low, 0) - ShortSL * pips, Range);
-      }
-
-      if(isBetween(myFractal.fractal(Short, Low, 0), myPrice.At(0).close, myFractal.fractal(Middle, Low, 0))) {
-         Range = MiddleGap / MiddlePositions;
-         buy(myFractal.fractal(Middle, Low, 0) - MiddleSL * pips, Range);
-      }
+   if(myDate.isFridayEnd() || myDate.isYearEnd() || myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      myTrade.isTradable = false;
+   } else {
+      myTrade.isTradable = true;
    }
 }
 
@@ -151,5 +133,6 @@ void Check() {
    myOrder.Refresh();
    if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
    if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
+   if(!myDate.isInTime("14:00","19:00")) myTrade.isCurrentTradable = false;
 }
 //+------------------------------------------------------------------+

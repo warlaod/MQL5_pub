@@ -92,8 +92,24 @@ class MyTrade {
       return false;
    }
 
+   bool ForceBuy(double SL, double TP) {
+      if(isInvalidTrade(SL, TP)) return false;
+      if(!ModifyLot(SL)) return false;
+      if(trade.Buy(lot, NULL, Ask, SL, TP, NULL))
+         return true;
+      return false;
+   }
+
    bool Sell(double SL, double TP) {
       if(signal != ORDER_TYPE_SELL) return false;
+      if(isInvalidTrade(SL, TP)) return false;
+      if(!ModifyLot(SL)) return false;
+      if(trade.Sell(lot, NULL, Bid, SL, TP, NULL))
+         return true;
+      return false;
+   }
+
+   bool ForceSell(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return false;
       if(!ModifyLot(SL)) return false;
       if(trade.Sell(lot, NULL, Bid, SL, TP, NULL))

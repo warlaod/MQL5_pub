@@ -48,12 +48,12 @@ CurrencyStrength CS(Timeframe, 1);
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyFractal myFractal();
-CiStochastic Sto;
+CiMA MA;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
    myFractal.Create(_Symbol, Timeframe);
-   Sto.Create(_Symbol, Timeframe, 5, 3, 3, MODE_SMA, STO_LOWHIGH);
+   MA.Create(_Symbol,Timeframe,20,0,MODE_SMA,PRICE_TYPICAL);
 
    return(INIT_SUCCEEDED);
 }
@@ -69,29 +69,29 @@ void OnTick() {
    myFractal.SearchMiddle();
 
    myPrice.Refresh();
-   Sto.Refresh();
-   if(isGoldenCross(Sto, 1)) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-   if(isDeadCross(Sto, 1)) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+   MA.Refresh();
 
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
+   
+   if(MA.Main(2) < MA.Main(1)){
+      myTrade.setSignal(ORDER_TYPE_BUY);
+   }
 
    if(!myFractal.isMSLinedCorrectly()) return;
 
-   if(myFractal.fractal(Middle, Up, 0) < myPrice.At(1).close) {
-      myTrade.setSignal(ORDER_TYPE_BUY);
-   }
-   if(myFractal.fractal(Middle, Low, 0) > myPrice.At(1).close) {
+   if(myFractal.isRecentMiddleFractal(Up))
       myTrade.setSignal(ORDER_TYPE_SELL);
-   }
+   else if(myFractal.isRecentMiddleFractal(Low))
+      myTrade.setSignal(ORDER_TYPE_BUY);
 
    double PriceUnit = pips;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      myTrade.Buy(myFractal.fractal(Short, Low, 0), myTrade.Ask + PriceUnit * TPCoef);
+      myTrade.Buy(myFractal.fractal(Short, Low), myTrade.Ask + PriceUnit * TPCoef);
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-      myTrade.Sell(myFractal.fractal(Short, Up, 0), myTrade.Bid - PriceUnit * TPCoef);
+      myTrade.Sell(myFractal.fractal(Short, Up), myTrade.Bid - PriceUnit * TPCoef);
    }
 
 
@@ -142,5 +142,6 @@ void Check() {
    myOrder.Refresh();
    if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
    if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
+   if(!myDate.isInTime("14:00","19:00")) myTrade.isCurrentTradable = false;
 }
 //+------------------------------------------------------------------+
