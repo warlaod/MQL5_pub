@@ -49,11 +49,13 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiADX ADX;
 MyFractal myFractal();
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
-   myFractal.Create(_Symbol, Timeframe);
+   myFractal.Create(_Symbol, PERIOD_MN1);
+   ADX.Create(_Symbol, Timeframe, 14);
    return(INIT_SUCCEEDED);
 }
 
@@ -65,20 +67,16 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void buy(double SL, double Range) {
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      if(myPosition.isPositionInRange(POSITION_TYPE_BUY, Range)) return;
-      myTrade.Buy(SL, myTrade.Ask + Range);
-   }
+   if(myPosition.isPositionInRange(POSITION_TYPE_BUY, Range)) return;
+   myTrade.Buy(SL, myTrade.Ask + Range);
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void sell(double SL, double Range) {
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-      if(myPosition.isPositionInRange(POSITION_TYPE_SELL, Range)) return;
-      myTrade.Sell(SL, myTrade.Bid - Range);
-   }
+   if(myPosition.isPositionInRange(POSITION_TYPE_SELL, Range)) return;
+   myTrade.Sell(SL, myTrade.Bid - Range);
 }
 
 //+------------------------------------------------------------------+
@@ -88,35 +86,37 @@ void OnTimer() {
 
    {
       Refresh();
-      Check();
+
+      ADX.Refresh();
+      if(ADX.Main(0) < 20) return;
+      if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2))) return;
 
       myFractal.myRefresh();
       myFractal.SearchMiddle();
-      myPrice.Refresh();
-      
+
+
       if(!myFractal.isMSLinedCorrectly()) return;
 
       double MiddleGap = myFractal.fractal(Middle, Up, 0) - myFractal.fractal(Middle, Low, 0);
       double ShortGap = myFractal.fractal(Short, Up, 0) - myFractal.fractal(Short, Low, 0);
 
-      if(myFractal.isRecentShortFractal(Up))
+      myPrice.Refresh();
+
+
+      if(myFractal.isRecentShortFractal(Up) && ADX.Minus(0) > 20)
          myTrade.setSignal(ORDER_TYPE_SELL);
-      if(myFractal.isRecentShortFractal(Low))
+      else if(myFractal.isRecentShortFractal(Low) && ADX.Plus(0) > 20)
          myTrade.setSignal(ORDER_TYPE_BUY);
 
       double Range, SL;
       if(isBetween(myFractal.fractal(Middle, Up, 0), myPrice.At(0).close, myFractal.fractal(Short, Up, 0))) {
          Range = MiddleGap / MiddlePositions;
          sell(myFractal.fractal(Middle, Up, 0) + MiddleSL * pips, Range);
-      }
-
-      if(isBetween(myFractal.fractal(Short, Up, 0), myPrice.At(0).close, myFractal.fractal(Short, Low, 0))) {
+      } else if(isBetween(myFractal.fractal(Short, Up, 0), myPrice.At(0).close, myFractal.fractal(Short, Low, 0))) {
          Range = ShortGap / ShortPositions;
          sell(myFractal.fractal(Short, Up, 0) + ShortSL * pips, Range);
          buy(myFractal.fractal(Short, Low, 0) - ShortSL * pips, Range);
-      }
-
-      if(isBetween(myFractal.fractal(Short, Low, 0), myPrice.At(0).close, myFractal.fractal(Middle, Low, 0))) {
+      } else if(isBetween(myFractal.fractal(Short, Low, 0), myPrice.At(0).close, myFractal.fractal(Middle, Low, 0))) {
          Range = MiddleGap / MiddlePositions;
          buy(myFractal.fractal(Middle, Low, 0) - MiddleSL * pips, Range);
       }
@@ -145,11 +145,4 @@ void Refresh() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void Check() {
-   //myTrade.CheckSpread();
-   myDate.Refresh();
-   myOrder.Refresh();
-   if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
-}
 //+------------------------------------------------------------------+

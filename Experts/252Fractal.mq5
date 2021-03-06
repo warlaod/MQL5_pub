@@ -53,7 +53,7 @@ int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
    myFractal.Create(_Symbol, Timeframe);
-   MA.Create(_Symbol,Timeframe,20,0,MODE_SMA,PRICE_TYPICAL);
+   MA.Create(_Symbol, Timeframe, 20, 0, MODE_SMA, PRICE_TYPICAL);
 
    return(INIT_SUCCEEDED);
 }
@@ -71,15 +71,17 @@ void OnTick() {
    myPrice.Refresh();
    MA.Refresh();
 
+   myPosition.AddAllForTrailings();
+   myPosition.Trailings(POSITION_TYPE_BUY, myFractal.fractal(Short, Low), myTrade.Ask + 50*pips);
+   myPosition.Trailings(POSITION_TYPE_SELL, myFractal.fractal(Short, Up), myTrade.Bid - 50*pips);
+   
+   if(myFractal.isRecentShortFractal(Up)) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+   if(myFractal.isRecentShortFractal(Low)) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+   
+
 
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
-   
-   if(MA.Main(2) < MA.Main(1)){
-      myTrade.setSignal(ORDER_TYPE_BUY);
-   }
-
-   if(!myFractal.isMSLinedCorrectly()) return;
 
    if(myFractal.isRecentMiddleFractal(Up))
       myTrade.setSignal(ORDER_TYPE_SELL);
@@ -142,6 +144,6 @@ void Check() {
    myOrder.Refresh();
    if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
    if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
-   if(!myDate.isInTime("14:00","19:00")) myTrade.isCurrentTradable = false;
+   //if(!myDate.isInTime("14:00", "19:00")) myTrade.isCurrentTradable = false;
 }
 //+------------------------------------------------------------------+

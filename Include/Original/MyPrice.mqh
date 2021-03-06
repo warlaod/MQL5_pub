@@ -25,19 +25,13 @@ class MyPrice {
 
    double Highest(int start,int high_count) {
       CopyHigh(_Symbol, Timeframe, start, high_count, High);
-      if(ArraySize(High) < high_count) {
-         CopyHigh(_Symbol, _Period, 0, high_count, High);
-         Comment("Warning: Now using current Timeframe due to shortage of bars");
-      }
+      
       return High[ArrayMaximum(High,0,high_count)];
    }
 
    double Lowest(int start,int low_count) {
       CopyLow(_Symbol, Timeframe, start, low_count, Low);
-      if(ArraySize(Low) < low_count) {
-         CopyLow(_Symbol, _Period, 0, low_count, Low);
-         Comment("Warning: Now using current Timeframe due to shortage of bars");
-      }
+
       return Low[ArrayMinimum(Low, 0, low_count)];
    }
 

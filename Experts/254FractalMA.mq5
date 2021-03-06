@@ -32,6 +32,7 @@
 input double SLCoef, TPCoef;
 input mis_MarcosTMP timeFrame;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
+input int HalfClosePips;
 bool tradable = false;
 double PriceToPips = PriceToPips();
 double pips = ToPips();
@@ -52,8 +53,8 @@ CiMA MA;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
-   myFractal.Create(_Symbol,Timeframe);
-   MA.Create(_Symbol,Timeframe,20,0,MODE_EMA,PRICE_TYPICAL);
+   myFractal.Create(_Symbol, Timeframe);
+   MA.Create(_Symbol, Timeframe, 20, 0, MODE_EMA, PRICE_TYPICAL);
    return(INIT_SUCCEEDED);
 }
 
@@ -64,21 +65,42 @@ void OnTick() {
    Refresh();
    Check();
 
+
+
+   myFractal.myRefresh();
+   myFractal.SearchSLowerIndex(4);
+   myFractal.SearchSUpperIndex(4);
+
+   
+
+   if(myFractal.SUpperIndex.At(0) == 2) myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+   if(myFractal.SLowerIndex.At(0) == 2) myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+
+
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
-   
-   myFractal.myRefresh();
-   myFractal.SearchSLowerIndex(5);
-   myFractal.SearchSUpperIndex(5);
-   
+
    MA.Refresh();
+   myPrice.Refresh();
+
+   if(myFractal.fractal(Short, Up, 0) > MA.Main(myFractal.SUpperIndex.At(0))) {
+      if(0 != myFractal.FractalMaximum(myFractal.SUpperIndex, 0, 4)) return;
+      if(myPrice.At(0).close < MA.Main(0) && myPrice.At(1).close > MA.Main(1))
+         myTrade.setSignal(ORDER_TYPE_SELL);
+   }
+
+   if(myFractal.fractal(Short, Low, 0) < MA.Main(myFractal.SLowerIndex.At(0))) {
+      if(0 != myFractal.FractalMinimum(myFractal.SLowerIndex, 0, 4)) return;
+      if(myPrice.At(0).close > MA.Main(0) && myPrice.At(1).close < MA.Main(1))
+         myTrade.setSignal(ORDER_TYPE_BUY);
+   }
 
    double PriceUnit = pips;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+      myTrade.Buy(myFractal.fractal(Short, Low, 0), myTrade.Ask + PriceUnit * TPCoef);
    }
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+      myTrade.Sell(myFractal.fractal(Short, Up, 0), myTrade.Bid - PriceUnit * TPCoef);
    }
 
 
