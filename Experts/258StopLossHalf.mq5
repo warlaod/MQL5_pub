@@ -39,7 +39,7 @@ double pips = ToPips();
 
 input int ADXPeriod;
 input int PriceCount;
-input double CoreCri,HalfStopCri;
+input double CoreCri, HalfStopCri;
 input int ADXMainCri, ADXSubCri;
 input double slHalf, slCore, atrCri;
 input double CoreTP, HalfTP;
@@ -68,50 +68,43 @@ int OnInit() {
    return(INIT_SUCCEEDED);
 }
 
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+
 double PriceUnit;
 void OnTimer() {
    ATR.Refresh();
    PriceUnit = ATR.Main(0);
-   if(PriceUnit < ATRCri * pips) return;
-
+   if(PriceUnit < ATRCri * pips)
+      return;
    ADX.Refresh();
-   if(ADX.Main(0) < ADXMainCri) return;
-   if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2))) return;
-
+   if(ADX.Main(0) < ADXMainCri)
+      return;
+   if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2)))
+      return;
    myPrice.Refresh();
    myPosition.Refresh();
    myTrade.Refresh();
-
+   Check();
    double Lowest = myPrice.Lowest(0, PriceCount);
    double Highest = myPrice.Highest(0, PriceCount);
    double HLGap = Highest - Lowest;
    double Current = myPrice.At(0).close;
    double perB = (Current - Lowest) / (Highest - Lowest);
-   
-   if(perB > 1 -HalfStopCri || perB < HalfStopCri) return;
-
+   if(perB > 1 - HalfStopCri || perB < HalfStopCri)
+      return;
    double bottom, top;
-
    if(perB < 0.5 - CoreCri) {
       if(isAbleToBuy()) {
          PriceUnit = PriceUnit * HalfTP;
          bottom = Lowest - SLHalf * pips;
          myTrade.ForceBuy(bottom, myTrade.Ask + PriceUnit);
       }
-   }
-
-   else if(perB > 0.5 + CoreCri) {
+   } else if(perB > 0.5 + CoreCri) {
       if(isAbleToSell()) {
          PriceUnit = PriceUnit * HalfTP;
          top = Highest + SLHalf * pips;
          myTrade.ForceSell(top, myTrade.Bid - PriceUnit);
       }
-   }
-
-   else {
+   } else {
       top = Highest - HLGap * CoreCri  + SLCore * HLGap;
       bottom = Lowest + HLGap * CoreCri - SLCore * HLGap;
       PriceUnit = PriceUnit * CoreTP;
@@ -135,7 +128,6 @@ bool isAbleToBuy() {
    }
    return false;
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -148,21 +140,14 @@ bool isAbleToSell() {
    }
    return false;
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
-//+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
    double result =  myTest.min_dd_and_mathsqrt_trades();
    return  result;
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -170,12 +155,15 @@ void Refresh() {
    myPosition.Refresh();
    myTrade.Refresh();
 }
-
-
 //+------------------------------------------------------------------+
-
+//|                                                                  |
 //+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
-
+void Check() {
+   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      Print("EA stopped because of lower balance or lower margin level");
+      ExpertRemove();
+   }
+}
 //+------------------------------------------------------------------+

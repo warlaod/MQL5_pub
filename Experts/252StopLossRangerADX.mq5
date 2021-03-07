@@ -41,7 +41,7 @@ input int ADXPeriod;
 input int PriceCount;
 input double CoreCri;
 input int ADXMainCri, ADXSubCri;
-input double slHalf, slCore, atrCri,HalfStopCri;
+input double slHalf, slCore, atrCri, HalfStopCri;
 input double CoreTP, HalfTP;
 double SLHalf = MathPow(2, slHalf);
 double SLCore = MathPow(2, slCore);
@@ -84,14 +84,15 @@ void OnTimer() {
    myPrice.Refresh();
    myPosition.Refresh();
    myTrade.Refresh();
+   Check();
 
    double Lowest = myPrice.Lowest(0, PriceCount);
    double Highest = myPrice.Highest(0, PriceCount);
    double HLGap = Highest - Lowest;
    double Current = myPrice.At(0).close;
    double perB = (Current - Lowest) / (Highest - Lowest);
-   
-   if(perB > 1 -HalfStopCri || perB < HalfStopCri) return;
+
+   if(perB > 1 - HalfStopCri || perB < HalfStopCri) return;
 
    double bottom, top;
 
@@ -171,7 +172,17 @@ void Refresh() {
    myTrade.Refresh();
 }
 
-
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void Check() {
+   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      Print("EA stopped because of lower balance or lower margin level  ");
+      ExpertRemove();
+   }
+}
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+

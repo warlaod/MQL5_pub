@@ -37,9 +37,6 @@ class MyDate {
    datetime  timeCurrent;
    bool isDSTOnUSA;
    bool isDSTOnEU;
-   void MyDate() {
-
-   }
 
    void Refresh() {
       timeCurrent = TimeCurrent();
@@ -145,16 +142,6 @@ class MyDate {
       return EndDt.day;
    }
 
-
-
-
-
-
-
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
    void check_DST_EU(int month, int day, int hour, int day_of_week) {
 
       if(day_of_week == MONDAY) {

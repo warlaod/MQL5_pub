@@ -52,18 +52,14 @@ int OnInit() {
    myutils.Init();
    return(INIT_SUCCEEDED);
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
    Refresh();
    Check();
-
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
-
-
    double PriceUnit = pips;
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
       myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
@@ -71,10 +67,7 @@ void OnTick() {
    if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
       myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
    }
-
-
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -82,27 +75,27 @@ void OnTimer() {
    myPosition.Refresh();
    myTrade.Refresh();
    myDate.Refresh();
-
-   if(myDate.isFridayEnd() || myDate.isYearEnd() || myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+   myTrade.isTradable = true;
+   if(myDate.isFridayEnd() || myDate.isYearEnd()) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       myTrade.isTradable = false;
-   } else {
-      myTrade.isTradable = true;
+   }
+   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      Print("EA stopped because of lower balance or lower margin level  ");
+      ExpertRemove();
    }
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
    double result =  myTest.min_dd_and_mathsqrt_trades();
    return  result;
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -110,7 +103,6 @@ void Refresh() {
    myPosition.Refresh();
    myTrade.Refresh();
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+

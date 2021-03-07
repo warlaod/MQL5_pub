@@ -3,7 +3,6 @@
 //|                                      Copyright 2020, CompanyName |
 //|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
-
 #include <Original\MyCalculate.mqh>
 #include <Trade\Trade.mqh>
 
@@ -15,7 +14,6 @@ input int StopBalance = 2000;
 input int StopMarginLevel = 300;
 
 class MyTrade {
-
  public:
    bool isCurrentTradable;
    string signal;
@@ -46,7 +44,6 @@ class MyTrade {
    void Refresh() {
       isCurrentTradable = true;
       signal = "";
-
       Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
       Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
    }
@@ -123,7 +120,6 @@ class MyTrade {
       return false;
    }
 
-
  private:
    double topips;
    bool ModifyLot(double SL) {
@@ -134,14 +130,10 @@ class MyTrade {
          //lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / (ContractSize * TradeRisk), LotDigits);
       }
       //lot = NormalizeDouble(InitialDeposit / risk / TradeRisk, LotDigits);
-
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;
-
       return true;
    }
-
 };
-//+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+

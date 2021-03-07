@@ -23,8 +23,6 @@ class CurrencyStrength {
       ArraySetAsSeries(price, true);
    }
 
-
-
    bool isJPYStrongest() {
       if(!isRising("USDJPY") && !isRising("EURJPY") && !isRising("GBPJPY") && !isRising("AUDJPY")) return true;
       return false;
@@ -103,7 +101,6 @@ class CurrencyStrength {
  private:
    MqlRates price[];
 
-
    bool isRising(string symbol) {
       CopyRates(symbol, Timeframe, 1, 2, price);
       if(price[2].low < price[1].low && price[2].close < price[1].close) {
@@ -111,10 +108,4 @@ class CurrencyStrength {
       }
       return false;
    }
-
-
-
 };
-//+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
