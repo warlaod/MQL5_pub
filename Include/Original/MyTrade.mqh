@@ -8,12 +8,12 @@
 
 input int spread = -1;
 input double risk = 50000;
-input double InitialLot = 0.1;
+input double Lot = 0.1;
 input bool isLotModified = false;
 input int StopBalance = 2000;
 input int StopMarginLevel = 300;
 
-class MyTrade {
+class MyTrade: public CTrade {
  public:
    bool isCurrentTradable;
    string signal;
@@ -26,8 +26,6 @@ class MyTrade {
    double ContractSize;
    double InitialDeposit;
    int LotDigits;
-   MqlDateTime dt;
-   CTrade trade;
    bool isTradable;
 
    void MyTrade() {
@@ -35,10 +33,10 @@ class MyTrade {
       maxlot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
       InitialDeposit = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY), 1);
       ContractSize = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_CONTRACT_SIZE);
-      trade.SetDeviationInPoints(10);
+      SetDeviationInPoints(10);
       LotDigits = -MathLog10(minlot);
       topips = PriceToPips();
-      lot = NormalizeDouble(InitialLot, LotDigits);
+      lot = NormalizeDouble(Lot, LotDigits);
    }
 
    void Refresh() {
@@ -84,7 +82,7 @@ class MyTrade {
       if(signal != ORDER_TYPE_BUY) return false;
       if(isInvalidTrade(SL, TP)) return false;
       if(!ModifyLot(SL)) return false;
-      if(trade.Buy(lot, NULL, Ask, SL, TP, NULL))
+      if(Buy(lot, NULL, Ask, SL, TP, NULL))
          return true;
       return false;
    }
@@ -92,7 +90,7 @@ class MyTrade {
    bool ForceBuy(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return false;
       if(!ModifyLot(SL)) return false;
-      if(trade.Buy(lot, NULL, Ask, SL, TP, NULL))
+      if(Buy(lot, NULL, Ask, SL, TP, NULL))
          return true;
       return false;
    }
@@ -101,7 +99,7 @@ class MyTrade {
       if(signal != ORDER_TYPE_SELL) return false;
       if(isInvalidTrade(SL, TP)) return false;
       if(!ModifyLot(SL)) return false;
-      if(trade.Sell(lot, NULL, Bid, SL, TP, NULL))
+      if(Sell(lot, NULL, Bid, SL, TP, NULL))
          return true;
       return false;
    }
@@ -109,14 +107,14 @@ class MyTrade {
    bool ForceSell(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return false;
       if(!ModifyLot(SL)) return false;
-      if(trade.Sell(lot, NULL, Bid, SL, TP, NULL))
+      if(Sell(lot, NULL, Bid, SL, TP, NULL))
          return true;
       return false;
    }
 
    bool PositionModify(ulong ticket, double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return false;
-      if(trade.PositionModify(ticket, SL, TP)) return true;
+      if(PositionModify(ticket, SL, TP)) return true;
       return false;
    }
 
@@ -135,5 +133,4 @@ class MyTrade {
       return true;
    }
 };
-
 //+------------------------------------------------------------------+

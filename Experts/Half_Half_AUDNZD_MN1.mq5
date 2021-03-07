@@ -6,6 +6,7 @@
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link      "https://www.mql5.com"
 #property version   "1.00"
+// 258StopLossHalf;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -29,74 +30,121 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-input double SLCoef, TPCoef;
-input mis_MarcosTMP timeFrame;
+mis_MarcosTMP timeFrame = _H8;
+mis_MarcosTMP atrTimeframe = _H1;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
+ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
 bool tradable = false;
 double PriceToPips = PriceToPips();
 double pips = ToPips();
+
+int ADXPeriod = 4;
+int PriceCount = 16;
+double CoreCri = 0.2;
+double HalfStopCri = 0.0;
+int ADXMainCri = 18;
+int ADXSubCri = 4;
+double slHalf = 7.0;
+double slCore = 2.0;
+double atrCri = 1.0;
+double CoreTP = 1.2;
+double HalfTP = 3.2;
+double SLHalf = MathPow(2, slHalf);
+double SLCore = MathPow(2, slCore);
+double ATRCri = MathPow(2, atrCri);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate();
-MyPrice myPrice(Timeframe, 3);
+MyPrice myPrice(PERIOD_MN1, 3);
 MyOrder myOrder(Timeframe);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiADX ADX;
+CiATR ATR;
 int OnInit() {
-   MyUtils myutils(60 * 50);
+   MyUtils myutils(60 * 1);
    myutils.Init();
+   ADX.Create(_Symbol, Timeframe, ADXPeriod);
+   ATR.Create(_Symbol, ATRTimeframe, 14);
    return(INIT_SUCCEEDED);
 }
+
+
+double PriceUnit;
+void OnTimer() {
+   ATR.Refresh();
+   PriceUnit = ATR.Main(0);
+   if(PriceUnit < ATRCri * pips)
+      return;
+   ADX.Refresh();
+   if(ADX.Main(0) < ADXMainCri)
+      return;
+   if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2)))
+      return;
+   myPrice.Refresh();
+   myPosition.Refresh();
+   myTrade.Refresh();
+   Check();
+   double Lowest = myPrice.Lowest(0, PriceCount);
+   double Highest = myPrice.Highest(0, PriceCount);
+   double HLGap = Highest - Lowest;
+   double Current = myPrice.At(0).close;
+   double perB = (Current - Lowest) / (Highest - Lowest);
+   if(perB > 1 - HalfStopCri || perB < HalfStopCri)
+      return;
+   double bottom, top;
+   if(perB < 0.5 - CoreCri) {
+      if(isAbleToBuy()) {
+         PriceUnit = PriceUnit * HalfTP;
+         bottom = Lowest - SLHalf * pips;
+         myTrade.ForceBuy(bottom, myTrade.Ask + PriceUnit);
+      }
+   } else if(perB > 0.5 + CoreCri) {
+      if(isAbleToSell()) {
+         PriceUnit = PriceUnit * HalfTP;
+         top = Highest + SLHalf * pips;
+         myTrade.ForceSell(top, myTrade.Bid - PriceUnit);
+      }
+   } else {
+      top = Highest - HLGap * CoreCri  + SLCore * HLGap;
+      bottom = Lowest + HLGap * CoreCri - SLCore * HLGap;
+      PriceUnit = PriceUnit * CoreTP;
+      if(isBetween(0.5, perB, 0.5 - CoreCri) && isAbleToBuy())
+         myTrade.ForceBuy(bottom, myTrade.Ask + PriceUnit);
+      else if(isBetween(0.5 + CoreCri, perB, 0.5) && isAbleToSell())
+         myTrade.ForceSell(top, myTrade.Bid - PriceUnit);
+   }
+}
+
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void OnTick() {
-   Refresh();
-   Check();
-   //myPosition.CloseAllPositionsInMinute();
-   if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
-   myPrice.Refresh();
-   if((myPrice.At(1).high - myPrice.At(1).low) == 0) return;
-   double perBCandle = (myPrice.At(1).close - myPrice.At(1).low) / (myPrice.At(1).high - myPrice.At(1).low);
-   if(myPrice.RosokuIsPlus(2) && perBCandle < 0.25) {
-      if(myPrice.At(2).low < myPrice.At(1).low && myPrice.At(2).high < myPrice.At(1).high)
-         myTrade.setSignal(ORDER_TYPE_BUY);
-   } else  if(!myPrice.RosokuIsPlus(2) && perBCandle > 0.75) {
-      if(myPrice.At(2).high > myPrice.At(1).high && myPrice.At(2).low > myPrice.At(1).low)
-         myTrade.setSignal(ORDER_TYPE_SELL);
+bool isAbleToBuy() {
+   if(ADX.Plus(0) > ADXSubCri && ADX.Plus(0) > ADX.Minus(0)) {
+      if(isBetween(ADX.Plus(0), ADX.Plus(1), ADX.Plus(2))) {
+         if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit))
+            return true;
+      }
    }
-   double PriceUnit = pips;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      myTrade.Buy(myPrice.Lowest(0, 5), myPrice.At(1).high);
-   }
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-      myTrade.Sell(myPrice.Highest(0, 5), myPrice.At(1).low);
-   }
+   return false;
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void OnTimer() {
-   myPosition.Refresh();
-   myTrade.Refresh();
-   myDate.Refresh();
-   myTrade.isTradable = true;
-   if(myDate.isFridayEnd() || myDate.isYearEnd()) {
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      myTrade.isTradable = false;
+bool isAbleToSell() {
+   if(ADX.Minus(0) > ADXSubCri && ADX.Minus(0) > ADX.Plus(0)) {
+      if(isBetween(ADX.Minus(0), ADX.Minus(1), ADX.Minus(2))) {
+         if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit))
+            return true;
+      }
    }
-   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      Print("EA stopped because of lower balance or lower margin level  ");
-      ExpertRemove();
-   }
+   return false;
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -117,10 +165,11 @@ void Refresh() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   //myTrade.CheckSpread();
-   myDate.Refresh();
-   myOrder.Refresh();
-   if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
+   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      Print("EA stopped because of lower balance or lower margin level");
+      ExpertRemove();
+   }
 }
 //+------------------------------------------------------------------+

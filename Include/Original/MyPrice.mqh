@@ -1,4 +1,8 @@
-
+//+------------------------------------------------------------------+
+//|                                                      ProjectName |
+//|                                      Copyright 2020, CompanyName |
+//|                                       http://www.companyname.net |
+//+------------------------------------------------------------------+
 class MyPrice {
  public:
    int count ;
@@ -23,15 +27,13 @@ class MyPrice {
       return price[index];
    }
 
-   double Highest(int start,int high_count) {
+   double Highest(int start, int high_count) {
       CopyHigh(_Symbol, Timeframe, start, high_count, High);
-      
-      return High[ArrayMaximum(High,0,high_count)];
+      return High[ArrayMaximum(High, 0, high_count)];
    }
 
-   double Lowest(int start,int low_count) {
+   double Lowest(int start, int low_count) {
       CopyLow(_Symbol, Timeframe, start, low_count, Low);
-
       return Low[ArrayMinimum(Low, 0, low_count)];
    }
 

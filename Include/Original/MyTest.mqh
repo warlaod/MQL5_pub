@@ -1,29 +1,7 @@
 //+------------------------------------------------------------------+
-//|                                                       MyTest.mqh |
-//|                        Copyright 2020, MetaQuotes Software Corp. |
-//|                                             https://www.mql5.com |
-//+------------------------------------------------------------------+
-#property copyright "Copyright 2020, MetaQuotes Software Corp."
-#property link      "https://www.mql5.com"
-//+------------------------------------------------------------------+
-//| defines                                                          |
-//+------------------------------------------------------------------+
-// #define MacrosHello   "Hello, world!"
-// #define MacrosYear    2010
-//+------------------------------------------------------------------+
-//| DLL imports                                                      |
-//+------------------------------------------------------------------+
-// #import "user32.dll"
-//   int      SendMessageA(int hWnd,int Msg,int wParam,int lParam);
-// #import "my_expert.dll"
-//   int      ExpertRecalculate(int wParam,int lParam);
-// #import
-//+------------------------------------------------------------------+
-//| EX5 imports                                                      |
-//+------------------------------------------------------------------+
-// #import "stdlib.ex5"
-//   string ErrorDescription(int error_code);
-// #import
+//|                                                      ProjectName |
+//|                                      Copyright 2020, CompanyName |
+//|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
 class MyTest {
  private:
@@ -62,14 +40,12 @@ class MyTest {
       }
       positiveEffector = min_dd * MathSqrt(total_trades);
       negativeEffector = 1;
-
       CheckRatio(long_ratio, 0.1);
       CheckRatio(short_ratio, 0.1);
       CheckRatio(win_rate, 0.1);
       CheckRatio(short_win_rate, 0.1);
       CheckRatio(long_win_rate, 0.1);
       SetResultForBalance();
-
       return result;
    }
 
@@ -79,14 +55,12 @@ class MyTest {
       }
       positiveEffector = min_dd * MathSqrt(total_trades);
       negativeEffector = 1;
-
       CheckRatio(long_ratio, 0.1);
       CheckRatio(short_ratio, 0.1);
       CheckRatio(win_rate, 0.1);
       CheckRatio(short_win_rate, 0.1);
       CheckRatio(long_win_rate, 0.1);
       SetResultWithOutBalance();
-
       return result;
    }
 
@@ -96,14 +70,12 @@ class MyTest {
       }
       positiveEffector = min_dd * total_trades;
       negativeEffector = 1;
-
       CheckRatio(long_ratio, 0.1);
       CheckRatio(short_ratio, 0.1);
       CheckRatio(win_rate, 0.1);
       CheckRatio(short_win_rate, 0.1);
       CheckRatio(long_win_rate, 0.1);
       SetResultForBalance();
-
       return result;
    }
 
@@ -112,12 +84,9 @@ class MyTest {
          return result;
       }
       positiveEffector = min_dd * MathSqrt(long_trades);
-
       negativeEffector = 1;
-
       CheckRatio(win_rate, 0.1);
       SetResultForBalance();
-
       return result;
    }
 
@@ -126,12 +95,9 @@ class MyTest {
          return result;
       }
       positiveEffector = min_dd * MathSqrt(short_trades);
-
       negativeEffector = 1;
-
       CheckRatio(win_rate, 0.1);
       SetResultForBalance();
-
       return result;
    }
 
@@ -143,15 +109,12 @@ class MyTest {
       int AAGL = (gross_loss * loss_trades) * sqrt(loss_trades);
       positiveEffector = (AAGP - AAGL) / gross_loss;
       negativeEffector = 1;
-
       CheckRatio(long_ratio, 0.1);
       CheckRatio(short_ratio, 0.1);
       CheckRatio(win_rate, 0.1);
       CheckRatio(short_win_rate, 0.1);
       CheckRatio(long_win_rate, 0.1);
-
       result = positiveEffector * negativeEffector;
-
       return result;
    }
 
@@ -159,42 +122,36 @@ class MyTest {
       if(result < 0) {
          return result;
       }
-      int  AWT = profit_trades - sqrt(profit_trades);
+      int AWT = profit_trades - sqrt(profit_trades);
       int ALT = loss_trades + sqrt(loss_trades);
       int AAGP = (gross_profit / profit_trades) * sqrt(profit_trades);
       int AAGL = (gross_loss / loss_trades) * sqrt(loss_trades);
       positiveEffector = (AAGP - AAGL) * min_dd;
       negativeEffector = 1;
-
       CheckRatio(long_ratio, 0.1);
       CheckRatio(short_ratio, 0.1);
       CheckRatio(win_rate, 0.1);
       CheckRatio(short_win_rate, 0.1);
       CheckRatio(long_win_rate, 0.1);
-
       if(positiveEffector > 0) {
          result =  positiveEffector / negativeEffector ;
       } else {
          result = - 1 / positiveEffector * negativeEffector ;
       }
-
       if(balance < 0 && positiveEffector > 0) {
          result = result = - 1 / positiveEffector * negativeEffector ;
       }
-
       return result;
    }
-
 
  private:
    void CheckRatio(double ratio, double criterion) {
       if(ratio > criterion) return;
-      if(ratio == 0.0){
+      if(ratio == 0.0) {
          negativeEffector = negativeEffector / 0.0001;
-      }else{
+      } else {
          negativeEffector = negativeEffector / ratio;
       }
-      
    }
 
    void SetResultForBalance() {
@@ -237,32 +194,24 @@ class MyTest {
       short_ratio = 0;
       short_win_rate = 0;
       long_win_rate = 0;
-
-
       if(total_trades <= 10 || profit_trades <= 10) {
          result = -99999999;
          return;
       }
-
       if(balance_dd == 0 && equity_dd == 0) {
          result = -99999999;
          return;
       }
-
       min_dd = 1 / equity_dd;
-
-
       if(marginlevel_min < 200) {
          result = -99999999;
          return;
       }
-
       long_ratio = long_trades / total_trades;
       short_ratio = short_trades / total_trades;
-
       win_rate = (loss_trades == 0) ? 1 : profit_trades / total_trades ;
-      short_win_rate = short_profit_trades / (total_trades - long_trades+0.1);
-      long_win_rate = long_profit_trades / (total_trades - short_trades+0.1);
+      short_win_rate = short_profit_trades / (total_trades - long_trades + 0.1);
+      long_win_rate = long_profit_trades / (total_trades - short_trades + 0.1);
       average_profit = gross_profit / profit_trades;
       if(loss_trades != 0) {
          average_loss = gross_loss / loss_trades;

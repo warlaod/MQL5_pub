@@ -63,8 +63,8 @@ class MyDate {
    }
 
    bool isMondayStart() {
-      if(dt.day_of_week == MONDAY && dt.hour <= 3) 
-      return true;
+      if(dt.day_of_week == MONDAY && dt.hour <= 3)
+         return true;
       return false;
    }
 
@@ -143,18 +143,14 @@ class MyDate {
    }
 
    void check_DST_EU(int month, int day, int hour, int day_of_week) {
-
       if(day_of_week == MONDAY) {
          if(month == 3 && 25 < day && day <= 31) {
          }
       }
-
       if(day_of_week == MONDAY) {
          if(month == 10 && 25 < day && day <= 31) {
          }
       }
    }
-
-
 };
 //+------------------------------------------------------------------+

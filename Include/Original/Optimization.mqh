@@ -1,30 +1,9 @@
 //+------------------------------------------------------------------+
-//|                                                 Optimization.mqh |
-//|                        Copyright 2020, MetaQuotes Software Corp. |
-//|                                             https://www.mql5.com |
+//|                                                      ProjectName |
+//|                                      Copyright 2020, CompanyName |
+//|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
-#property copyright "Copyright 2020, MetaQuotes Software Corp."
-#property link      "https://www.mql5.com"
-//+------------------------------------------------------------------+
-//| defines                                                          |
-//+------------------------------------------------------------------+
-// #define MacrosHello   "Hello, world!"
-// #define MacrosYear    2010
-//+------------------------------------------------------------------+
-//| DLL imports                                                      |
-//+------------------------------------------------------------------+
-// #import "user32.dll"
-//   int      SendMessageA(int hWnd,int Msg,int wParam,int lParam);
-// #import "my_expert.dll"
-//   int      ExpertRecalculate(int wParam,int lParam);
-// #import
-//+------------------------------------------------------------------+
-//| EX5 imports                                                      |
-//+------------------------------------------------------------------+
-// #import "stdlib.ex5"
-//   string ErrorDescription(int error_code);
-// #import
-//+------------------------------------------------------------------+
+
 enum mis_MarcosTMP {
    _M1 = PERIOD_M1,
    _M5 = PERIOD_M5,
@@ -34,13 +13,11 @@ enum mis_MarcosTMP {
    _H1 = PERIOD_H1,
    _H2 = PERIOD_H2,
    _H4 = PERIOD_H4,
-   _H8= PERIOD_H8,
+   _H8 = PERIOD_H8,
    _D1 = PERIOD_D1,
    _W1 = PERIOD_W1,
    _MN1 = PERIOD_MN1
 };
-
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
