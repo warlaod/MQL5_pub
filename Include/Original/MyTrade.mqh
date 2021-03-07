@@ -27,6 +27,7 @@ class MyTrade: public CTrade {
    double InitialDeposit;
    int LotDigits;
    bool isTradable;
+   double StopLossLevel;
 
    void MyTrade() {
       minlot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
@@ -37,6 +38,7 @@ class MyTrade: public CTrade {
       LotDigits = -MathLog10(minlot);
       topips = PriceToPips();
       lot = NormalizeDouble(Lot, LotDigits);
+      StopLossLevel =  NormalizeDouble(SymbolInfoInteger(_Symbol,SYMBOL_TRADE_STOPS_LEVEL),_Digits);
    }
 
    void Refresh() {
