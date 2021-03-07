@@ -38,7 +38,7 @@ class MyTrade: public CTrade {
       LotDigits = -MathLog10(minlot);
       topips = PriceToPips();
       lot = NormalizeDouble(Lot, LotDigits);
-      StopLossLevel =  NormalizeDouble(SymbolInfoInteger(_Symbol,SYMBOL_TRADE_STOPS_LEVEL),_Digits);
+      StopLossLevel =  NormalizeDouble(SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL), _Digits);
    }
 
    void Refresh() {
@@ -63,7 +63,7 @@ class MyTrade: public CTrade {
    bool isInvalidTrade(double SL, double TP) {
       if(TP > SL) {
          if((TP - Ask)*topips < 2 || (Ask - SL)*topips < 2) return true;
-      } else if(TP < SL) {
+      } else {
          if( (Bid - TP)*topips < 2  || (SL - Bid)*topips < 2) return true;
       }
       return false;
