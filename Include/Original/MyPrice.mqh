@@ -17,10 +17,6 @@ class MyPrice {
 
    void Refresh() {
       CopyRates(_Symbol, Timeframe, 0, count, price);
-      if(ArraySize(price) < count) {
-         CopyRates(_Symbol, _Period, 0, count, price);
-         Comment("Warning: Now using current Timeframe due to shortage of bars");
-      }
    }
 
    MqlRates At(int index) {

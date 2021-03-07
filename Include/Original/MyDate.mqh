@@ -147,7 +147,7 @@ class MyDate {
          if(month == 3 && 25 < day && day <= 31) {
          }
       }
-      if(day_of_week == MONDAY) {
+      else if(day_of_week == MONDAY) {
          if(month == 10 && 25 < day && day <= 31) {
          }
       }

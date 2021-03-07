@@ -64,7 +64,7 @@ void OnTick() {
    if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
       myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
    }
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
+   else if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
       myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
    }
 }
@@ -81,7 +81,7 @@ void OnTimer() {
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       myTrade.isTradable = false;
    }
-   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+   else if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       Print("EA stopped because of lower balance or lower margin level  ");
@@ -111,6 +111,6 @@ void Check() {
    myDate.Refresh();
    myOrder.Refresh();
    if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
-   if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
+   else if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
 }
 //+------------------------------------------------------------------+
