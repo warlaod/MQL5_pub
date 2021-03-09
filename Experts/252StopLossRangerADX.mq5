@@ -35,7 +35,7 @@ ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
 bool tradable = false;
 double PriceToPips = PriceToPips();
-double pips = ToPips();
+double pips = PointToPips();
 
 input int ADXPeriod;
 input int PriceCount;
@@ -113,8 +113,8 @@ void OnTimer() {
    }
 
    else if(isBetween(0.5 + CoreCri, perB, 0.5 - CoreCri)) {
-      top = Highest - HLGap * CoreCri  + SLCore * HLGap;
-      bottom = Lowest + HLGap * CoreCri - SLCore * HLGap;
+      top = Highest - HLGap * CoreCri  + SLCore * pips;
+      bottom = Lowest + HLGap * CoreCri - SLCore * pips;
       PriceUnit = PriceUnit * CoreTP;
       if(isAbleToBuy())
          myTrade.ForceBuy(bottom, myTrade.Ask + PriceUnit);
