@@ -31,24 +31,24 @@
 #include <ChartObjects\ChartObjectsLines.mqh>
 
 mis_MarcosTMP timeFrame = _H8;
-mis_MarcosTMP atrTimeframe = _H1;
+mis_MarcosTMP atrTimeframe = _M30;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
 bool tradable = false;
 double PriceToPips = PriceToPips();
-double pips = ToPips();
+double pips = PointToPips();
 
 int ADXPeriod = 2;
 int PriceCount = 4;
 double CoreCri = 0.06;
 double HalfStopCri = 0.0;
-int ADXMainCri = 30;
-int ADXSubCri = 0;
-double slHalf = 7.75;
-double slCore = 2.0;
-double atrCri = 2.5;
-double CoreTP = 0.6;
-double HalfTP = 1.4;
+int ADXMainCri = 6;
+int ADXSubCri = 12;
+double slHalf = 8;
+double slCore = 3.25;
+double atrCri = 0.00;
+double CoreTP = 0.8;
+double HalfTP = 2.8;
 double SLHalf = MathPow(2, slHalf);
 double SLCore = MathPow(2, slCore);
 double ATRCri = MathPow(2, atrCri);
@@ -119,8 +119,8 @@ void OnTimer() {
    }
 
    else if(isBetween(0.5 + CoreCri, perB, 0.5 - CoreCri)) {
-      top = Highest - HLGap * CoreCri  + SLCore * HLGap;
-      bottom = Lowest + HLGap * CoreCri - SLCore * HLGap;
+      top = Highest - HLGap * CoreCri  + SLCore * pips;
+      bottom = Lowest + HLGap * CoreCri - SLCore * pips;
       PriceUnit = PriceUnit * CoreTP;
       if(isAbleToBuy())
          myTrade.ForceBuy(bottom, myTrade.Ask + PriceUnit);

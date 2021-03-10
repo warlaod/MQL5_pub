@@ -95,18 +95,18 @@ void OnTimer() {
    if(perB < 0.5 - CoreCri) {
       if(isAbleToBuy()) {
          TP = PriceUnit * HalfTP;
-         bottom = Lowest - SLHalf * pips;
+         bottom = Lowest - SLHalf * PriceUnit;
          myTrade.ForceBuy(bottom, myTrade.Ask + TP);
       }
    } else if(perB > 0.5 + CoreCri) {
       if(isAbleToSell()) {
          TP = PriceUnit * HalfTP;
-         top = Highest + SLHalf * pips;
+         top = Highest + SLHalf * PriceUnit;
          myTrade.ForceSell(top, myTrade.Bid - TP);
       }
    } else {
-      top = Highest - HLGap * CoreCri  + SLCore * pips;
-      bottom = Lowest + HLGap * CoreCri - SLCore * pips;
+      top = Highest - HLGap * CoreCri  + SLCore * PriceUnit;
+      bottom = Lowest + HLGap * CoreCri - SLCore * PriceUnit;
       TP = PriceUnit * CoreTP;
       if(isBetween(0.5, perB, 0.5 - CoreCri) && isAbleToBuy())
          myTrade.ForceBuy(bottom, myTrade.Ask + TP);

@@ -30,25 +30,25 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-mis_MarcosTMP timeFrame = _H8;
+mis_MarcosTMP timeFrame = _H1;
 mis_MarcosTMP atrTimeframe = _H1;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
 bool tradable = false;
 double PriceToPips = PriceToPips();
-double pips = ToPips();
+double pips = PointToPips();
 
-int ADXPeriod = 4;
-int PriceCount = 16;
-double CoreCri = 0.2;
-double HalfStopCri = 0.0;
-int ADXMainCri = 18;
-int ADXSubCri = 4;
-double slHalf = 7.0;
-double slCore = 2.0;
-double atrCri = 1.0;
-double CoreTP = 1.2;
-double HalfTP = 3.2;
+int ADXPeriod = 18;
+int PriceCount = 24;
+double CoreCri = 0.12;
+double HalfStopCri = 0.08;
+int ADXMainCri = 24;
+int ADXSubCri = 24;
+double slHalf = 2.25;
+double slCore = 6.75;
+double atrCri = 3.25;
+double CoreTP = 1.4;
+double HalfTP = 4.8;
 double SLHalf = MathPow(2, slHalf);
 double SLCore = MathPow(2, slCore);
 double ATRCri = MathPow(2, atrCri);
@@ -97,27 +97,27 @@ void OnTimer() {
    double perB = (Current - Lowest) / (Highest - Lowest);
    if(perB > 1 - HalfStopCri || perB < HalfStopCri)
       return;
-   double bottom, top;
+   double bottom, top,TP;
    if(perB < 0.5 - CoreCri) {
       if(isAbleToBuy()) {
-         PriceUnit = PriceUnit * HalfTP;
-         bottom = Lowest - SLHalf * pips;
-         myTrade.ForceBuy(bottom, myTrade.Ask + PriceUnit);
+         TP = PriceUnit * HalfTP;
+         bottom = Lowest - SLHalf * PriceUnit;
+         myTrade.ForceBuy(bottom, myTrade.Ask + TP);
       }
    } else if(perB > 0.5 + CoreCri) {
       if(isAbleToSell()) {
-         PriceUnit = PriceUnit * HalfTP;
-         top = Highest + SLHalf * pips;
-         myTrade.ForceSell(top, myTrade.Bid - PriceUnit);
+         TP = PriceUnit * HalfTP;
+         top = Highest + SLHalf * PriceUnit;
+         myTrade.ForceSell(top, myTrade.Bid - TP);
       }
    } else {
-      top = Highest - HLGap * CoreCri  + SLCore * HLGap;
-      bottom = Lowest + HLGap * CoreCri - SLCore * HLGap;
-      PriceUnit = PriceUnit * CoreTP;
+      top = Highest - HLGap * CoreCri  + SLCore * PriceUnit;
+      bottom = Lowest + HLGap * CoreCri - SLCore * PriceUnit;
+      TP = PriceUnit * CoreTP;
       if(isBetween(0.5, perB, 0.5 - CoreCri) && isAbleToBuy())
-         myTrade.ForceBuy(bottom, myTrade.Ask + PriceUnit);
+         myTrade.ForceBuy(bottom, myTrade.Ask + TP);
       else if(isBetween(0.5 + CoreCri, perB, 0.5) && isAbleToSell())
-         myTrade.ForceSell(top, myTrade.Bid - PriceUnit);
+         myTrade.ForceSell(top, myTrade.Bid - TP);
    }
 }
 
