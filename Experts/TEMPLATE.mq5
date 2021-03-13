@@ -18,6 +18,7 @@
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
 #include <Original\MyOrder.mqh>
+#include <Original\MyHistory.mqh>
 #include <Original\MyCHart.mqh>
 #include <Original\MyFractal.mqh>
 #include <Original\Optimization.mqh>
@@ -34,7 +35,7 @@ input mis_MarcosTMP timeFrame;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 bool tradable = false;
 double PriceToPips = PriceToPips();
-double pips = ToPips();
+double pips = PointToPips();
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -42,7 +43,8 @@ MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate();
 MyPrice myPrice(Timeframe, 3);
-MyOrder myOrder(Timeframe);
+MyHistory myHistory(Timeframe);
+MyOrder myOrder(myDate.BarTime);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -80,8 +82,7 @@ void OnTimer() {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       myTrade.isTradable = false;
-   }
-   else if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+   } else if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       Print("EA stopped because of lower balance or lower margin level  ");
@@ -109,8 +110,8 @@ void Refresh() {
 void Check() {
    //myTrade.CheckSpread();
    myDate.Refresh();
-   myOrder.Refresh();
+   myHistory.Refresh();
    if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
-   else if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
+   else if(myHistory.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
 }
 //+------------------------------------------------------------------+

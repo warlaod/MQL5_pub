@@ -80,44 +80,48 @@ class MyTrade: public CTrade {
       return false;
    }
 
-   bool Buy(double SL, double TP) {
-      if(signal != ORDER_TYPE_BUY) return false;
-      if(isInvalidTrade(SL, TP)) return false;
-      if(!ModifyLot(SL)) return false;
-      if(Buy(lot, NULL, Ask, SL, TP, NULL))
-         return true;
-      return false;
+   void Buy(double SL, double TP) {
+      if(signal != ORDER_TYPE_BUY) return;
+      if(isInvalidTrade(SL, TP)) return;
+      if(!ModifyLot(SL)) return;
+      Buy(lot, NULL, Ask, SL, TP, NULL);
    }
 
-   bool ForceBuy(double SL, double TP) {
-      if(isInvalidTrade(SL, TP)) return false;
-      if(!ModifyLot(SL)) return false;
-      if(Buy(lot, NULL, Ask, SL, TP, NULL))
-         return true;
-      return false;
+   void ForceBuy(double SL, double TP) {
+      if(isInvalidTrade(SL, TP)) return;
+      if(!ModifyLot(SL)) return;
+      Buy(lot, NULL, Ask, SL, TP, NULL);
    }
 
-   bool Sell(double SL, double TP) {
-      if(signal != ORDER_TYPE_SELL) return false;
-      if(isInvalidTrade(SL, TP)) return false;
-      if(!ModifyLot(SL)) return false;
-      if(Sell(lot, NULL, Bid, SL, TP, NULL))
-         return true;
-      return false;
+   void Sell(double SL, double TP) {
+      if(signal != ORDER_TYPE_SELL) return;
+      if(isInvalidTrade(SL, TP)) return;
+      if(!ModifyLot(SL)) return;
+      Sell(lot, NULL, Bid, SL, TP, NULL);
    }
 
-   bool ForceSell(double SL, double TP) {
-      if(isInvalidTrade(SL, TP)) return false;
-      if(!ModifyLot(SL)) return false;
-      if(Sell(lot, NULL, Bid, SL, TP, NULL))
-         return true;
-      return false;
+   void ForceSell(double SL, double TP) {
+      if(isInvalidTrade(SL, TP)) return;
+      if(!ModifyLot(SL)) return;
+      Sell(lot, NULL, Bid, SL, TP, NULL);
    }
 
    bool PositionModify(ulong ticket, double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return false;
       if(PositionModify(ticket, SL, TP)) return true;
       return false;
+   }
+
+   void BuyStop(double price, double SL, double TP) {
+      if(isInvalidTrade(SL, TP)) return;
+      if(!ModifyLot(SL)) return;
+      BuyStop(lot, price, _Symbol, SL, TP);
+   }
+
+   void SellStop(double price, double SL, double TP) {
+      if(isInvalidTrade(SL, TP)) return;
+      if(!ModifyLot(SL)) return;
+      SellStop(lot, price, _Symbol, SL, TP);
    }
 
  private:

@@ -4,34 +4,54 @@
 //|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
 
+
+//+------------------------------------------------------------------+
+//|                                                      ProjectName |
+//|                                      Copyright 2020, CompanyName |
+//|                                       http://www.companyname.net |
+//+------------------------------------------------------------------+
+
 #include <Trade\OrderInfo.mqh>
-#include <Trade\HistoryOrderInfo.mqh>
-#include <Trade\DealInfo.mqh>
 #include <Original\MyUtils.mqh>
+#include <Arrays\ArrayLong.mqh>
 
-class MyOrder {
+class MyOrder: public COrderInfo {
  public:
-   int HistoryTotal;
-   ENUM_TIMEFRAMES Timeframe;
-   CHistoryOrderInfo HistoryOrderInfo;
-   CDealInfo DealInfo;
-
-   datetime last_bartime;
-   datetime new_bartime;
-
-   void MyOrder(ENUM_TIMEFRAMES Timeframe) {
-      this.Timeframe = Timeframe;
+   CArrayLong SellTickets, BuyTickets;
+   datetime Expiration;
+   
+   void MyOrder(datetime Expiration){
+      this.Expiration = Expiration;
    }
-
    void Refresh() {
-      HistorySelect(0, TimeCurrent());
+      SellTickets.Clear();
+      BuyTickets.Clear();
+      datetime current = TimeCurrent();
+      for(int i = OrdersTotal() - 1; i >= 0; i--) {
+         ulong ticket = OrderGetTicket(i);
+         Select(ticket);
+         if(OrderType() == ORDER_TYPE_BUY_LIMIT || ORDER_TYPE_BUY_STOP) {
+            BuyTickets.Add(ticket);
+         } else {
+            SellTickets.Add(ticket);
+         }
+         if(current - TimeSetup() > Expiration)
+           cTrade.OrderDelete(ticket);
+      }
    }
 
-   bool wasOrderedInTheSameBar() {
-      HistoryOrderInfo.SelectByIndex(HistoryOrdersTotal() - 1);
-      if( Bars(_Symbol, Timeframe, HistoryOrderInfo.TimeDone(), TimeCurrent()) == 0)
-         return true;
-      return false;
+   int TotalEachOrders(ENUM_ORDER_TYPE OrderType) {
+      return (OrderType == ORDER_TYPE_BUY) ? BuyTickets.Total() : SellTickets.Total();
    }
+   
+   void CheckExpiration(){
+     
+      for(int i=0;i<BuyTickets.Total();i++)
+        {
+         Select(BuyTickets.At(i));
+        }
+   }
+   private:
+     CTrade cTrade;
 };
 //+------------------------------------------------------------------+

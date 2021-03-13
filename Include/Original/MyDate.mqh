@@ -37,10 +37,16 @@ class MyDate {
    datetime  timeCurrent;
    bool isDSTOnUSA;
    bool isDSTOnEU;
+   datetime BarTime;
+
+   void MyDate(ENUM_TIMEFRAMES Timeframe) {
+      BarTime = iTime(_Symbol, Timeframe, 1) - iTime(_Symbol, Timeframe, 2);
+   }
 
    void Refresh() {
       timeCurrent = TimeCurrent();
       TimeToStruct(timeCurrent, dt);
+
       // if(SetDSTOnEU) {
       //    checkDST_EU();
       //    if(isDSTOnEU) TimeToStruct(TimeCurrent() + 3600, dt);
@@ -146,8 +152,7 @@ class MyDate {
       if(day_of_week == MONDAY) {
          if(month == 3 && 25 < day && day <= 31) {
          }
-      }
-      else if(day_of_week == MONDAY) {
+      } else if(day_of_week == MONDAY) {
          if(month == 10 && 25 < day && day <= 31) {
          }
       }

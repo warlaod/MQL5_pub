@@ -46,6 +46,9 @@ MyOrder myOrder(Timeframe);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
+
+//+------------------------------------------------------------------+
+//|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    MyUtils myutils(60 * 50);
@@ -58,11 +61,16 @@ int OnInit() {
 void OnTick() {
    Refresh();
    Check();
+
    //myPosition.CloseAllPositionsInMinute();
+
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
    myPrice.Refresh();
+
    if((myPrice.At(1).high - myPrice.At(1).low) == 0) return;
+
    double perBCandle = (myPrice.At(1).close - myPrice.At(1).low) / (myPrice.At(1).high - myPrice.At(1).low);
+
    if(myPrice.RosokuIsPlus(2) && perBCandle < 0.25) {
       if(myPrice.At(2).low < myPrice.At(1).low && myPrice.At(2).high < myPrice.At(1).high)
          myTrade.setSignal(ORDER_TYPE_BUY);
