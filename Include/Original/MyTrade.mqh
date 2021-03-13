@@ -39,13 +39,15 @@ class MyTrade: public CTrade {
       topips = PriceToPips();
       lot = NormalizeDouble(Lot, LotDigits);
       StopLossLevel =  NormalizeDouble(SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL), _Digits);
+      ModifyLot();
    }
 
    void Refresh() {
       isCurrentTradable = true;
-      signal = "";
+      signal = NULL;
       Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
       Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
+      ModifyLot();
    }
 
    void setSignal(ENUM_ORDER_TYPE OrderType) {
@@ -83,26 +85,22 @@ class MyTrade: public CTrade {
    void Buy(double SL, double TP) {
       if(signal != ORDER_TYPE_BUY) return;
       if(isInvalidTrade(SL, TP)) return;
-      if(!ModifyLot(SL)) return;
       Buy(lot, NULL, Ask, SL, TP, NULL);
    }
 
    void ForceBuy(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return;
-      if(!ModifyLot(SL)) return;
       Buy(lot, NULL, Ask, SL, TP, NULL);
    }
 
    void Sell(double SL, double TP) {
       if(signal != ORDER_TYPE_SELL) return;
       if(isInvalidTrade(SL, TP)) return;
-      if(!ModifyLot(SL)) return;
       Sell(lot, NULL, Bid, SL, TP, NULL);
    }
 
    void ForceSell(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return;
-      if(!ModifyLot(SL)) return;
       Sell(lot, NULL, Bid, SL, TP, NULL);
    }
 
@@ -113,30 +111,25 @@ class MyTrade: public CTrade {
    }
 
    void BuyStop(double price, double SL, double TP) {
-      if(isInvalidTrade(SL, TP)) return;
-      if(!ModifyLot(SL)) return;
       BuyStop(lot, price, _Symbol, SL, TP);
    }
 
    void SellStop(double price, double SL, double TP) {
-      if(isInvalidTrade(SL, TP)) return;
-      if(!ModifyLot(SL)) return;
       SellStop(lot, price, _Symbol, SL, TP);
    }
 
+
  private:
    double topips;
-   bool ModifyLot(double SL) {
+   void ModifyLot() {
       // double TradeRisk = MathAbs(SL - Ask) * topips;
       //if(TradeRisk == 0) return false;
-      if(isLotModified) {
-         lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / risk, LotDigits);
-         //lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / (ContractSize * TradeRisk), LotDigits);
-      }
+      if(!isLotModified) return;
+      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / risk, LotDigits);
+      //lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / (ContractSize * TradeRisk), LotDigits);
       //lot = NormalizeDouble(InitialDeposit / risk / TradeRisk, LotDigits);
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;
-      return true;
    }
 };
 //+------------------------------------------------------------------+

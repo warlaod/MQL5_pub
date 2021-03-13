@@ -41,7 +41,7 @@ double pips = PointToPips();
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyDate myDate();
+MyDate myDate(Timeframe);
 MyPrice myPrice(Timeframe, 3);
 MyHistory myHistory(Timeframe);
 MyOrder myOrder(myDate.BarTime);
@@ -60,6 +60,7 @@ int OnInit() {
 void OnTick() {
    Refresh();
    Check();
+   //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
    double PriceUnit = pips;
