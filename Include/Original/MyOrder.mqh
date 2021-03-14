@@ -30,7 +30,8 @@ class MyOrder: public COrderInfo {
       for(int i = OrdersTotal() - 1; i >= 0; i--) {
          ulong ticket = OrderGetTicket(i);
          Select(ticket);
-         if(OrderType() == ORDER_TYPE_BUY_LIMIT || ORDER_TYPE_BUY_STOP) {
+         ENUM_ORDER_TYPE orderType = OrderType();
+         if(orderType == ORDER_TYPE_BUY_LIMIT || orderType == ORDER_TYPE_BUY_STOP) {
             BuyTickets.Add(ticket);
          } else {
             SellTickets.Add(ticket);
