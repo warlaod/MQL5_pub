@@ -22,20 +22,20 @@ class MyHistory: public CHistoryOrderInfo {
    int Total;
    ENUM_TIMEFRAMES Timeframe;
 
-   datetime last_bartime;
-   datetime new_bartime;
+   datetime current;
 
    void MyHistory(ENUM_TIMEFRAMES Timeframe) {
       this.Timeframe = Timeframe;
    }
 
    void Refresh() {
-      HistorySelect(0, TimeCurrent());
+      current = TimeCurrent();
+      HistorySelect(0, current);
    }
 
    bool wasOrderedInTheSameBar() {
       SelectByIndex(HistoryOrdersTotal() - 1);
-      if( Bars(_Symbol, Timeframe, TimeDone(), TimeCurrent()) == 0)
+      if( Bars(_Symbol, Timeframe, TimeDone(), current) == 0)
          return true;
       return false;
    }

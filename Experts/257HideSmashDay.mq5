@@ -44,7 +44,7 @@ MyTrade myTrade();
 MyDate myDate(Timeframe);
 MyPrice myPrice(Timeframe, 3);
 MyHistory myHistory(Timeframe);
-MyOrder myOrder(myDate.BarTime);
+MyOrder myOrder(myDate.BarTime*7);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -65,9 +65,13 @@ void OnTick() {
    Check();
 
    //myPosition.CloseAllPositionsInMinute();
+   
+   myPosition.AddAllForTrailings();
+   myPosition.Trailings(POSITION_TYPE_BUY,myPrice.Lowest(0,2));
 
    if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
    myPrice.Refresh();
+   myOrder.Refresh();
 
    if((myPrice.At(1).high - myPrice.At(1).low) == 0) return;
 
@@ -81,11 +85,11 @@ void OnTick() {
          myTrade.setSignal(ORDER_TYPE_SELL);
    }
    double PriceUnit = pips;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      myTrade.Buy(myPrice.Lowest(0, 5), myPrice.At(1).high);
+   if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < positions) {
+      myTrade.BuyStop(myPrice.At(1).high,myPrice.At(2).low,myPrice.At(1).high + 10*pips);
    }
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-      myTrade.Sell(myPrice.Highest(0, 5), myPrice.At(1).low);
+   else if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < positions) {
+      myTrade.SellStop(myPrice.At(1).low,myPrice.At(2).high,myPrice.At(1).low + 10*pips);
    }
 }
 //+------------------------------------------------------------------+

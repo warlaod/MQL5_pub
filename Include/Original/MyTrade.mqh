@@ -39,7 +39,7 @@ class MyTrade: public CTrade {
       topips = PriceToPips();
       lot = NormalizeDouble(Lot, LotDigits);
       StopLossLevel =  NormalizeDouble(SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL), _Digits);
-      ModifyLot();
+      InitializeLot();
    }
 
    void Refresh() {
@@ -67,6 +67,28 @@ class MyTrade: public CTrade {
          if((TP - Ask)*topips < 2 || (Ask - SL)*topips < 2) return true;
       } else {
          if( (Bid - TP)*topips < 2  || (SL - Bid)*topips < 2) return true;
+      }
+      return false;
+   }
+
+   bool isInvalidStopTrade(double Price, double SL, double TP) {
+      if(TP > SL) {
+         if((Price - Ask)*topips < 2) return true;
+         if((TP - Price)*topips < 2 || (Price - SL)*topips < 2) return true;
+      } else {
+         if((Bid - Price)*topips < 2) return true;
+         if( (Price - TP)*topips < 2  || (SL - Price)*topips < 2) return true;
+      }
+      return false;
+   }
+   
+   bool isInvalidLimitTrade(double Price, double SL, double TP) {
+      if(TP > SL) {
+         if((Ask - Price)*topips < 2) return true;
+         if((TP - Price)*topips < 2 || (Price - SL)*topips < 2) return true;
+      } else {
+         if((Price - Bid)*topips < 2) return true;
+         if( (Price - TP)*topips < 2  || (SL - Price)*topips < 2) return true;
       }
       return false;
    }
@@ -110,13 +132,27 @@ class MyTrade: public CTrade {
       return false;
    }
 
-   void BuyStop(double price, double SL, double TP) {
-      BuyStop(lot, price, _Symbol, SL, TP);
+   void BuyStop(double Price, double SL, double TP) {
+      if(isInvalidStopTrade(Price, SL, TP)) return;
+      BuyStop(lot, Price, _Symbol, SL, TP);
    }
 
-   void SellStop(double price, double SL, double TP) {
-      SellStop(lot, price, _Symbol, SL, TP);
+   void SellStop(double Price, double SL, double TP) {
+      if(isInvalidStopTrade(Price, SL, TP)) return;
+      SellStop(lot, Price, _Symbol, SL, TP);
    }
+
+   void BuyLimit(double Price, double SL, double TP) {
+      if(isInvalidStopTrade(Price, SL, TP)) return;
+      BuyLimit(lot, Price, _Symbol, SL, TP);
+   }
+
+   void SellLimit(double Price, double SL, double TP) {
+      if(isInvalidStopTrade(Price, SL, TP)) return;
+      SellLimit(lot, Price, _Symbol, SL, TP);
+   }
+
+
 
 
  private:
@@ -128,6 +164,12 @@ class MyTrade: public CTrade {
       lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / risk, LotDigits);
       //lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / (ContractSize * TradeRisk), LotDigits);
       //lot = NormalizeDouble(InitialDeposit / risk / TradeRisk, LotDigits);
+      if(lot < minlot) lot = minlot;
+      else if(lot > maxlot) lot = maxlot;
+   }
+
+   void InitializeLot() {
+      lot = NormalizeDouble(lot, LotDigits);
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;
    }
