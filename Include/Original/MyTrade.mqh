@@ -133,21 +133,25 @@ class MyTrade: public CTrade {
    }
 
    void BuyStop(double Price, double SL, double TP) {
+      if(signal != ORDER_TYPE_BUY) return;
       if(isInvalidStopTrade(Price, SL, TP)) return;
       BuyStop(lot, Price, _Symbol, SL, TP);
    }
 
    void SellStop(double Price, double SL, double TP) {
+      if(signal != ORDER_TYPE_SELL) return;
       if(isInvalidStopTrade(Price, SL, TP)) return;
       SellStop(lot, Price, _Symbol, SL, TP);
    }
 
    void BuyLimit(double Price, double SL, double TP) {
+       if(signal != ORDER_TYPE_BUY) return;
       if(isInvalidStopTrade(Price, SL, TP)) return;
       BuyLimit(lot, Price, _Symbol, SL, TP);
    }
 
    void SellLimit(double Price, double SL, double TP) {
+       if(signal != ORDER_TYPE_SELL) return;
       if(isInvalidStopTrade(Price, SL, TP)) return;
       SellLimit(lot, Price, _Symbol, SL, TP);
    }

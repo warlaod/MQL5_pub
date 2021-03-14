@@ -44,8 +44,7 @@ MyTrade myTrade();
 MyDate myDate(Timeframe);
 MyPrice myPrice(Timeframe, 3);
 MyHistory myHistory(Timeframe);
-MyOrder myOrder(myDate.BarTime * 7);
-CurrencyStrength CS(Timeframe, 1);
+MyOrder myOrder(myDate.BarTime * 5);
 //+------------------------------------------------------------------+
 //|                                                                  |
 
@@ -65,6 +64,7 @@ void OnTick() {
    Check();
 
    //myPosition.CloseAllPositionsInMinute();
+   
 
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, myPrice.Lowest(0, 2));
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, myPrice.Highest(0, 2));
