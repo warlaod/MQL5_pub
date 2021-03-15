@@ -58,17 +58,21 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
+   IsCurrentTradable = true;
    Refresh();
    Check();
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
-   if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
+   if(!IsCurrentTradable || !IsTradable) return;
    double PriceUnit = pips;
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
-   }
-   else if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-      myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+   if(Signal == ORDER_TYPE_BUY) {
+      if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
+         myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+      }
+   } else if(Signal == ORDER_TYPE_SELL) {
+      if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
+         myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+      }
    }
 }
 //+------------------------------------------------------------------+
@@ -78,11 +82,11 @@ void OnTimer() {
    myPosition.Refresh();
    myTrade.Refresh();
    myDate.Refresh();
-   myTrade.isTradable = true;
+   IsTradable = true;
    if(myDate.isFridayEnd() || myDate.isYearEnd()) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      myTrade.isTradable = false;
+      IsTradable = false;
    } else if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
@@ -112,7 +116,7 @@ void Check() {
    //myTrade.CheckSpread();
    myDate.Refresh();
    myHistory.Refresh();
-   if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
-   else if(myHistory.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
+   if(myDate.isMondayStart()) IsCurrentTradable = false;
+   else if(myHistory.wasOrderedInTheSameBar()) IsCurrentTradable = false;
 }
 //+------------------------------------------------------------------+

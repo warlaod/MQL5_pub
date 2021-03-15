@@ -5,17 +5,15 @@
 //+------------------------------------------------------------------+
 class MyPrice {
  public:
-   int count ;
    ENUM_TIMEFRAMES Timeframe;
-   void MyPrice(ENUM_TIMEFRAMES Timeframe, int count) {
+   void MyPrice(ENUM_TIMEFRAMES Timeframe) {
       this.Timeframe = Timeframe;
-      this.count = count;
       ArraySetAsSeries(price, true);
       ArraySetAsSeries(Low, true);
       ArraySetAsSeries(High, true);
    }
 
-   void Refresh() {
+   void Refresh(int count) {
       CopyRates(_Symbol, Timeframe, 0, count, price);
    }
 

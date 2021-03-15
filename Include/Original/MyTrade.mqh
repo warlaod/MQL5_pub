@@ -13,10 +13,11 @@ input bool isLotModified = false;
 input int StopBalance = 2000;
 input int StopMarginLevel = 300;
 
+ENUM_ORDER_TYPE Signal;
+bool IsTradable, IsCurrentTradable;
+
 class MyTrade: public CTrade {
  public:
-   bool isCurrentTradable;
-   string signal;
    double lot;
    double Ask;
    double Bid;
@@ -43,15 +44,10 @@ class MyTrade: public CTrade {
    }
 
    void Refresh() {
-      isCurrentTradable = true;
-      signal = NULL;
-      Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
-      Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
-      ModifyLot();
    }
 
    void setSignal(ENUM_ORDER_TYPE OrderType) {
-      signal = OrderType;
+      Signal = OrderType;
    }
 
    void CheckSpread() {
@@ -59,10 +55,11 @@ class MyTrade: public CTrade {
       if(spread == -1)
          return;
       if(currentSpread >= spread)
-         isCurrentTradable = false;
+         IsCurrentTradable = false;
    }
 
    bool isInvalidTrade(double SL, double TP) {
+      GetAskBid();
       if(TP > SL) {
          if((TP - Ask)*topips < 2 || (Ask - SL)*topips < 2) return true;
       } else {
@@ -72,6 +69,7 @@ class MyTrade: public CTrade {
    }
 
    bool isInvalidStopTrade(double Price, double SL, double TP) {
+      GetAskBid();
       if(TP > SL) {
          if((Price - Ask)*topips < 2) return true;
          if((TP - Price)*topips < 2 || (Price - SL)*topips < 2) return true;
@@ -81,8 +79,9 @@ class MyTrade: public CTrade {
       }
       return false;
    }
-   
+
    bool isInvalidLimitTrade(double Price, double SL, double TP) {
+      GetAskBid();
       if(TP > SL) {
          if((Ask - Price)*topips < 2) return true;
          if((TP - Price)*topips < 2 || (Price - SL)*topips < 2) return true;
@@ -105,25 +104,23 @@ class MyTrade: public CTrade {
    }
 
    void Buy(double SL, double TP) {
-      if(signal != ORDER_TYPE_BUY) return;
       if(isInvalidTrade(SL, TP)) return;
-      Buy(lot, NULL, Ask, SL, TP, NULL);
+      Buy(ModifiedLot(), NULL, Ask, SL, TP, NULL);
    }
 
    void ForceBuy(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return;
-      Buy(lot, NULL, Ask, SL, TP, NULL);
+      Buy(ModifiedLot(), NULL, Ask, SL, TP, NULL);
    }
 
    void Sell(double SL, double TP) {
-      if(signal != ORDER_TYPE_SELL) return;
       if(isInvalidTrade(SL, TP)) return;
-      Sell(lot, NULL, Bid, SL, TP, NULL);
+      Sell(ModifiedLot(), NULL, Bid, SL, TP, NULL);
    }
 
    void ForceSell(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return;
-      Sell(lot, NULL, Bid, SL, TP, NULL);
+      Sell(ModifiedLot(), NULL, Bid, SL, TP, NULL);
    }
 
    bool PositionModify(ulong ticket, double SL, double TP) {
@@ -133,27 +130,23 @@ class MyTrade: public CTrade {
    }
 
    void BuyStop(double Price, double SL, double TP) {
-      if(signal != ORDER_TYPE_BUY) return;
       if(isInvalidStopTrade(Price, SL, TP)) return;
-      BuyStop(lot, Price, _Symbol, SL, TP);
+      BuyStop(ModifiedLot(), Price, _Symbol, SL, TP);
    }
 
    void SellStop(double Price, double SL, double TP) {
-      if(signal != ORDER_TYPE_SELL) return;
       if(isInvalidStopTrade(Price, SL, TP)) return;
-      SellStop(lot, Price, _Symbol, SL, TP);
+      SellStop(ModifiedLot(), Price, _Symbol, SL, TP);
    }
 
    void BuyLimit(double Price, double SL, double TP) {
-       if(signal != ORDER_TYPE_BUY) return;
       if(isInvalidStopTrade(Price, SL, TP)) return;
-      BuyLimit(lot, Price, _Symbol, SL, TP);
+      BuyLimit(ModifiedLot(), Price, _Symbol, SL, TP);
    }
 
    void SellLimit(double Price, double SL, double TP) {
-       if(signal != ORDER_TYPE_SELL) return;
       if(isInvalidStopTrade(Price, SL, TP)) return;
-      SellLimit(lot, Price, _Symbol, SL, TP);
+      SellLimit(ModifiedLot(), Price, _Symbol, SL, TP);
    }
 
 
@@ -161,21 +154,27 @@ class MyTrade: public CTrade {
 
  private:
    double topips;
-   void ModifyLot() {
+   double ModifiedLot() {
       // double TradeRisk = MathAbs(SL - Ask) * topips;
       //if(TradeRisk == 0) return false;
-      if(!isLotModified) return;
+      if(!isLotModified) return lot;
       lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / risk, LotDigits);
       //lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / (ContractSize * TradeRisk), LotDigits);
       //lot = NormalizeDouble(InitialDeposit / risk / TradeRisk, LotDigits);
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;
+      return lot;
    }
 
    void InitializeLot() {
       lot = NormalizeDouble(lot, LotDigits);
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;
+   }
+
+   void GetAskBid() {
+      Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
+      Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
    }
 };
 //+------------------------------------------------------------------+
