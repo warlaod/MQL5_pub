@@ -42,7 +42,7 @@ double pips = PointToPips();
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate(Timeframe);
-MyPrice myPrice(Timeframe, 3);
+MyPrice myPrice(Timeframe);
 MyHistory myHistory(Timeframe);
 MyOrder myOrder(myDate.BarTime * 5);
 //+------------------------------------------------------------------+
@@ -51,61 +51,61 @@ MyOrder myOrder(myDate.BarTime * 5);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiMA MA;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
+   MA.Create(_Symbol, Timeframe, 5, 0, MODE_EMA, PRICE_CLOSE);
    return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   Refresh();
+   IsCurrentTradable = true;
+   Signal = NULL;
    Check();
 
    //myPosition.CloseAllPositionsInMinute();
-   
-
+   myPosition.Refresh();
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, myPrice.Lowest(0, 2));
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, myPrice.Highest(0, 2));
 
-   if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
-   myPrice.Refresh();
-   myOrder.Refresh();
+   if(!IsCurrentTradable || !IsTradable) return;
+   myPrice.Refresh(3);
 
-   if((myPrice.At(1).high - myPrice.At(1).low) == 0) return;
-
-   double perBCandle = (myPrice.At(1).close - myPrice.At(1).low) / (myPrice.At(1).high - myPrice.At(1).low);
-
-   if(myPrice.RosokuIsPlus(2) && perBCandle < 0.25) {
-      if(myPrice.At(2).low < myPrice.At(1).low && myPrice.At(2).high < myPrice.At(1).high)
-         myTrade.setSignal(ORDER_TYPE_BUY);
-   } else  if(!myPrice.RosokuIsPlus(2) && perBCandle > 0.75) {
-      if(myPrice.At(2).high > myPrice.At(1).high && myPrice.At(2).low > myPrice.At(1).low)
-         myTrade.setSignal(ORDER_TYPE_SELL);
+   if(MathRand() % 2   == 1) {
+      setSignal(ORDER_TYPE_BUY);
+   } else {
+      setSignal(ORDER_TYPE_SELL);
    }
+   
+   if(Signal == NULL) return;
    double PriceUnit = pips;
-   if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < positions && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-      myTrade.BuyStop(myPrice.At(1).high, myPrice.At(2).low, myPrice.At(1).high + 100 * pips);
-   } else if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < positions && myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-       int aadw = myOrder.TotalEachOrders(ORDER_TYPE_SELL);
-       int dwa  = myPosition.TotalEachPositions(POSITION_TYPE_SELL);
-      myTrade.SellStop(myPrice.At(1).low, myPrice.At(2).high, myPrice.At(1).low - 100 * pips);
+   if(Signal == ORDER_TYPE_BUY) {
+      if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < positions && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
+         myTrade.BuyStop(myPrice.At(1).high, myPrice.At(2).low, myPrice.At(1).high + 100 * pips);
+      }
+   } else if(Signal == ORDER_TYPE_SELL) {
+      if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < positions && myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
+         myTrade.SellStop(myPrice.At(1).low, myPrice.At(2).high, myPrice.At(1).low - 100 * pips);
+      }
    }
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
-   myPosition.Refresh();
-   myTrade.Refresh();
+   
    myDate.Refresh();
-   myTrade.isTradable = true;
+   IsTradable = true;
    if(myDate.isFridayEnd() || myDate.isYearEnd()) {
+      myPosition.Refresh();
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      myTrade.isTradable = false;
+      IsTradable = false;
    } else if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      myPosition.Refresh();
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       Print("EA stopped because of lower balance or lower margin level  ");
@@ -120,21 +120,11 @@ double OnTester() {
    double result =  myTest.min_dd_and_mathsqrt_trades();
    return  result;
 }
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void Refresh() {
-   myPosition.Refresh();
-   myTrade.Refresh();
-}
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
 void Check() {
    //myTrade.CheckSpread();
    myDate.Refresh();
    myHistory.Refresh();
-   if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
-   else if(myHistory.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
+   if(myDate.isMondayStart()) IsCurrentTradable = false;
+   else if(myHistory.wasOrderedInTheSameBar()) IsCurrentTradable = false;
 }
 //+------------------------------------------------------------------+

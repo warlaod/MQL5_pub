@@ -42,7 +42,7 @@ double pips = PointToPips();
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate(Timeframe);
-MyPrice myPrice(Timeframe, 3);
+MyPrice myPrice(Timeframe);
 MyHistory myHistory(Timeframe);
 MyOrder myOrder(myDate.BarTime);
 CurrencyStrength CS(Timeframe, 1);
@@ -59,12 +59,18 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    IsCurrentTradable = true;
-   Refresh();
+   Signal = NULL;
    Check();
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
    if(!IsCurrentTradable || !IsTradable) return;
    double PriceUnit = pips;
+   
+   setSignal(ORDER_TYPE_BUY);
+   
+   if(Signal == NULL) return;
+   
+   myTrade.Refresh();
    if(Signal == ORDER_TYPE_BUY) {
       if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
          myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
@@ -79,15 +85,15 @@ void OnTick() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
-   myPosition.Refresh();
-   myTrade.Refresh();
    myDate.Refresh();
    IsTradable = true;
    if(myDate.isFridayEnd() || myDate.isYearEnd()) {
+      myPosition.Refresh();
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       IsTradable = false;
    } else if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      myPosition.Refresh();
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
       Print("EA stopped because of lower balance or lower margin level  ");
@@ -101,13 +107,6 @@ double OnTester() {
    MyTest myTest;
    double result =  myTest.min_dd_and_mathsqrt_trades();
    return  result;
-}
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void Refresh() {
-   myPosition.Refresh();
-   myTrade.Refresh();
 }
 //+------------------------------------------------------------------+
 //|                                                                  |

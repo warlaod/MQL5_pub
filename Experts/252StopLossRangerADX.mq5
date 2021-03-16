@@ -18,6 +18,7 @@
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
 #include <Original\MyOrder.mqh>
+#include <Original\MyHistory.mqh>
 #include <Original\MyCHart.mqh>
 #include <Original\MyFractal.mqh>
 #include <Original\Optimization.mqh>
@@ -49,11 +50,13 @@ double ATRCri = MathPow(2, atrCri);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+
 MyPosition myPosition;
 MyTrade myTrade();
-MyDate myDate();
-MyPrice myPrice(PERIOD_MN1, 3);
-MyOrder myOrder(Timeframe);
+MyDate myDate(Timeframe);
+MyPrice myPrice(PERIOD_MN1);
+MyHistory myHistory(Timeframe);
+MyOrder myOrder(myDate.BarTime);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -73,6 +76,10 @@ int OnInit() {
 //+------------------------------------------------------------------+
 double PriceUnit;
 void OnTimer() {
+   myPosition.Refresh();
+   Check();
+   IsCurrentTradable = true;
+   Signal = NULL;
    ATR.Refresh();
    PriceUnit = ATR.Main(0);
    if(PriceUnit < ATRCri * pips) return;
@@ -81,10 +88,7 @@ void OnTimer() {
    if(ADX.Main(0) < ADXMainCri) return;
    if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2))) return;
 
-   myPrice.Refresh();
-   myPosition.Refresh();
-   myTrade.Refresh();
-   Check();
+   myPrice.Refresh(1);
 
    double Lowest = myPrice.Lowest(0, PriceCount);
    double Highest = myPrice.Highest(0, PriceCount);
@@ -96,6 +100,7 @@ void OnTimer() {
 
    double bottom, top;
 
+   myTrade.Refresh();
    if(perB < 0.5 - CoreCri) {
       if(isAbleToBuy()) {
          PriceUnit = PriceUnit * HalfTP;
@@ -163,15 +168,6 @@ double OnTester() {
    double result =  myTest.min_dd_and_mathsqrt_trades();
    return  result;
 }
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-void Refresh() {
-   myPosition.Refresh();
-   myTrade.Refresh();
-}
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+

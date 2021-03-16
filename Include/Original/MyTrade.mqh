@@ -44,10 +44,8 @@ class MyTrade: public CTrade {
    }
 
    void Refresh() {
-   }
-
-   void setSignal(ENUM_ORDER_TYPE OrderType) {
-      Signal = OrderType;
+      Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
+      Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
    }
 
    void CheckSpread() {
@@ -59,7 +57,6 @@ class MyTrade: public CTrade {
    }
 
    bool isInvalidTrade(double SL, double TP) {
-      GetAskBid();
       if(TP > SL) {
          if((TP - Ask)*topips < 2 || (Ask - SL)*topips < 2) return true;
       } else {
@@ -69,7 +66,6 @@ class MyTrade: public CTrade {
    }
 
    bool isInvalidStopTrade(double Price, double SL, double TP) {
-      GetAskBid();
       if(TP > SL) {
          if((Price - Ask)*topips < 2) return true;
          if((TP - Price)*topips < 2 || (Price - SL)*topips < 2) return true;
@@ -81,7 +77,6 @@ class MyTrade: public CTrade {
    }
 
    bool isInvalidLimitTrade(double Price, double SL, double TP) {
-      GetAskBid();
       if(TP > SL) {
          if((Ask - Price)*topips < 2) return true;
          if((TP - Price)*topips < 2 || (Price - SL)*topips < 2) return true;
@@ -149,9 +144,6 @@ class MyTrade: public CTrade {
       SellLimit(ModifiedLot(), Price, _Symbol, SL, TP);
    }
 
-
-
-
  private:
    double topips;
    double ModifiedLot() {
@@ -171,10 +163,12 @@ class MyTrade: public CTrade {
       if(lot < minlot) lot = minlot;
       else if(lot > maxlot) lot = maxlot;
    }
-
-   void GetAskBid() {
-      Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
-      Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
-   }
 };
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void setSignal(ENUM_ORDER_TYPE OrderType) {
+   Signal = OrderType;
+}
 //+------------------------------------------------------------------+
