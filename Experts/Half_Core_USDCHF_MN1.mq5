@@ -52,7 +52,6 @@ double CoreTP = 0.8;
 double HalfTP = 2.8;
 double SLHalf = MathPow(2, slHalf);
 double SLCore = MathPow(2, slCore);
-double ATRCri = MathPow(2, atrCri);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -86,7 +85,6 @@ void OnTimer() {
    Signal = NULL;
    ATR.Refresh();
    PriceUnit = ATR.Main(0);
-   if(PriceUnit < ATRCri * pips) return;
 
    ADX.Refresh();
    if(ADX.Main(0) < ADXMainCri) return;

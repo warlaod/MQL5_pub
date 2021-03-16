@@ -6,7 +6,6 @@
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link      "https://www.mql5.com"
 #property version   "1.00"
-// 258StopLossHalf;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -19,6 +18,7 @@
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
 #include <Original\MyOrder.mqh>
+#include <Original\MyHistory.mqh>
 #include <Original\MyCHart.mqh>
 #include <Original\MyFractal.mqh>
 #include <Original\Optimization.mqh>
@@ -34,32 +34,30 @@ mis_MarcosTMP timeFrame = _H1;
 mis_MarcosTMP atrTimeframe = _H1;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
-bool tradable = false;
 double PriceToPips = PriceToPips();
 double pips = PointToPips();
 
-int ADXPeriod = 18;
-int PriceCount = 24;
-double CoreCri = 0.12;
-double HalfStopCri = 0.08;
-int ADXMainCri = 24;
-int ADXSubCri = 24;
-double slHalf = 2.25;
-double slCore = 6.75;
-double atrCri = 3.25;
-double CoreTP = 1.4;
-double HalfTP = 4.8;
+ int ADXPeriod = 18;
+ int PriceCount = 24;
+ double CoreCri = 0.12;
+ double HalfStopCri =0.08;
+ int ADXMainCri = 24;
+ int ADXSubCri = 24;
+ double slHalf = 2.25;
+ double slCore = 6.75;
+ double CoreTP = 1.4;
+ double HalfTP = 4.8;
 double SLHalf = MathPow(2, slHalf);
 double SLCore = MathPow(2, slCore);
-double ATRCri = MathPow(2, atrCri);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyDate myDate();
-MyPrice myPrice(PERIOD_MN1, 3);
-MyOrder myOrder(Timeframe);
+MyDate myDate(Timeframe);
+MyPrice myPrice(PERIOD_MN1);
+MyHistory myHistory(Timeframe);
+MyOrder myOrder(myDate.BarTime);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -77,27 +75,29 @@ int OnInit() {
 
 double PriceUnit;
 void OnTimer() {
+   myPosition.Refresh();
+   Check();
+   IsCurrentTradable = true;
+   Signal = NULL;
+   
    ATR.Refresh();
    PriceUnit = ATR.Main(0);
-   if(PriceUnit < ATRCri * pips)
-      return;
+   
    ADX.Refresh();
-   if(ADX.Main(0) < ADXMainCri)
-      return;
-   if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2)))
-      return;
-   myPrice.Refresh();
-   myPosition.Refresh();
-   myTrade.Refresh();
-   Check();
+   if(ADX.Main(0) < ADXMainCri) return;
+   if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2))) return;
+   
+   myPrice.Refresh(1);
    double Lowest = myPrice.Lowest(0, PriceCount);
    double Highest = myPrice.Highest(0, PriceCount);
    double HLGap = Highest - Lowest;
    double Current = myPrice.At(0).close;
    double perB = (Current - Lowest) / (Highest - Lowest);
-   if(perB > 1 - HalfStopCri || perB < HalfStopCri)
-      return;
+   
+   if(perB > 1 - HalfStopCri || perB < HalfStopCri) return;
    double bottom, top,TP;
+   
+   myTrade.Refresh();
    if(perB < 0.5 - CoreCri) {
       if(isAbleToBuy()) {
          TP = PriceUnit * HalfTP;
