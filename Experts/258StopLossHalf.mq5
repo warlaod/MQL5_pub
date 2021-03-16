@@ -18,6 +18,7 @@
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
 #include <Original\MyOrder.mqh>
+#include <Original\MyHistory.mqh>
 #include <Original\MyCHart.mqh>
 #include <Original\MyFractal.mqh>
 #include <Original\Optimization.mqh>
@@ -51,9 +52,10 @@ double ATRCri = MathPow(2, atrCri);
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
-MyDate myDate();
-MyPrice myPrice(PERIOD_MN1, 3);
-MyOrder myOrder(Timeframe);
+MyDate myDate(Timeframe);
+MyPrice myPrice(PERIOD_MN1);
+MyHistory myHistory(Timeframe);
+MyOrder myOrder(myDate.BarTime);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -71,27 +73,30 @@ int OnInit() {
 
 double PriceUnit;
 void OnTimer() {
+   myPosition.Refresh();
+   Check();
+   IsCurrentTradable = true;
+   Signal = NULL;
+   
    ATR.Refresh();
    PriceUnit = ATR.Main(0);
-   if(PriceUnit < ATRCri * pips)
-      return;
+   if(PriceUnit < ATRCri * pips) return;
+   
    ADX.Refresh();
-   if(ADX.Main(0) < ADXMainCri)
-      return;
-   if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2)))
-      return;
-   myPrice.Refresh();
-   myPosition.Refresh();
-   myTrade.Refresh();
-   Check();
+   if(ADX.Main(0) < ADXMainCri) return;
+   if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2))) return;
+   
+   myPrice.Refresh(1);
    double Lowest = myPrice.Lowest(0, PriceCount);
    double Highest = myPrice.Highest(0, PriceCount);
    double HLGap = Highest - Lowest;
    double Current = myPrice.At(0).close;
    double perB = (Current - Lowest) / (Highest - Lowest);
-   if(perB > 1 - HalfStopCri || perB < HalfStopCri)
-      return;
+   
+   if(perB > 1 - HalfStopCri || perB < HalfStopCri) return;
    double bottom, top,TP;
+   
+   myTrade.Refresh();
    if(perB < 0.5 - CoreCri) {
       if(isAbleToBuy()) {
          TP = PriceUnit * HalfTP;
