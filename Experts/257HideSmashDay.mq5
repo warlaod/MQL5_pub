@@ -63,7 +63,7 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    IsCurrentTradable = true;
-   Signal = NULL;
+   Signal = -1;
    Check();
 
    //myPosition.CloseAllPositionsInMinute();
@@ -74,14 +74,16 @@ void OnTick() {
    if(!IsCurrentTradable || !IsTradable) return;
    myPrice.Refresh(3);
 
-   if(MathRand() % 2   == 1) {
+   if(MathRand() %2 == 1) {
       setSignal(ORDER_TYPE_BUY);
    } else {
       setSignal(ORDER_TYPE_SELL);
    }
    
-   if(Signal == NULL) return;
+   if(Signal == -1) return;
    double PriceUnit = pips;
+   myTrade.Refresh();
+   myOrder.Refresh();
    if(Signal == ORDER_TYPE_BUY) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < positions && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
          myTrade.BuyStop(myPrice.At(1).high, myPrice.At(2).low, myPrice.At(1).high + 100 * pips);

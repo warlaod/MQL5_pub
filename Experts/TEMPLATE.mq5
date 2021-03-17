@@ -59,7 +59,7 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    IsCurrentTradable = true;
-   Signal = NULL;
+   Signal = -1;
    Check();
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
@@ -68,7 +68,7 @@ void OnTick() {
    
    setSignal(ORDER_TYPE_BUY);
    
-   if(Signal == NULL) return;
+   if(Signal == -1) return;
    
    myTrade.Refresh();
    if(Signal == ORDER_TYPE_BUY) {
