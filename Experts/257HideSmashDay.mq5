@@ -139,7 +139,7 @@ void Check() {
    myTrade.CheckSpread();
    myDate.Refresh();
    myHistory.Refresh();
-   if(myDate.dt.day_of_week == MONDAY) {
+   if(myDate.isMondayStart() == MONDAY) {
       IsCurrentTradable = false;
    } else if(myHistory.wasOrderedInTheSameBar()) IsCurrentTradable = false;
 }

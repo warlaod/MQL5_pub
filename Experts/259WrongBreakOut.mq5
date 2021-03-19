@@ -44,7 +44,7 @@ MyTrade myTrade();
 MyDate myDate(Timeframe);
 MyPrice myPrice(Timeframe);
 MyHistory myHistory(Timeframe);
-MyOrder myOrder(myDate.BarTime);
+MyOrder myOrder(myDate.BarTime*7);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -65,15 +65,21 @@ void OnTick() {
    Check();
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
+   myPosition.Refresh();
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, myPrice.Lowest(0, 2));
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, myPrice.Highest(0, 2));
+   myPosition.Trailings(POSITION_TYPE_BUY, myPrice.Lowest(0, 2));
+   myPosition.Trailings(POSITION_TYPE_SELL, myPrice.Highest(0, 2));
    if(!IsCurrentTradable || !IsTradable) return;
 
    Fractal.myRefresh();
    Fractal.SearchMiddle();
 
-   myPrice.Refresh(2);
-   if(Fractal.fractal(Middle, Up) < myPrice.At(1).high)
+
+   myPrice.Refresh(3);
+   if(Fractal.fractal(Middle, Up) < myPrice.At(1).high && Fractal.fractal(Middle, Up) > myPrice.At(2).high)
       setSignal(ORDER_TYPE_SELL);
-   else if(Fractal.fractal(Middle, Low) > myPrice.At(1).low)
+   else if(Fractal.fractal(Middle, Low) > myPrice.At(1).low && Fractal.fractal(Middle, Low) < myPrice.At(2).low)
       setSignal(ORDER_TYPE_BUY);
 
 
@@ -81,16 +87,15 @@ void OnTick() {
    if(Signal == -1) return;
 
    myTrade.Refresh();
-   myPosition.Refresh();
    myOrder.Refresh();
    double PriceUnit = pips;
    if(Signal == ORDER_TYPE_BUY) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-         myTrade.BuyStop(myPrice.At(1).high,myPrice.At(1).low,myPrice.At(1).high+50*pips);
+         myTrade.BuyStop(myPrice.At(1).high, myPrice.At(1).low, myPrice.At(1).high + 300 * pips);
       }
    } else if(Signal == ORDER_TYPE_SELL) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-         myTrade.SellStop(myPrice.At(1).low,myPrice.At(1).high,myPrice.At(1).low-50*pips);
+         myTrade.SellStop(myPrice.At(1).low, myPrice.At(1).high, myPrice.At(1).low - 300 * pips);
       }
    }
 }
