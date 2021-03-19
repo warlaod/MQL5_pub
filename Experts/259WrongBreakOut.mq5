@@ -49,9 +49,11 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+MyFractal Fractal;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
+   Fractal.Create(_Symbol, Timeframe);
    return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
@@ -64,22 +66,31 @@ void OnTick() {
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
    if(!IsCurrentTradable || !IsTradable) return;
-   double PriceUnit = pips;
-   
-   setSignal(ORDER_TYPE_BUY);
-   
+
+   Fractal.myRefresh();
+   Fractal.SearchMiddle();
+
+   myPrice.Refresh(2);
+   if(Fractal.fractal(Middle, Up) < myPrice.At(1).high)
+      setSignal(ORDER_TYPE_SELL);
+   else if(Fractal.fractal(Middle, Low) > myPrice.At(1).low)
+      setSignal(ORDER_TYPE_BUY);
+
+
+
    if(Signal == -1) return;
-   
+
    myTrade.Refresh();
    myPosition.Refresh();
    myOrder.Refresh();
+   double PriceUnit = pips;
    if(Signal == ORDER_TYPE_BUY) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-         myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+         myTrade.BuyStop(myPrice.At(1).high,myPrice.At(1).low,myPrice.At(1).high+50*pips);
       }
    } else if(Signal == ORDER_TYPE_SELL) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-         myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+         myTrade.SellStop(myPrice.At(1).low,myPrice.At(1).high,myPrice.At(1).low-50*pips);
       }
    }
 }
