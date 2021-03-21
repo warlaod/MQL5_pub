@@ -31,6 +31,7 @@ class MyTest {
    double negativeEffector;
    double conlossMax;
    double maxConloss;
+   double equity_ddrel;
 
 
  public:
@@ -38,6 +39,22 @@ class MyTest {
       if(result < 0) {
          return result;
       }
+      positiveEffector = min_dd * MathSqrt(total_trades);
+      negativeEffector = 1;
+      CheckRatio(long_ratio, 0.1);
+      CheckRatio(short_ratio, 0.1);
+      CheckRatio(win_rate, 0.1);
+      CheckRatio(short_win_rate, 0.1);
+      CheckRatio(long_win_rate, 0.1);
+      SetResultForBalance();
+      return result;
+   }
+   
+   double min_dd_and_mathsqrt_trades_ddrel() {
+      if(result < 0) {
+         return result;
+      }
+      min_dd = 1 / equity_ddrel;
       positiveEffector = min_dd * MathSqrt(total_trades);
       negativeEffector = 1;
       CheckRatio(long_ratio, 0.1);
@@ -185,6 +202,7 @@ class MyTest {
       marginlevel_min  = TesterStatistics(STAT_MIN_MARGINLEVEL);
       balance_dd = TesterStatistics(STAT_BALANCE_DD);
       equity_dd = TesterStatistics(STAT_EQUITY_DD);
+      equity_ddrel = TesterStatistics(STAT_EQUITY_DDREL_PERCENT);
       conlossMax = TesterStatistics(STAT_CONLOSSMAX);
       maxConloss = TesterStatistics(STAT_MAX_CONLOSSES);
       average_profit = 0;

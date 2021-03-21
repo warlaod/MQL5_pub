@@ -30,10 +30,11 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-input double SLCoef, TPCoef;
 input int ADXCri;
 input double SellLotDiv;
-input int PricePeriod, PDev, ADXPeriod, TrailPeriod,SLPeriod;
+input int TPCri;
+input double PriceUnitCri;
+input int PricePeriod, PDev, ADXPeriod, TrailPeriod,SLPeriod,TrailingStart;
 input mis_MarcosTMP timeFrame, trailTimeframe,slTimeframe;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES TrailTimeframe = defMarcoTiempo(trailTimeframe);
@@ -57,7 +58,7 @@ CurrencyStrength CS(Timeframe, 1);
 CiADX ADX;
 MyChart Chart;
 int OnInit() {
-   MyUtils myutils(60 * 50);
+   MyUtils myutils(60 * 1);
    myutils.Init();
    ADX.Create(_Symbol, Timeframe, 14);
    return(INIT_SUCCEEDED);
@@ -65,23 +66,29 @@ int OnInit() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void OnTick() {
+double PriceUnit = 10*MathPow(2,PriceUnitCri);
+void OnTimer() {
+   IsTradable = true;
+   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      myPosition.Refresh();
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      Print("EA stopped because of lower balance or lower margin level  ");
+      ExpertRemove();
+   }
    IsCurrentTradable = true;
-   Signal = -1;
 
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
-   double Highest = myPrice.Highest(0, PricePeriod);
-   double Lowest = myPrice.Lowest(0, PricePeriod);
-   double PriceUnit = (Highest - Lowest) / PDev;
+   
 
    myPosition.Refresh();
-   double TrailLowest = myTrailPrice.Lowest(1, TrailPeriod);
-   double TrailHighest = myTrailPrice.Highest(1, TrailPeriod);
+   double TrailLowest = myTrailPrice.Lowest(TrailingStart, TrailPeriod);
+   double TrailHighest = myTrailPrice.Highest(TrailingStart, TrailPeriod);
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest);
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest);
-   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest);
-   myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest);
+   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest,TPCri);
+   myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest,TPCri);
 
    Check();
    if(!IsCurrentTradable || !IsTradable) return;
@@ -101,29 +108,16 @@ void OnTick() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void OnTimer() {
-   IsTradable = true;
-   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
-      myPosition.Refresh();
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      Print("EA stopped because of lower balance or lower margin level  ");
-      ExpertRemove();
-   }
-}
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_trades();
+   double result =  myTest.min_dd_and_mathsqrt_trades_without_balance();
    return  result;
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   //myTrade.CheckSpread();
+   myTrade.CheckSpread();
    myDate.Refresh();
    if(myDate.isMondayStart()) IsCurrentTradable = false;
 }
