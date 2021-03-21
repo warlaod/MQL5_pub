@@ -31,8 +31,13 @@
 #include <ChartObjects\ChartObjectsLines.mqh>
 
 input double SLCoef, TPCoef;
-input mis_MarcosTMP timeFrame;
+input int ADXCri;
+input double SellLotDiv;
+input int PricePeriod, PDev, ADXPeriod, TrailPeriod,SLPeriod;
+input mis_MarcosTMP timeFrame, trailTimeframe,slTimeframe;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
+ENUM_TIMEFRAMES TrailTimeframe = defMarcoTiempo(trailTimeframe);
+ENUM_TIMEFRAMES SLTimeframe = defMarcoTiempo(slTimeframe);
 bool tradable = false;
 double PriceToPips = PriceToPips();
 double pips = PointToPips();
@@ -42,18 +47,19 @@ double pips = PointToPips();
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate(Timeframe);
-MyPrice myPrice(Timeframe);
+MyPrice myPrice(PERIOD_MN1), myTrailPrice(TrailTimeframe),mySLPrice(SLTimeframe);
 MyHistory myHistory(Timeframe);
-MyOrder myOrder(myDate.BarTime*5);
+MyOrder myOrder(myDate.BarTime);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-MyFractal Fractal;
+CiADX ADX;
+MyChart Chart;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
-   Fractal.Create(_Symbol, Timeframe);
+   ADX.Create(_Symbol, Timeframe, 14);
    return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
@@ -62,40 +68,33 @@ int OnInit() {
 void OnTick() {
    IsCurrentTradable = true;
    Signal = -1;
-   Check();
+
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
+   double Highest = myPrice.Highest(0, PricePeriod);
+   double Lowest = myPrice.Lowest(0, PricePeriod);
+   double PriceUnit = (Highest - Lowest) / PDev;
+
    myPosition.Refresh();
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, myPrice.Lowest(0, 2));
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, myPrice.Highest(0, 2));
-   myPosition.Trailings(POSITION_TYPE_BUY, myPrice.Lowest(0, 2));
-   myPosition.Trailings(POSITION_TYPE_SELL, myPrice.Highest(0, 2));
+   double TrailLowest = myTrailPrice.Lowest(1, TrailPeriod);
+   double TrailHighest = myTrailPrice.Highest(1, TrailPeriod);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest);
+   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest);
+   myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest);
+
+   Check();
    if(!IsCurrentTradable || !IsTradable) return;
 
-   Fractal.myRefresh();
-   Fractal.SearchMiddle();
-
-
-   myPrice.Refresh(3);
-   if(Fractal.fractal(Middle, Up) < myPrice.At(1).high && Fractal.fractal(Middle, Up) > myPrice.At(2).high)
-      setSignal(ORDER_TYPE_SELL);
-   else if(Fractal.fractal(Middle, Low) > myPrice.At(1).low && Fractal.fractal(Middle, Low) < myPrice.At(2).low)
-      setSignal(ORDER_TYPE_BUY);
-
-
-
-   if(Signal == -1) return;
-
    myTrade.Refresh();
-   myOrder.Refresh();
-   double PriceUnit = pips;
-   if(Signal == ORDER_TYPE_BUY) {
-      if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-         myTrade.BuyStop(myPrice.At(1).high, myPrice.At(1).low, myPrice.At(1).high + 300 * pips);
-      }
-   } else if(Signal == ORDER_TYPE_SELL) {
-      if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-         myTrade.SellStop(myPrice.At(1).low, myPrice.At(1).high, myPrice.At(1).low - 300 * pips);
+   if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit)) {
+      myTrade.ForceBuy(0, 100000);
+   }
+   ADX.Refresh();
+   if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit)) {
+      if(ADX.Minus(0) > 20) {
+         if(ADX.Main(0) < ADXCri || !isRising(ADX, 1)) return;
+         myTrade.ForceSell(mySLPrice.Highest(1,SLPeriod), 0, SellLot());
       }
    }
 }
@@ -103,14 +102,8 @@ void OnTick() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
-   myDate.Refresh();
    IsTradable = true;
-   if(myDate.isFridayEnd() || myDate.isYearEnd()) {
-      myPosition.Refresh();
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      IsTradable = false;
-   } else if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.Refresh();
       myPosition.CloseAllPositions(POSITION_TYPE_BUY);
       myPosition.CloseAllPositions(POSITION_TYPE_SELL);
@@ -132,8 +125,25 @@ double OnTester() {
 void Check() {
    //myTrade.CheckSpread();
    myDate.Refresh();
-   myHistory.Refresh();
    if(myDate.isMondayStart()) IsCurrentTradable = false;
-   else if(myHistory.wasOrderedInTheSameBar()) IsCurrentTradable = false;
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double SellLot() {
+   double lot = 0;
+   for(int i = 0; i < myPosition.BuyTickets.Total(); i++) {
+      myPosition.SelectByTicket(myPosition.BuyTickets.At(i));
+      lot += myPosition.Volume();
+   }
+   for(int i = 0; i < myPosition.SellTickets.Total(); i++) {
+      myPosition.SelectByTicket(myPosition.SellTickets.At(i));
+      lot -= myPosition.Volume();
+   }
+   lot = NormalizeDouble(lot / SellLotDiv, myTrade.LotDigits);
+   if(lot < myTrade.minlot) lot = myTrade.minlot;
+   else if(lot > myTrade.maxlot) lot = myTrade.maxlot;
+   return lot;
 }
 //+------------------------------------------------------------------+

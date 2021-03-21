@@ -10,8 +10,8 @@ input int spread = -1;
 input double risk = 50000;
 input double Lot = 0.1;
 input bool isLotModified = false;
-input int StopBalance = 2000;
-input int StopMarginLevel = 300;
+input int StopBalance = 1000;
+input int StopMarginLevel = 200;
 
 ENUM_ORDER_TYPE Signal;
 bool IsTradable, IsCurrentTradable;
@@ -116,6 +116,11 @@ class MyTrade: public CTrade {
    void ForceSell(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return;
       Sell(ModifiedLot(), NULL, Bid, SL, TP, NULL);
+   }
+   
+   void ForceSell(double SL, double TP,double Selllot) {
+      if(isInvalidTrade(SL, TP)) return;
+      Sell(Selllot, NULL, Bid, SL, TP, NULL);
    }
 
    bool PositionModify(ulong ticket, double SL, double TP) {
