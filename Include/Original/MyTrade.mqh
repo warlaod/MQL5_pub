@@ -107,6 +107,11 @@ class MyTrade: public CTrade {
       if(isInvalidTrade(SL, TP)) return;
       Buy(ModifiedLot(), NULL, Ask, SL, TP, NULL);
    }
+   
+   void ForceBuy(double SL, double TP,double Selllot) {
+      if(isInvalidTrade(SL, TP)) return;
+      Buy(Selllot, NULL, Bid, SL, TP, NULL);
+   }
 
    void Sell(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return;
