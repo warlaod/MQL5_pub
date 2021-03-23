@@ -91,8 +91,8 @@ void OnTimer() {
    double TrailHighest = myTrailPrice.Highest(1, TrailPeriod);
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest);
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest);
-   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest,5000);
-   myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest,5000);
+   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest,100000);
+   myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest,0);
 
    Check();
    if(!IsCurrentTradable || !IsTradable) return;
