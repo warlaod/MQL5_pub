@@ -56,13 +56,11 @@ CurrencyStrength CS(Timeframe, 1);
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiADX ADX;
-CiATR ATR;
 MyChart Chart;
 double priceUnitCri =0.1 *MathPow(2,PriceUnitCri);
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
-   ADX.Create(_Symbol, Timeframe, 14);
    ATR.Create(_Symbol,ATRTimeframe,14);
    return(INIT_SUCCEEDED);
 }
@@ -87,8 +85,8 @@ void OnTimer() {
    
 
    myPosition.Refresh();
-   double TrailLowest = myTrailPrice.Lowest(1, TrailPeriod);
-   double TrailHighest = myTrailPrice.Highest(1, TrailPeriod);
+   double TrailLowest = myTrailPrice.Lowest(0, TrailPeriod);
+   double TrailHighest = myTrailPrice.Highest(0, TrailPeriod);
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest);
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest);
    myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest,100000);

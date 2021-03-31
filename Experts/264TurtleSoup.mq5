@@ -31,6 +31,8 @@
 #include <ChartObjects\ChartObjectsLines.mqh>
 
 input double SLCoef, TPCoef;
+input int TrailPeriod,TurtlePeriod,StartPeriod;
+input int EntryCri,SLCri;
 input mis_MarcosTMP timeFrame;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 bool tradable = false;
@@ -44,13 +46,13 @@ MyTrade myTrade();
 MyDate myDate(Timeframe);
 MyPrice myPrice(Timeframe);
 MyHistory myHistory(Timeframe);
-MyOrder myOrder(myDate.BarTime);
+MyOrder myOrder(myDate.BarTime * 7);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
-   MyUtils myutils(60 * 50);
+   MyUtils myutils(60 * 1);
    myutils.Init();
    return(INIT_SUCCEEDED);
 }
@@ -63,23 +65,34 @@ void OnTick() {
    Check();
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
+
+
    if(!IsCurrentTradable || !IsTradable) return;
    double PriceUnit = pips;
-   
-   setSignal(ORDER_TYPE_BUY);
-   
+
+   double Highest = myPrice.Highest(2, TurtlePeriod);
+   double Lowest = myPrice.Lowest(2, TurtlePeriod);
+
+   myPrice.Refresh(2);
+   if(Highest == myPrice.Highest(StartPeriod, TurtlePeriod)) {
+      if(myPrice.At(1).high > Highest)
+         setSignal(ORDER_TYPE_SELL);
+   } else if(Lowest == myPrice.Lowest(StartPeriod, TurtlePeriod)) {
+      if(myPrice.At(1).low < Lowest)
+         setSignal(ORDER_TYPE_BUY);
+   }
+
    if(Signal == -1) return;
-   
+
    myTrade.Refresh();
-   myPosition.Refresh();
    myOrder.Refresh();
    if(Signal == ORDER_TYPE_BUY) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-         myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+         myTrade.BuyStop(Lowest + EntryCri * pips, myPrice.At(1).low - SLCri * pips, myTrade.Ask + PriceUnit * TPCoef);
       }
    } else if(Signal == ORDER_TYPE_SELL) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-         myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+         myTrade.SellStop(Highest - EntryCri * pips, myPrice.At(1).high + SLCri * pips, myTrade.Bid - PriceUnit * TPCoef);
       }
    }
 }
@@ -87,6 +100,14 @@ void OnTick() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
+   myPosition.Refresh();
+   double TrailLowest = myPrice.Lowest(1, TrailPeriod);
+   double TrailHighest = myPrice.Highest(1, TrailPeriod);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest);
+   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest, 100000);
+   myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest, 0);
+
    myDate.Refresh();
    IsTradable = true;
    if(myDate.isFridayEnd() || myDate.isYearEnd()) {
@@ -121,4 +142,3 @@ void Check() {
    else if(myHistory.wasOrderedInTheSameBar()) IsCurrentTradable = false;
 }
 //+------------------------------------------------------------------+
-

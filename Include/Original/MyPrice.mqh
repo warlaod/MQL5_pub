@@ -31,18 +31,22 @@ class MyPrice {
       return Low[ArrayMinimum(Low, 0, low_count)];
    }
 
-   double RosokuHigh(int index) {
+   double RosokuHighLength(int index) {
       double higher = price[index].close < price[index].open ? price[index].open : price[index].close;
       return  price[index].high - higher;
    }
 
-   double RosokuLow(int index) {
+   double RosokuLowLength(int index) {
       double lower = price[index].close > price[index].open ? price[index].open : price[index].close;
       return  lower - price[index].low;
    }
 
-   double RosokuBody(int index) {
+   double RosokuBodyLength(int index) {
       return MathAbs( price[index].close - price[index].open );
+   }
+
+   double RosokuPerB(int index) {
+      return (price[index].close - price[index].low) / (price[index].high - price[index].low);
    }
 
    bool RosokuIsPlus(int index) {

@@ -145,12 +145,12 @@ class MyTrade: public CTrade {
    }
 
    void BuyLimit(double Price, double SL, double TP) {
-      if(isInvalidStopTrade(Price, SL, TP)) return;
+      if(isInvalidLimitTrade(Price, SL, TP)) return;
       BuyLimit(ModifiedLot(), Price, _Symbol, SL, TP);
    }
 
    void SellLimit(double Price, double SL, double TP) {
-      if(isInvalidStopTrade(Price, SL, TP)) return;
+      if(isInvalidLimitTrade(Price, SL, TP)) return;
       SellLimit(ModifiedLot(), Price, _Symbol, SL, TP);
    }
 

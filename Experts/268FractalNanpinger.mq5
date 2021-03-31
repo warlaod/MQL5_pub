@@ -31,8 +31,9 @@
 #include <ChartObjects\ChartObjectsLines.mqh>
 
 input double SLCoef, TPCoef;
-input mis_MarcosTMP timeFrame;
+input mis_MarcosTMP timeFrame, adxTimeFrame;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
+ENUM_TIMEFRAMES ADXTimeframe = defMarcoTiempo(adxTimeFrame);
 bool tradable = false;
 double PriceToPips = PriceToPips();
 double pips = PointToPips();
@@ -49,9 +50,13 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+MyFractal myF;
+CiADX ADX;
 int OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
+   myF.Create(_Symbol, Timeframe);
+   ADX.Create(_Symbol, ADXTimeframe, 14);
    return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
@@ -63,23 +68,42 @@ void OnTick() {
    Check();
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
-   if(!IsCurrentTradable || !IsTradable) return;
-   double PriceUnit = pips;
-   
-   setSignal(ORDER_TYPE_BUY);
-   
-   if(Signal == -1) return;
-   
-   myTrade.Refresh();
    myPosition.Refresh();
-   myOrder.Refresh();
+   myF.myRefresh();
+   myF.SearchMiddle();
+   double SLow = myF.fractal(Short, Low);
+   double SUp =  myF.fractal(Short, Up);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, SLow);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, SUp);
+   myPosition.Trailings(POSITION_TYPE_BUY, SLow);
+   myPosition.Trailings(POSITION_TYPE_BUY, SUp);
+   if(!IsCurrentTradable || !IsTradable) return;
+
+   ADX.Refresh();
+   if(ADX.Main(0) < 20) return;
+   if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2))) return;
+
+
+
+   if(ADX.Plus(0) > 20) {
+      if(myF.isRecentShortFractal(Low))
+         setSignal(ORDER_TYPE_BUY);
+   } else if(ADX.Minus(0) > 20) {
+      if(myF.isRecentShortFractal(Up))
+         setSignal(ORDER_TYPE_SELL);
+   }
+   double PriceUnit = pips;
+   if(Signal == -1) return;
+
+   myTrade.Refresh();
+
    if(Signal == ORDER_TYPE_BUY) {
-      if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-         myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+      if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
+         myTrade.Buy(myF.fractal(Short, Low), 100000);
       }
    } else if(Signal == ORDER_TYPE_SELL) {
-      if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-         myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+      if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
+         myTrade.Sell(myF.fractal(Short, Up), 0);
       }
    }
 }
@@ -122,3 +146,4 @@ void Check() {
 }
 //+------------------------------------------------------------------+
 
+//+------------------------------------------------------------------+

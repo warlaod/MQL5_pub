@@ -31,6 +31,7 @@
 #include <ChartObjects\ChartObjectsLines.mqh>
 
 input double SLCoef, TPCoef;
+input double perBTop,perBBottom;
 input mis_MarcosTMP timeFrame;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 bool tradable = false;
@@ -63,23 +64,42 @@ void OnTick() {
    Check();
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
+   myPosition.Refresh();
+
+
    if(!IsCurrentTradable || !IsTradable) return;
    double PriceUnit = pips;
-   
-   setSignal(ORDER_TYPE_BUY);
-   
+
+   myPrice.Refresh(2);
+   double RosokuPerB = myPrice.RosokuPerB(1);
+
+
+
+   if(myPrice.RosokuIsPlus(1)) {
+      if(isBetween(1-perBTop,RosokuPerB,0.5+perBBottom)) {
+         if(myPrice.At(1).high < myPrice.At(0).high) {
+            setSignal(ORDER_TYPE_SELL);
+         }
+      }
+   } else {
+      if(isBetween(0.5-perBBottom,RosokuPerB,perBTop)) {
+         if(myPrice.At(1).low > myPrice.At(0).low) {
+            setSignal(ORDER_TYPE_BUY);
+         }
+      }
+   }
+
    if(Signal == -1) return;
-   
+
    myTrade.Refresh();
-   myPosition.Refresh();
    myOrder.Refresh();
    if(Signal == ORDER_TYPE_BUY) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
-         myTrade.Buy(myTrade.Ask - PriceUnit * SLCoef, myTrade.Ask + PriceUnit * TPCoef);
+         myTrade.BuyStop(myPrice.At(1).close, myPrice.At(0).low, myPrice.At(1).high);
       }
    } else if(Signal == ORDER_TYPE_SELL) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
-         myTrade.Sell(myTrade.Bid + PriceUnit * SLCoef, myTrade.Bid - PriceUnit * TPCoef);
+         myTrade.SellStop(myPrice.At(1).close, myPrice.At(0).high, myPrice.At(1).low);
       }
    }
 }
@@ -122,3 +142,4 @@ void Check() {
 }
 //+------------------------------------------------------------------+
 
+//+------------------------------------------------------------------+
