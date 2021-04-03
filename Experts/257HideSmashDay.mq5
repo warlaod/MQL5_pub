@@ -56,9 +56,10 @@ MyOrder myOrder(myDate.BarTime * 5);
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiMA MA;
-int OnInit() {
+int  OnInit() {
    MyUtils myutils(60 * 50);
    myutils.Init();
+   myTrade.SetExpertMagicNumber(MagicNumber);
    MA.Create(_Symbol, IndTimeframe, IndPeriod, 0, MAMethod, AppliedPrice);
    return(INIT_SUCCEEDED);
 }
@@ -108,18 +109,19 @@ void OnTick() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTimer() {
-
    myDate.Refresh();
    IsTradable = true;
    if(myDate.isFridayEnd() || myDate.isYearEnd()) {
       myPosition.Refresh();
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      myOrder.Refresh();
+      myPosition.CloseAllPositions();
+      myOrder.CloseAllOrders();
       IsTradable = false;
    } else if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.Refresh();
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      myOrder.Refresh();
+      myPosition.CloseAllPositions();
+      myOrder.CloseAllOrders();
       Print("EA stopped because of lower balance or lower margin level  ");
       ExpertRemove();
    }
