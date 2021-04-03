@@ -90,7 +90,6 @@ void OnTick() {
 
 
    if(Signal == -1) return;
-   double PriceUnit = pipsToPrice;
    myTrade.Refresh();
    myOrder.Refresh();
    if(Signal == ORDER_TYPE_BUY) {
