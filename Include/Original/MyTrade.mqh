@@ -4,14 +4,14 @@
 //|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
 #include <Original\MyCalculate.mqh>
+#include <Original\MySymbolAccount.mqh>
 #include <Trade\Trade.mqh>
 
-input int spread = -1;
+
 input double risk = 50000;
 input double Lot = 0.1;
 input bool isLotModified = false;
-input int StopBalance = 1000;
-input int StopMarginLevel = 200;
+
 
 ENUM_ORDER_TYPE Signal;
 bool IsTradable, IsCurrentTradable;
@@ -46,14 +46,6 @@ class MyTrade: public CTrade {
    void Refresh() {
       Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
       Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
-   }
-
-   void CheckSpread() {
-      int currentSpread = SymbolInfoInteger(_Symbol, SYMBOL_SPREAD);
-      if(spread == -1)
-         return;
-      if(currentSpread >= spread)
-         IsCurrentTradable = false;
    }
 
    bool isInvalidTrade(double SL, double TP) {
