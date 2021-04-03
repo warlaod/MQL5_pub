@@ -37,31 +37,31 @@ class MyTrade: public CTrade {
 
    bool isInvalidTrade(double SL, double TP) {
       if(TP > SL) {
-         if((TP - Ask)*topips < 2 || (Ask - SL)*topips < 2) return true;
+         if((TP - Ask)*priceToPips < SA.StopsLevel || (Ask - SL)*priceToPips < SA.StopsLevel) return true;
       } else {
-         if( (Bid - TP)*topips < 2  || (SL - Bid)*topips < 2) return true;
+         if( (Bid - TP)*priceToPips < SA.StopsLevel  || (SL - Bid)*priceToPips < SA.StopsLevel) return true;
       }
       return false;
    }
 
    bool isInvalidStopTrade(double Price, double SL, double TP) {
       if(TP > SL) {
-         if((Price - Ask)*topips < 2) return true;
-         if((TP - Price)*topips < 2 || (Price - SL)*topips < 2) return true;
+         if((Price - Ask)*priceToPips < SA.StopsLevel) return true;
+         if((TP - Price)*priceToPips < SA.StopsLevel || (Price - SL)*priceToPips < SA.StopsLevel) return true;
       } else {
-         if((Bid - Price)*topips < 2) return true;
-         if( (Price - TP)*topips < 2  || (SL - Price)*topips < 2) return true;
+         if((Bid - Price)*priceToPips < SA.StopsLevel) return true;
+         if( (Price - TP)*priceToPips < SA.StopsLevel  || (SL - Price)*priceToPips < SA.StopsLevel) return true;
       }
       return false;
    }
 
    bool isInvalidLimitTrade(double Price, double SL, double TP) {
       if(TP > SL) {
-         if((Ask - Price)*topips < 2) return true;
-         if((TP - Price)*topips < 2 || (Price - SL)*topips < 2) return true;
+         if((Ask - Price)*priceToPips < SA.StopsLevel) return true;
+         if((TP - Price)*priceToPips < SA.StopsLevel || (Price - SL)*priceToPips < SA.StopsLevel) return true;
       } else {
-         if((Price - Bid)*topips < 2) return true;
-         if( (Price - TP)*topips < 2  || (SL - Price)*topips < 2) return true;
+         if((Price - Bid)*priceToPips < SA.StopsLevel) return true;
+         if( (Price - TP)*priceToPips < SA.StopsLevel  || (SL - Price)*priceToPips < SA.StopsLevel) return true;
       }
       return false;
    }
@@ -134,9 +134,8 @@ class MyTrade: public CTrade {
    }
 
  private:
-   double topips;
    double ModifiedLot() {
-      // double TradeRisk = MathAbs(SL - Ask) * topips;
+      // double TradeRisk = MathAbs(SL - Ask) * priceToPips;
       //if(TradeRisk == 0) return false;
       if(!isLotModified) return lot;
       lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / risk, SA.LotDigits);

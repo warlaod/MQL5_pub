@@ -15,6 +15,7 @@
 #include <Original\Oyokawa.mqh>
 #include <Original\MyDate.mqh>
 #include <Original\MyCalculate.mqh>
+#include <Original\MySymbolAccount.mqh>
 #include <Original\MyTest.mqh>
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
@@ -58,6 +59,7 @@ double SLCore = MathPow(2, slCore);
 
 MyPosition myPosition;
 MyTrade myTrade();
+MySymbolAccount SymbolAccount;
 MyDate myDate(Timeframe);
 MyPrice myPrice(PERIOD_MN1);
 MyHistory myHistory(Timeframe);
@@ -171,7 +173,7 @@ double OnTester() {
 //+------------------------------------------------------------------+
 void Check() {
    IsTradable = true;
-   myTrade.CheckSpread();
+  if(SymbolAccount.isOberSpread()) IsTradable = false;
    if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.Refresh();
       myPosition.CloseAllPositions();

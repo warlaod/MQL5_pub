@@ -9,6 +9,7 @@
 #include <Original\MyPrice.mqh>
 #include <Original\MyUtils.mqh>
 #include <Original\MyTrade.mqh>
+#include <Original\MySymbolAccount.mqh>
 #include <Arrays\ArrayLong.mqh>
 #include <Generic\HashMap.mqh>
 
@@ -24,11 +25,12 @@ class MyPosition: public CPositionInfo {
    CArrayLong SellTickets, BuyTickets;
    int LotDigit;
    double pointToPips;
+   MySymbolAccount SA;
 
    void MyPosition() {
       CloseMin = 10 * MathPow(2, positionCloseMinPow);
       MyTrade myTrade;
-      LotDigit = myTrade.LotDigits;
+      LotDigit = SA.LotDigits;
       pointToPips = PointToPips();
    }
 
