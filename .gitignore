@@ -11,6 +11,7 @@
 *.welcome
 *.png
 *.html
+*.ex5
 /Scripts
 /Profiles
 /Include/*
