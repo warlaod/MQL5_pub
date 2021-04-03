@@ -14,6 +14,7 @@
 #include <Original\Oyokawa.mqh>
 #include <Original\MyDate.mqh>
 #include <Original\MyCalculate.mqh>
+#include <Original\MySymbolAccount.mqh>
 #include <Original\MyTest.mqh>
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
@@ -31,15 +32,13 @@
 #include <ChartObjects\ChartObjectsLines.mqh>
 
 input double SLCoef, TPCoef;
-input int IndPeriod, SLPeriod,TrailingTP;
+input int IndPeriod, SLPeriod, TrailingTP;
 input mis_MarcosTMP timeFrame, indTimeframe;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES IndTimeframe = defMarcoTiempo(indTimeframe);
 input ENUM_MA_METHOD MAMethod;
 input ENUM_APPLIED_PRICE AppliedPrice;
 bool tradable = false;
-double PriceToPips = PriceToPips();
-double pips = PointToPips();
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -68,17 +67,18 @@ int  OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    IsCurrentTradable = true;
-   Signal = -1;
    Check();
 
    //myPosition.CloseAllPositionsInMinute();
    myPosition.Refresh();
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, myPrice.Lowest(0, SLPeriod));
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, myPrice.Highest(0, SLPeriod));
-   myPosition.Trailings(POSITION_TYPE_BUY,myPrice.Lowest(0,SLPeriod),TrailingTP*pips);
-   myPosition.Trailings(POSITION_TYPE_SELL,myPrice.Highest(0,SLPeriod),TrailingTP*pips);
+   myPosition.Trailings(POSITION_TYPE_BUY, myPrice.Lowest(0, SLPeriod), TrailingTP * pipsToPrice);
+   myPosition.Trailings(POSITION_TYPE_SELL, myPrice.Highest(0, SLPeriod), TrailingTP * pipsToPrice);
    if(!IsCurrentTradable || !IsTradable) return;
-   myPrice.Refresh(12);
+   Signal = -1;
+   
+   myPrice.Refresh(3);
 
    MA.Refresh();
    double LastTrend = MA.Main(1) - MA.Main(2);
@@ -90,18 +90,18 @@ void OnTick() {
 
 
    if(Signal == -1) return;
-   double PriceUnit = pips;
+   double PriceUnit = pipsToPrice;
    myTrade.Refresh();
    myOrder.Refresh();
    if(Signal == ORDER_TYPE_BUY) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
          if(myPosition.isPositionInRange(POSITION_TYPE_BUY, MathAbs(myPrice.At(2).low - myTrade.Ask))) return;
-         myTrade.BuyStop(myPrice.At(1).high, myPrice.At(2).low, myPrice.At(1).high + TPCoef * pips);
+         myTrade.BuyStop(myPrice.At(1).high, myPrice.At(2).low, myPrice.At(1).high + TPCoef * pipsToPrice);
       }
    } else if(Signal == ORDER_TYPE_SELL) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
          if(myPosition.isPositionInRange(POSITION_TYPE_SELL, MathAbs(myPrice.At(2).high - myTrade.Bid))) return;
-         myTrade.SellStop(myPrice.At(1).low, myPrice.At(2).high, myPrice.At(1).low - TPCoef * pips);
+         myTrade.SellStop(myPrice.At(1).low, myPrice.At(2).high, myPrice.At(1).low - TPCoef * pipsToPrice);
       }
    }
 }
@@ -138,11 +138,12 @@ double OnTester() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   myTrade.CheckSpread();
    myDate.Refresh();
    myHistory.Refresh();
    if(myDate.isMondayStart() == MONDAY) {
       IsCurrentTradable = false;
-   } else if(myHistory.wasOrderedInTheSameBar()) IsCurrentTradable = false;
+   } else if(myHistory.wasOrderedInTheSameBar()) {
+      IsCurrentTradable = false;
+   }// else if(SA.isOverSpread()) IsCurrentTradable = false;
 }
 //+------------------------------------------------------------------+

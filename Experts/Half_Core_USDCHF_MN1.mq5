@@ -87,7 +87,7 @@ void OnTimer() {
    Signal = NULL;
    Check();
    if(!IsCurrentTradable || !IsTradable) return;
-   
+
    ATR.Refresh();
    PriceUnit = ATR.Main(0);
 
@@ -173,7 +173,7 @@ double OnTester() {
 //+------------------------------------------------------------------+
 void Check() {
    IsTradable = true;
-  if(SymbolAccount.isOberSpread()) IsTradable = false;
+   if(SymbolAccount.isOberSpread()) IsTradable = false;
    if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.Refresh();
       myPosition.CloseAllPositions();

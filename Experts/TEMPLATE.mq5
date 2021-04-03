@@ -14,6 +14,7 @@
 #include <Original\Oyokawa.mqh>
 #include <Original\MyDate.mqh>
 #include <Original\MyCalculate.mqh>
+#include <Original\MySymbolAccount.mqh>
 #include <Original\MyTest.mqh>
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
@@ -43,11 +44,11 @@ double pips = PointToPips();
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
+MySymbolAccount SymbolAccount;
 MyDate myDate(Timeframe);
 MyPrice myPrice(Timeframe);
 MyHistory myHistory(Timeframe);
-MyOrder myOrder(myDate.BarTime);
-CurrencyStrength CS(Timeframe, 1);
+MyOrder myOrder(myDate.BarTime * 5);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -68,11 +69,11 @@ void OnTick() {
    //myPosition.CloseAllPositionsInMinute();
    if(!IsCurrentTradable || !IsTradable) return;
    double PriceUnit = pips;
-   
+
    setSignal(ORDER_TYPE_BUY);
-   
+
    if(Signal == -1) return;
-   
+
    myTrade.Refresh();
    myPosition.Refresh();
    myOrder.Refresh();
@@ -90,11 +91,13 @@ void OnTick() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   //myTrade.CheckSpread();
    myDate.Refresh();
    myHistory.Refresh();
-   if(myDate.isMondayStart()) IsCurrentTradable = false;
-   else if(myHistory.wasOrderedInTheSameBar()) IsCurrentTradable = false;
+   if(myDate.isMondayStart() == MONDAY) {
+      IsCurrentTradable = false;
+   } else if(myHistory.wasOrderedInTheSameBar()) {
+      IsCurrentTradable = false;
+   }// else if(SymbolAccount.isOverSpread()) IsCurrentTradable = false;
 }
 //+------------------------------------------------------------------+
 //|                                                                  |

@@ -24,14 +24,12 @@ class MyPosition: public CPositionInfo {
    CHashMap<ulong, bool > TrailingTickets, PartialClosedTickets;
    CArrayLong SellTickets, BuyTickets;
    int LotDigit;
-   double pointToPips;
    MySymbolAccount SA;
 
    void MyPosition() {
       CloseMin = 10 * MathPow(2, positionCloseMinPow);
       MyTrade myTrade;
       LotDigit = SA.LotDigits;
-      pointToPips = PointToPips();
    }
 
    void Refresh() {
