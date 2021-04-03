@@ -30,30 +30,28 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-input double SLCoef, TPCoef;
-input mis_MarcosTMP timeFrame, atrTimeframe;
+input double distance;
+input mis_MarcosTMP timeFrame, slTimeframe, trailTimeframe;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
-ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
+ENUM_TIMEFRAMES SLTimeframe = defMarcoTiempo(slTimeframe);
+ENUM_TIMEFRAMES TrailTimeframe = defMarcoTiempo(trailTimeframe);
 bool tradable = false;
 double PriceToPips = PriceToPips();
 double pips = PointToPips();
 
-input int ADXPeriod;
+input int SLPeriod, TrailPeriod;
 input int PriceCount;
 input double CoreCri, HalfStopCri;
 input int ADXMainCri, ADXSubCri;
-input double slHalf, slCore, atrCri;
-input double CoreTP, HalfTP;
-double SLHalf = MathPow(2, slHalf);
-double SLCore = MathPow(2, slCore);
-double ATRCri = MathPow(2, atrCri);
+input double slHalf;
+double SLHalf = MathPow(2, slHalf)*pips;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate(Timeframe);
-MyPrice myPrice(PERIOD_MN1);
+MyPrice myPrice(PERIOD_MN1), mySLPrice(SLTimeframe), myTrailPrice(TrailTimeframe);
 MyHistory myHistory(Timeframe);
 MyOrder myOrder(myDate.BarTime);
 CurrencyStrength CS(Timeframe, 1);
@@ -65,58 +63,48 @@ CiATR ATR;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
-   ADX.Create(_Symbol, Timeframe, ADXPeriod);
-   ATR.Create(_Symbol, ATRTimeframe, 14);
+   ADX.Create(_Symbol, Timeframe,14);
    return(INIT_SUCCEEDED);
 }
 
 
-double PriceUnit;
+double Distance = MathPow(2,distance);
 void OnTimer() {
-   myPosition.Refresh();
+   Trail();
    Check();
    IsCurrentTradable = true;
    Signal = NULL;
-   
-   ATR.Refresh();
-   PriceUnit = ATR.Main(0);
-   if(PriceUnit < ATRCri * pips) return;
-   
+
    ADX.Refresh();
    if(ADX.Main(0) < ADXMainCri) return;
    if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2))) return;
-   
+
    myPrice.Refresh(1);
    double Lowest = myPrice.Lowest(0, PriceCount);
    double Highest = myPrice.Highest(0, PriceCount);
    double HLGap = Highest - Lowest;
    double Current = myPrice.At(0).close;
    double perB = (Current - Lowest) / (Highest - Lowest);
-   
+
    if(perB > 1 - HalfStopCri || perB < HalfStopCri) return;
-   double bottom, top,TP;
-   
+   double BuySL, SellSL;
+
    myTrade.Refresh();
    if(perB < 0.5 - CoreCri) {
       if(isAbleToBuy()) {
-         TP = PriceUnit * HalfTP;
-         bottom = Lowest - SLHalf * PriceUnit;
-         myTrade.ForceBuy(bottom, myTrade.Ask + TP);
+         BuySL = Lowest - SLHalf;
+         myTrade.ForceBuy(BuySL, 1000000);
       }
    } else if(perB > 0.5 + CoreCri) {
       if(isAbleToSell()) {
-         TP = PriceUnit * HalfTP;
-         top = Highest + SLHalf * PriceUnit;
-         myTrade.ForceSell(top, myTrade.Bid - TP);
+         SellSL = Highest + SLHalf;
+         myTrade.ForceSell(SellSL, 0);
       }
    } else {
-      top = Highest - HLGap * CoreCri  + SLCore * PriceUnit;
-      bottom = Lowest + HLGap * CoreCri - SLCore * PriceUnit;
-      TP = PriceUnit * CoreTP;
       if(isBetween(0.5, perB, 0.5 - CoreCri) && isAbleToBuy())
-         myTrade.ForceBuy(bottom, myTrade.Ask + TP);
+         myTrade.ForceBuy(mySLPrice.Lowest(1,SLPeriod), 1000000);
       else if(isBetween(0.5 + CoreCri, perB, 0.5) && isAbleToSell())
-         myTrade.ForceSell(top, myTrade.Bid - TP);
+         myTrade.ForceSell(mySLPrice.Highest(1,SLPeriod), 0);
    }
 }
 
@@ -127,7 +115,7 @@ void OnTimer() {
 bool isAbleToBuy() {
    if(ADX.Plus(0) > ADXSubCri && ADX.Plus(0) > ADX.Minus(0)) {
       if(isBetween(ADX.Plus(0), ADX.Plus(1), ADX.Plus(2))) {
-         if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit))
+         if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, Distance))
             return true;
       }
    }
@@ -139,7 +127,7 @@ bool isAbleToBuy() {
 bool isAbleToSell() {
    if(ADX.Minus(0) > ADXSubCri && ADX.Minus(0) > ADX.Plus(0)) {
       if(isBetween(ADX.Minus(0), ADX.Minus(1), ADX.Minus(2))) {
-         if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit))
+         if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, Distance))
             return true;
       }
    }
@@ -156,19 +144,21 @@ double OnTester() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void Refresh() {
-   myPosition.Refresh();
-   myTrade.Refresh();
+void Check() {
+   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      myPosition.CloseAllPositions();
+      Print("EA stopped because of lower balance or lower margin level");
+      ExpertRemove();
+   }
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void Check() {
-   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      Print("EA stopped because of lower balance or lower margin level");
-      ExpertRemove();
-   }
+void  Trail() {
+   myPosition.Refresh();
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, myTrailPrice.Lowest(1, SLPeriod));
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, myTrailPrice.Highest(1, SLPeriod));
+   myPosition.Trailings(POSITION_TYPE_BUY, myPrice.Lowest(1, SLPeriod), 0);
+   myPosition.Trailings(POSITION_TYPE_SELL, myPrice.Highest(1, SLPeriod), 0);
 }
 //+------------------------------------------------------------------+

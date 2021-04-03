@@ -37,16 +37,16 @@ ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
 double PriceToPips = PriceToPips();
 double pips = PointToPips();
 
- int ADXPeriod = 18;
- int PriceCount = 24;
- double CoreCri = 0.12;
- double HalfStopCri =0.08;
- int ADXMainCri = 24;
- int ADXSubCri = 24;
- double slHalf = 2.25;
- double slCore = 6.75;
- double CoreTP = 1.4;
- double HalfTP = 4.8;
+int ADXPeriod = 18;
+int PriceCount = 24;
+double CoreCri = 0.12;
+double HalfStopCri = 0.08;
+int ADXMainCri = 24;
+int ADXSubCri = 24;
+double slHalf = 2.25;
+double slCore = 6.75;
+double CoreTP = 1.4;
+double HalfTP = 4.8;
 double SLHalf = MathPow(2, slHalf);
 double SLCore = MathPow(2, slCore);
 //+------------------------------------------------------------------+
@@ -75,29 +75,30 @@ int OnInit() {
 
 double PriceUnit;
 void OnTimer() {
-   myPosition.Refresh();
-   Check();
    IsCurrentTradable = true;
    Signal = NULL;
-   
+   Check();
+   if(!IsCurrentTradable) return;
+
    ATR.Refresh();
    PriceUnit = ATR.Main(0);
-   
+
    ADX.Refresh();
    if(ADX.Main(0) < ADXMainCri) return;
    if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2))) return;
-   
+
    myPrice.Refresh(1);
    double Lowest = myPrice.Lowest(0, PriceCount);
    double Highest = myPrice.Highest(0, PriceCount);
    double HLGap = Highest - Lowest;
    double Current = myPrice.At(0).close;
    double perB = (Current - Lowest) / (Highest - Lowest);
-   
+
    if(perB > 1 - HalfStopCri || perB < HalfStopCri) return;
-   double bottom, top,TP;
-   
+   double bottom, top, TP;
+
    myTrade.Refresh();
+   myPosition.Refresh();
    if(perB < 0.5 - CoreCri) {
       if(isAbleToBuy()) {
          TP = PriceUnit * HalfTP;
@@ -157,17 +158,11 @@ double OnTester() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void Refresh() {
-   myPosition.Refresh();
-   myTrade.Refresh();
-}
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
 void Check() {
+   myTrade.CheckSpread();
    if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      myPosition.Refresh();
+      myPosition.CloseAllPositions();
       Print("EA stopped because of lower balance or lower margin level");
       ExpertRemove();
    }

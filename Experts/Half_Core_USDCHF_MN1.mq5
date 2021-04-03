@@ -83,6 +83,9 @@ double PriceUnit;
 void OnTimer() {
    IsCurrentTradable = true;
    Signal = NULL;
+   Check();
+   if(!IsCurrentTradable || !IsTradable) return;
+   
    ATR.Refresh();
    PriceUnit = ATR.Main(0);
 
@@ -91,9 +94,6 @@ void OnTimer() {
    if(!isBetween(ADX.Main(0), ADX.Main(1), ADX.Main(2))) return;
 
    myPrice.Refresh(1);
-   myPosition.Refresh();
-   Check();
-
    double Lowest = myPrice.Lowest(0, PriceCount);
    double Highest = myPrice.Highest(0, PriceCount);
    double HLGap = Highest - Lowest;
@@ -105,6 +105,7 @@ void OnTimer() {
    double bottom, top;
 
    myTrade.Refresh();
+   myPosition.Refresh();
    if(perB < 0.5 - CoreCri) {
       if(isAbleToBuy()) {
          PriceUnit = PriceUnit * HalfTP;
@@ -145,7 +146,6 @@ bool isAbleToBuy() {
    }
    return false;
 }
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -170,11 +170,13 @@ double OnTester() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
+   IsTradable = true;
+   myTrade.CheckSpread();
    if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      myPosition.Refresh();
+      myPosition.CloseAllPositions();
       Print("EA stopped because of lower balance or lower margin level  ");
-      ExpertRemove();
+      IsTradable = false;
    }
 }
 //+------------------------------------------------------------------+
