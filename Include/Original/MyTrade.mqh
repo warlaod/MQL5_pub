@@ -22,24 +22,11 @@ class MyTrade: public CTrade {
    double Ask;
    double Bid;
    double balance;
-   double minlot;
-   double maxlot;
-   double ContractSize;
-   double InitialDeposit;
-   int LotDigits;
-   bool isTradable;
-   double StopLossLevel;
+   MySymbolAccount SA;
 
    void MyTrade() {
-      minlot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
-      maxlot = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
-      InitialDeposit = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY), 1);
-      ContractSize = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_CONTRACT_SIZE);
       SetDeviationInPoints(10);
-      LotDigits = -MathLog10(minlot);
-      topips = PriceToPips();
-      lot = NormalizeDouble(Lot, LotDigits);
-      StopLossLevel =  NormalizeDouble(SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL), _Digits);
+      lot = NormalizeDouble(Lot, SA.LotDigits);
       InitializeLot();
    }
 
@@ -152,18 +139,18 @@ class MyTrade: public CTrade {
       // double TradeRisk = MathAbs(SL - Ask) * topips;
       //if(TradeRisk == 0) return false;
       if(!isLotModified) return lot;
-      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / risk, LotDigits);
-      //lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / (ContractSize * TradeRisk), LotDigits);
-      //lot = NormalizeDouble(InitialDeposit / risk / TradeRisk, LotDigits);
-      if(lot < minlot) lot = minlot;
-      else if(lot > maxlot) lot = maxlot;
+      lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) / risk, SA.LotDigits);
+      //lot = NormalizeDouble(AccountInfoDouble(ACCOUNT_EQUITY) * risk / (ContractSize * TradeRisk), SA.LotDigits);
+      //lot = NormalizeDouble(InitialDeposit / risk / TradeRisk, SA.LotDigits);
+      if(lot < SA.MinLot) lot = SA.MinLot;
+      else if(lot > SA.MaxLot) lot = SA.MaxLot;
       return lot;
    }
 
    void InitializeLot() {
-      lot = NormalizeDouble(lot, LotDigits);
-      if(lot < minlot) lot = minlot;
-      else if(lot > maxlot) lot = maxlot;
+      lot = NormalizeDouble(lot, SA.LotDigits);
+      if(lot < SA.MinLot) lot = SA.MinLot;
+      else if(lot > SA.MaxLot) lot = SA.MaxLot;
    }
 };
 
