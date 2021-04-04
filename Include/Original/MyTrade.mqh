@@ -86,8 +86,8 @@ class MyTrade: public CTrade {
       if(isInvalidTrade(SL, TP)) return;
       Buy(ModifiedLot(), NULL, Ask, SL, TP, NULL);
    }
-   
-   void ForceBuy(double SL, double TP,double Selllot) {
+
+   void ForceBuy(double SL, double TP, double Selllot) {
       if(isInvalidTrade(SL, TP)) return;
       Buy(Selllot, NULL, Bid, SL, TP, NULL);
    }
@@ -101,8 +101,8 @@ class MyTrade: public CTrade {
       if(isInvalidTrade(SL, TP)) return;
       Sell(ModifiedLot(), NULL, Bid, SL, TP, NULL);
    }
-   
-   void ForceSell(double SL, double TP,double Selllot) {
+
+   void ForceSell(double SL, double TP, double Selllot) {
       if(isInvalidTrade(SL, TP)) return;
       Sell(Selllot, NULL, Bid, SL, TP, NULL);
    }
@@ -131,6 +131,16 @@ class MyTrade: public CTrade {
    void SellLimit(double Price, double SL, double TP) {
       if(isInvalidLimitTrade(Price, SL, TP)) return;
       SellLimit(ModifiedLot(), Price, _Symbol, SL, TP);
+   }
+
+   bool isEnoughMoneyToTrade(double lot, double priceToOrder, ENUM_ORDER_TYPE type) {
+      double marginToOrder;
+      OrderCalcMargin(type, _Symbol, lot, priceToOrder, marginToOrder);
+      if((SA.equity / (SA.margin + marginToOrder) * 100) < StopMarginLevel) {
+         Print("Not enough money to trade: Margin level can be under ", StopMarginLevel, "%" );
+         return(false);
+      }
+      return(true);
    }
 
  private:

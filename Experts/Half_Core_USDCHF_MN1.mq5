@@ -37,8 +37,6 @@ mis_MarcosTMP atrTimeframe = _M30;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
 bool tradable = false;
-double PriceToPips = PriceToPips();
-double pips = PointToPips();
 
 int ADXPeriod = 2;
 int PriceCount = 4;
@@ -111,7 +109,7 @@ void OnTimer() {
    if(perB < 0.5 - CoreCri) {
       if(isAbleToBuy()) {
          PriceUnit = PriceUnit * HalfTP;
-         bottom = Lowest - SLHalf * pips;
+         bottom = Lowest - SLHalf * pipsToPrice;
          myTrade.ForceBuy(bottom, myTrade.Ask + PriceUnit);
       }
    }
@@ -119,14 +117,14 @@ void OnTimer() {
    else if(perB > 0.5 + CoreCri) {
       if(isAbleToSell()) {
          PriceUnit = PriceUnit * HalfTP;
-         top = Highest + SLHalf * pips;
+         top = Highest + SLHalf * pipsToPrice;
          myTrade.ForceSell(top, myTrade.Bid - PriceUnit);
       }
    }
 
    else if(isBetween(0.5 + CoreCri, perB, 0.5 - CoreCri)) {
-      top = Highest - HLGap * CoreCri  + SLCore * pips;
-      bottom = Lowest + HLGap * CoreCri - SLCore * pips;
+      top = Highest - HLGap * CoreCri  + SLCore * pipsToPrice;
+      bottom = Lowest + HLGap * CoreCri - SLCore * pipsToPrice;
       PriceUnit = PriceUnit * CoreTP;
       if(isAbleToBuy())
          myTrade.ForceBuy(bottom, myTrade.Ask + PriceUnit);
@@ -173,7 +171,7 @@ double OnTester() {
 //+------------------------------------------------------------------+
 void Check() {
    IsTradable = true;
-   if(SymbolAccount.isOberSpread()) IsTradable = false;
+   if(SymbolAccount.isOverSpread()) IsTradable = false;
    if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
       myPosition.Refresh();
       myPosition.CloseAllPositions();
