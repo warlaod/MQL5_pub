@@ -33,6 +33,7 @@ class MyTrade: public CTrade {
    void Refresh() {
       Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
       Ask =  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
+      ModifiedLot();
    }
 
    bool isInvalidTrade(double SL, double TP) {
@@ -79,31 +80,37 @@ class MyTrade: public CTrade {
 
    void Buy(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return;
-      Buy(ModifiedLot(), NULL, Ask, SL, TP, NULL);
+      if(isNotEnoughMoneyToTrade(lot,Ask,ORDER_TYPE_BUY)) return;
+      Buy(lot, NULL, Ask, SL, TP, NULL);
    }
 
    void ForceBuy(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return;
-      Buy(ModifiedLot(), NULL, Ask, SL, TP, NULL);
+      if(isNotEnoughMoneyToTrade(lot,Ask,ORDER_TYPE_BUY)) return;
+      Buy(lot, NULL, Ask, SL, TP, NULL);
    }
 
-   void ForceBuy(double SL, double TP, double Selllot) {
+   void ForceBuy(double SL, double TP, double Buylot) {
       if(isInvalidTrade(SL, TP)) return;
-      Buy(Selllot, NULL, Bid, SL, TP, NULL);
+      if(isNotEnoughMoneyToTrade(lot,Ask,ORDER_TYPE_BUY)) return;
+      Buy(Buylot, NULL, Bid, SL, TP, NULL);
    }
 
    void Sell(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return;
-      Sell(ModifiedLot(), NULL, Bid, SL, TP, NULL);
+      if(isNotEnoughMoneyToTrade(lot,Bid,ORDER_TYPE_SELL)) return;
+      Sell(lot, NULL, Bid, SL, TP, NULL);
    }
 
    void ForceSell(double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return;
-      Sell(ModifiedLot(), NULL, Bid, SL, TP, NULL);
+      if(isNotEnoughMoneyToTrade(lot,Bid,ORDER_TYPE_SELL)) return;
+      Sell(lot, NULL, Bid, SL, TP, NULL);
    }
 
    void ForceSell(double SL, double TP, double Selllot) {
       if(isInvalidTrade(SL, TP)) return;
+      if(isNotEnoughMoneyToTrade(Selllot,Bid,ORDER_TYPE_SELL)) return;
       Sell(Selllot, NULL, Bid, SL, TP, NULL);
    }
 
@@ -115,32 +122,39 @@ class MyTrade: public CTrade {
 
    void BuyStop(double Price, double SL, double TP) {
       if(isInvalidStopTrade(Price, SL, TP)) return;
-      BuyStop(ModifiedLot(), Price, _Symbol, SL, TP);
+      if(isNotEnoughMoneyToTrade(lot,Price,ORDER_TYPE_BUY_STOP)) return;
+      BuyStop(lot, Price, _Symbol, SL, TP);
    }
 
    void SellStop(double Price, double SL, double TP) {
       if(isInvalidStopTrade(Price, SL, TP)) return;
-      SellStop(ModifiedLot(), Price, _Symbol, SL, TP);
+      if(isNotEnoughMoneyToTrade(lot,Price,ORDER_TYPE_SELL_STOP)) return;
+      SellStop(lot, Price, _Symbol, SL, TP);
    }
 
    void BuyLimit(double Price, double SL, double TP) {
       if(isInvalidLimitTrade(Price, SL, TP)) return;
-      BuyLimit(ModifiedLot(), Price, _Symbol, SL, TP);
+      if(isNotEnoughMoneyToTrade(lot,Price,ORDER_TYPE_BUY_LIMIT)) return;
+      BuyLimit(lot, Price, _Symbol, SL, TP);
    }
 
    void SellLimit(double Price, double SL, double TP) {
       if(isInvalidLimitTrade(Price, SL, TP)) return;
-      SellLimit(ModifiedLot(), Price, _Symbol, SL, TP);
+      if(isNotEnoughMoneyToTrade(lot,Price,ORDER_TYPE_SELL_LIMIT)) return;
+      SellLimit(lot, Price, _Symbol, SL, TP);
    }
 
-   bool isEnoughMoneyToTrade(double lot, double priceToOrder, ENUM_ORDER_TYPE type) {
+   bool isNotEnoughMoneyToTrade(double lot, double priceToOrder, ENUM_ORDER_TYPE type) {
       double marginToOrder;
+      SA.Refresh();
       OrderCalcMargin(type, _Symbol, lot, priceToOrder, marginToOrder);
-      if((SA.equity / (SA.margin + marginToOrder) * 100) < StopMarginLevel) {
-         Print("Not enough money to trade: Margin level can be under ", StopMarginLevel, "%" );
-         return(false);
+      double next_margin_level = SA.equity / (SA.margin + marginToOrder+0.001)*100;
+      if(SA.AllowedVolume(lot) < 0) return true;
+      if(next_margin_level < StopMarginLevel) {
+         Print("Order was canceled: Margin level can't be under StopMarginLevel:", StopMarginLevel, "%" );
+         return(true);
       }
-      return(true);
+      return(false);
    }
 
  private:

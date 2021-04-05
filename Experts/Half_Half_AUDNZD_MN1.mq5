@@ -14,6 +14,7 @@
 #include <Original\Oyokawa.mqh>
 #include <Original\MyDate.mqh>
 #include <Original\MyCalculate.mqh>
+#include <Original\MySymbolAccount.mqh>
 #include <Original\MyTest.mqh>
 #include <Original\MyPrice.mqh>
 #include <Original\MyPosition.mqh>
@@ -34,8 +35,6 @@ mis_MarcosTMP timeFrame = _H1;
 mis_MarcosTMP atrTimeframe = _H1;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
-double PriceToPips = PriceToPips();
-double pips = PointToPips();
 
 int ADXPeriod = 18;
 int PriceCount = 24;
@@ -54,6 +53,7 @@ double SLCore = MathPow(2, slCore);
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
+MySymbolAccount SymbolAccount;
 MyDate myDate(Timeframe);
 MyPrice myPrice(PERIOD_MN1);
 MyHistory myHistory(Timeframe);
@@ -127,6 +127,7 @@ void OnTimer() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool isAbleToBuy() {
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) > 99) return false;
    if(ADX.Plus(0) > ADXSubCri && ADX.Plus(0) > ADX.Minus(0)) {
       if(isBetween(ADX.Plus(0), ADX.Plus(1), ADX.Plus(2))) {
          if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit))
@@ -139,6 +140,7 @@ bool isAbleToBuy() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool isAbleToSell() {
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) > 99) return false;
    if(ADX.Minus(0) > ADXSubCri && ADX.Minus(0) > ADX.Plus(0)) {
       if(isBetween(ADX.Minus(0), ADX.Minus(1), ADX.Minus(2))) {
          if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit))
@@ -159,12 +161,11 @@ double OnTester() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   myTrade.CheckSpread();
+   IsTradable = true;
+   if(SymbolAccount.isOverSpread()) IsTradable = false;
    if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
-      myPosition.Refresh();
-      myPosition.CloseAllPositions();
-      Print("EA stopped because of lower balance or lower margin level");
-      ExpertRemove();
+      Print("EA stopped trading because of lower balance or lower margin level  ");
+      IsTradable = false;
    }
 }
 //+------------------------------------------------------------------+

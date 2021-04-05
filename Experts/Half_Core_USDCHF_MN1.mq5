@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link      "https://www.mql5.com"
-#property version   "1.00"
+#property version   "1.01"
 // 252StopLossRangerADX
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -173,9 +173,7 @@ void Check() {
    IsTradable = true;
    if(SymbolAccount.isOverSpread()) IsTradable = false;
    if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
-      myPosition.Refresh();
-      myPosition.CloseAllPositions();
-      Print("EA stopped because of lower balance or lower margin level  ");
+      Print("EA stopped trading because of lower balance or lower margin level  ");
       IsTradable = false;
    }
 }

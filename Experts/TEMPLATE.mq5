@@ -37,8 +37,6 @@ ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES Timeframe2 = defMarcoTiempo(timeFrame2);
 ENUM_TIMEFRAMES Timeframe3 = defMarcoTiempo(timeFrame3);
 bool tradable = false;
-double PriceToPips = PriceToPips();
-double pips = PointToPips();
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -68,7 +66,7 @@ void OnTick() {
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
    if(!IsCurrentTradable || !IsTradable) return;
-   double PriceUnit = pips;
+   double PriceUnit = pipsToPrice;
 
    setSignal(ORDER_TYPE_BUY);
 
@@ -118,12 +116,12 @@ void OnTimer() {
       myOrder.CloseAllOrders();
       IsTradable = false;
    } else if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
-      myPosition.Refresh();
       myOrder.Refresh();
-      myPosition.CloseAllPositions();
       myOrder.CloseAllOrders();
       Print("EA stopped because of lower balance or lower margin level  ");
-      ExpertRemove();
+      IsTradable = false;
+      //myPosition.CloseAllPositions();
+      //myPosition.Refresh();
    }
 }
 //+------------------------------------------------------------------+
