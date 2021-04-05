@@ -31,12 +31,16 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-input int ADXCri;
-input double SellLotDiv;
-input int TPCri;
-input double PriceUnitCri;
-input int PricePeriod, PDev, ADXPeriod, TrailPeriod,SLPeriod,TrailingStart;
-input mis_MarcosTMP timeFrame, trailTimeframe,slTimeframe;
+int ADXCri = 32;
+double SellLotDiv = 1;
+double PriceUnitCri = 4.25;
+int PricePeriod = 5;
+int ADXPeriod = 4;
+int TrailPeriod = 1;
+int SLPeriod = 6;
+mis_MarcosTMP timeFrame = _H8;
+mis_MarcosTMP trailTimeframe = _H1;
+mis_MarcosTMP slTimeframe = _W1;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES TrailTimeframe = defMarcoTiempo(trailTimeframe);
 ENUM_TIMEFRAMES SLTimeframe = defMarcoTiempo(slTimeframe);
@@ -47,7 +51,7 @@ bool tradable = false;
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate(Timeframe);
-MyPrice myPrice(PERIOD_MN1), myTrailPrice(TrailTimeframe),mySLPrice(SLTimeframe);
+MyPrice myPrice(PERIOD_MN1), myTrailPrice(TrailTimeframe), mySLPrice(SLTimeframe);
 MyHistory myHistory(Timeframe);
 MyOrder myOrder(myDate.BarTime);
 CurrencyStrength CS(Timeframe, 1);
@@ -66,7 +70,7 @@ int OnInit() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double PriceUnit = 10*MathPow(2,PriceUnitCri);
+double PriceUnit = 10 * MathPow(2, PriceUnitCri);
 void OnTimer() {
    IsTradable = true;
    if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
@@ -80,15 +84,15 @@ void OnTimer() {
 
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
-   
+
 
    myPosition.Refresh();
-   double TrailLowest = myTrailPrice.Lowest(TrailingStart, TrailPeriod);
-   double TrailHighest = myTrailPrice.Highest(TrailingStart, TrailPeriod);
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest,TPCri);
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest,TPCri);
-   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest,0);
-   myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest,0);
+   double TrailLowest = myTrailPrice.Lowest(0, TrailPeriod);
+   double TrailHighest = myTrailPrice.Highest(0, TrailPeriod);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest, 0);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest, 0);
+   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest, 0);
+   myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest, 0);
 
    Check();
    if(!IsCurrentTradable || !IsTradable) return;
@@ -101,7 +105,7 @@ void OnTimer() {
    if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit)) {
       if(ADX.Minus(0) > 20) {
          if(ADX.Main(0) < ADXCri || !isRising(ADX, 1)) return;
-         myTrade.ForceSell(mySLPrice.Highest(1,SLPeriod), 0, SellLot());
+         myTrade.ForceSell(mySLPrice.Highest(1, SLPeriod), 0, SellLot());
       }
    }
 }
