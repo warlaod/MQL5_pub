@@ -49,6 +49,7 @@ double atrCri = 0;
 double HalfStopCri = 0;
 double CoreTP = 0.8;
 double HalfTP = 2.8;
+input double RangeCri;
 double SLHalf = MathPow(2, slHalf);
 double SLCore = MathPow(2, slCore);
 //+------------------------------------------------------------------+
@@ -68,6 +69,7 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 CiADX ADX;
 CiATR ATR;
+double Range = MathPow(2,RangeCri)*pipsToPrice;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
@@ -80,7 +82,7 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 double PriceUnit;
-void OnTimer() {
+void OnTick() {
    IsCurrentTradable = true;
    Signal = NULL;
    Check();
@@ -88,6 +90,7 @@ void OnTimer() {
 
    ATR.Refresh();
    PriceUnit = ATR.Main(0);
+   if(PriceUnit < Range) PriceUnit = Range;
 
    ADX.Refresh();
    if(ADX.Main(0) < ADXMainCri) return;

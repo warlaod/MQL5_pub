@@ -73,8 +73,8 @@ void OnTick() {
    myPosition.Refresh();
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, myPrice.Lowest(0, SLPeriod));
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, myPrice.Highest(0, SLPeriod));
-   myPosition.Trailings(POSITION_TYPE_BUY, myPrice.Lowest(0, SLPeriod), TrailingTP * pipsToPrice);
-   myPosition.Trailings(POSITION_TYPE_SELL, myPrice.Highest(0, SLPeriod), TrailingTP * pipsToPrice);
+   myPosition.Trailings(POSITION_TYPE_BUY, myPrice.Lowest(0, SLPeriod));
+   myPosition.Trailings(POSITION_TYPE_SELL, myPrice.Highest(0, SLPeriod));
    if(!IsCurrentTradable || !IsTradable) return;
    Signal = -1;
    

@@ -38,9 +38,9 @@ class MyTrade: public CTrade {
 
    bool isInvalidTrade(double SL, double TP) {
       if(TP > SL) {
-         if((TP - Ask) < SA.StopsLevel || (Ask - SL) < SA.StopsLevel) return true;
+         if((TP - Bid) < SA.StopsLevel || (Bid - SL) < SA.StopsLevel) return true;
       } else {
-         if( (Bid - TP) < SA.StopsLevel  || (SL - Bid) < SA.StopsLevel) return true;
+         if( (Ask - TP) < SA.StopsLevel  || (SL - Ask) < SA.StopsLevel) return true;
       }
       return false;
    }

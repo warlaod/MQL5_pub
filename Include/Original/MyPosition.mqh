@@ -74,12 +74,12 @@ class MyPosition: public CPositionInfo {
          itrade.PositionClose(Tickets.At(i));
       }
    }
-   
+
    void CloseAllPositions() {
       for(int i = 0; i < BuyTickets.Total(); i++) {
          itrade.PositionClose(BuyTickets.At(i));
       }
-         for(int i = 0; i < SellTickets.Total(); i++) {
+      for(int i = 0; i < SellTickets.Total(); i++) {
          itrade.PositionClose(SellTickets.At(i));
       }
    }
@@ -145,7 +145,7 @@ class MyPosition: public CPositionInfo {
       }
    }
 
-   void CheckTargetPriceProfitableForTrailings(ENUM_POSITION_TYPE PositionType, double TargetPrice,double TP_Price = 0) {
+   void CheckTargetPriceProfitableForTrailings(ENUM_POSITION_TYPE PositionType, double TargetPrice, double TP_Price = 0) {
       CArrayLong Tickets = (PositionType == POSITION_TYPE_BUY) ? BuyTickets : SellTickets;
       for(int i = 0; i < Tickets.Total(); i++) {
          ulong ticket = Tickets.At(i);
@@ -183,21 +183,24 @@ class MyPosition: public CPositionInfo {
       return -profit;
    }
 
-   void Trailings(ENUM_POSITION_TYPE PositionType, double SL, double TP = 0) {
+   void Trailings(ENUM_POSITION_TYPE PositionType, double SL) {
       CArrayLong Tickets;
-      if(PositionType == POSITION_TYPE_BUY)
-        {
+      myTrade.Refresh();
+      double TP;
+      if(PositionType == POSITION_TYPE_BUY) {
          Tickets = BuyTickets;
-        }else{
+         TP = 100000;
+      } else {
          Tickets = SellTickets;
-         TP = -TP;
-        }
+         TP = 0;
+      }
       for(int i = 0; i < Tickets.Total(); i++) {
          ulong ticket = Tickets.At(i);
          if(!TrailingTickets.ContainsKey(ticket)) continue;
          SelectByTicket(ticket);
          if(MathAbs(StopLoss() - PriceCurrent()) <= MathAbs(SL - PriceCurrent())) continue;
-         itrade.PositionModify(ticket, SL, TakeProfit() + TP );
+         if(myTrade.isInvalidTrade(SL, TP)) continue;
+         itrade.PositionModify(ticket, SL, TP );
       }
    }
 
@@ -216,5 +219,6 @@ class MyPosition: public CPositionInfo {
 
  private:
    CTrade itrade;
+   MyTrade myTrade;
 };
 //+------------------------------------------------------------------+

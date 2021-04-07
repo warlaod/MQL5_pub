@@ -5,7 +5,8 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link      "https://www.mql5.com"
-#property version   "1.00"
+#property version   "1.02"
+// 261NDXRiskHeadger;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -71,17 +72,8 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 double PriceUnit = 10 * MathPow(2, PriceUnitCri);
-void OnTimer() {
-   IsTradable = true;
-   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
-      myPosition.Refresh();
-      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
-      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
-      Print("EA stopped because of lower balance or lower margin level  ");
-      ExpertRemove();
-   }
+void OnTick() {
    IsCurrentTradable = true;
-
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
 
@@ -91,8 +83,8 @@ void OnTimer() {
    double TrailHighest = myTrailPrice.Highest(0, TrailPeriod);
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest, 0);
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest, 0);
-   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest, 0);
-   myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest, 0);
+   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest);
+   myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest);
 
    Check();
    if(!IsCurrentTradable || !IsTradable) return;
@@ -107,6 +99,17 @@ void OnTimer() {
          if(ADX.Main(0) < ADXCri || !isRising(ADX, 1)) return;
          myTrade.ForceSell(mySLPrice.Highest(1, SLPeriod), 0, SellLot());
       }
+   }
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void OnTimer() {
+   IsTradable = true;
+   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      Print("EA stopped trading because of lower balance or lower margin level  ");
+      IsTradable = false;
    }
 }
 //+------------------------------------------------------------------+

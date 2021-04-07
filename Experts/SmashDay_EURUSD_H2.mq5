@@ -6,6 +6,7 @@
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link      "https://www.mql5.com"
 #property version   "1.00"
+// 257HideSmashDay
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -31,15 +32,15 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-input int ADXCri;
-input double SellLotDiv;
-input int TPCri;
-input double PriceUnitCri;
-input int PricePeriod, PDev, ADXPeriod, TrailPeriod,SLPeriod,TrailingStart;
-input mis_MarcosTMP timeFrame, trailTimeframe,slTimeframe;
+double TPCoef = 100;
+int IndPeriod = 17;
+int SLPeriod = 8;
+mis_MarcosTMP timeFrame = _H4;
+mis_MarcosTMP indTimeframe = _H2;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
-ENUM_TIMEFRAMES TrailTimeframe = defMarcoTiempo(trailTimeframe);
-ENUM_TIMEFRAMES SLTimeframe = defMarcoTiempo(slTimeframe);
+ENUM_TIMEFRAMES IndTimeframe = defMarcoTiempo(indTimeframe);
+ENUM_MA_METHOD MAMethod = MODE_SMMA;
+ENUM_APPLIED_PRICE AppliedPrice = PRICE_MEDIAN;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -47,62 +48,84 @@ bool tradable = false;
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate(Timeframe);
-MyPrice myPrice(PERIOD_MN1), myTrailPrice(TrailTimeframe),mySLPrice(SLTimeframe);
+MyPrice myPrice(Timeframe);
 MyHistory myHistory(Timeframe);
-MyOrder myOrder(myDate.BarTime);
-CurrencyStrength CS(Timeframe, 1);
+MyOrder myOrder(myDate.BarTime * 5);
+//+------------------------------------------------------------------+
+//|                                                                  |
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiADX ADX;
-MyChart Chart;
-MySymbolAccount SA;
-int OnInit() {
-   MyUtils myutils(60 * 1);
+CiMA MA;
+int  OnInit() {
+   MyUtils myutils(60 * 50);
    myutils.Init();
-   ADX.Create(_Symbol, Timeframe, 14);
+   myTrade.SetExpertMagicNumber(MagicNumber);
+   MA.Create(_Symbol, IndTimeframe, IndPeriod, 0, MAMethod, AppliedPrice);
    return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double PriceUnit = 10*MathPow(2,PriceUnitCri);
 void OnTick() {
    IsCurrentTradable = true;
-
-   //myOrder.Refresh();
-   //myPosition.CloseAllPositionsInMinute();
-   
-
-   myPosition.Refresh();
-   double TrailLowest = myTrailPrice.Lowest(TrailingStart, TrailPeriod);
-   double TrailHighest = myTrailPrice.Highest(TrailingStart, TrailPeriod);
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest,TPCri);
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest,TPCri);
-   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest);
-   myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest);
-
    Check();
-   if(!IsCurrentTradable || !IsTradable) return;
 
+   //myPosition.CloseAllPositionsInMinute();
+   myPosition.Refresh();
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, myPrice.Lowest(0, SLPeriod));
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, myPrice.Highest(0, SLPeriod));
+   myPosition.Trailings(POSITION_TYPE_BUY, myPrice.Lowest(0, SLPeriod));
+   myPosition.Trailings(POSITION_TYPE_SELL, myPrice.Highest(0, SLPeriod));
+   if(!IsCurrentTradable || !IsTradable) return;
+   Signal = -1;
+
+   myPrice.Refresh(3);
+
+   MA.Refresh();
+   double LastTrend = MA.Main(1) - MA.Main(2);
+   double Trend = MA.Main(0) - MA.Main(1);
+   if(LastTrend < 0 && Trend > 0)
+      setSignal(ORDER_TYPE_BUY);
+   if(LastTrend > 0 && Trend < 0)
+      setSignal(ORDER_TYPE_SELL);
+
+
+   if(Signal == -1) return;
    myTrade.Refresh();
-   if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit)) {
-      myTrade.ForceBuy(0, 100000);
-   }
-   ADX.Refresh();
-   if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit)) {
-      if(ADX.Minus(0) > 20) {
-         if(ADX.Main(0) < ADXCri || !isRising(ADX, 1)) return;
-         myTrade.ForceSell(mySLPrice.Highest(1,SLPeriod), 0, SellLot());
+   myOrder.Refresh();
+   if(Signal == ORDER_TYPE_BUY) {
+      if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
+         if(myPosition.isPositionInRange(POSITION_TYPE_BUY, MathAbs(myPrice.At(2).low - myTrade.Ask))) return;
+         myTrade.BuyStop(myPrice.At(1).high, myPrice.At(2).low, myPrice.At(1).high + TPCoef * pipsToPrice);
+      }
+   } else if(Signal == ORDER_TYPE_SELL) {
+      if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
+         if(myPosition.isPositionInRange(POSITION_TYPE_SELL, MathAbs(myPrice.At(2).high - myTrade.Bid))) return;
+         myTrade.SellStop(myPrice.At(1).low, myPrice.At(2).high, myPrice.At(1).low - TPCoef * pipsToPrice);
       }
    }
 }
-
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 void OnTimer() {
+   myDate.Refresh();
    IsTradable = true;
-   if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
-      Print("EA stopped trading because of lower balance or lower margin level  ");
+   if(myDate.isFridayEnd() || myDate.isYearEnd()) {
+      myPosition.Refresh();
+      myOrder.Refresh();
+      myPosition.CloseAllPositions();
+      myOrder.CloseAllOrders();
       IsTradable = false;
+   } else if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      myPosition.Refresh();
+      myOrder.Refresh();
+      myPosition.CloseAllPositions();
+      myOrder.CloseAllOrders();
+      Print("EA stopped because of lower balance or lower margin level  ");
+      ExpertRemove();
    }
 }
 //+------------------------------------------------------------------+
@@ -110,34 +133,19 @@ void OnTimer() {
 //+------------------------------------------------------------------+
 double OnTester() {
    MyTest myTest;
-   double result =  myTest.min_dd_and_mathsqrt_trades_without_balance();
+   double result =  myTest.min_dd_and_mathsqrt_trades();
    return  result;
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   if(SA.isOverSpread()) IsCurrentTradable = false;
    myDate.Refresh();
-   if(myDate.isMondayStart()) IsCurrentTradable = false;
-}
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-double SellLot() {
-   double lot = 0;
-   for(int i = 0; i < myPosition.BuyTickets.Total(); i++) {
-      myPosition.SelectByTicket(myPosition.BuyTickets.At(i));
-      lot += myPosition.Volume();
-   }
-   for(int i = 0; i < myPosition.SellTickets.Total(); i++) {
-      myPosition.SelectByTicket(myPosition.SellTickets.At(i));
-      lot -= myPosition.Volume();
-   }
-   lot = NormalizeDouble(lot / SellLotDiv, SA.LotDigits);
-   if(lot < SA.MinLot) lot = SA.MinLot;
-   else if(lot > SA.MaxLot) lot = SA.MaxLot;
-   return lot;
+   myHistory.Refresh();
+   if(myDate.isMondayStart() == MONDAY) {
+      IsCurrentTradable = false;
+   } else if(myHistory.wasOrderedInTheSameBar()) {
+      IsCurrentTradable = false;
+   }// else if(SA.isOverSpread()) IsCurrentTradable = false;
 }
 //+------------------------------------------------------------------+
