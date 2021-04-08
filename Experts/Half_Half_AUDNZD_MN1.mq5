@@ -46,6 +46,7 @@ double slHalf = 2.25;
 double slCore = 6.75;
 double CoreTP = 1.4;
 double HalfTP = 4.8;
+double RangeCri = 2.75;
 double SLHalf = MathPow(2, slHalf);
 double SLCore = MathPow(2, slCore);
 //+------------------------------------------------------------------+
@@ -74,14 +75,14 @@ int OnInit() {
 
 
 double PriceUnit;
+double Range = MathPow(2, RangeCri) * pipsToPrice;
 void OnTimer() {
-   IsCurrentTradable = true;
-   Signal = NULL;
    Check();
-   if(!IsCurrentTradable) return;
+   if(!IsTradable) return;
 
    ATR.Refresh();
    PriceUnit = ATR.Main(0);
+   if(PriceUnit < Range) PriceUnit = Range;
 
    ADX.Refresh();
    if(ADX.Main(0) < ADXMainCri) return;
@@ -127,12 +128,16 @@ void OnTimer() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool isAbleToBuy() {
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) > 99) return false;
-   if(ADX.Plus(0) > ADXSubCri && ADX.Plus(0) > ADX.Minus(0)) {
-      if(isBetween(ADX.Plus(0), ADX.Plus(1), ADX.Plus(2))) {
-         if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit))
-            return true;
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < 99) {
+      if(ADX.Plus(0) > ADXSubCri && ADX.Plus(0) > ADX.Minus(0)) {
+         if(isBetween(ADX.Plus(0), ADX.Plus(1), ADX.Plus(2))) {
+            if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit))
+               return true;
+         }
       }
+   }
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) > 60){
+      double bbb = 111;
    }
    return false;
 }
@@ -140,12 +145,16 @@ bool isAbleToBuy() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool isAbleToSell() {
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) > 99) return false;
-   if(ADX.Minus(0) > ADXSubCri && ADX.Minus(0) > ADX.Plus(0)) {
-      if(isBetween(ADX.Minus(0), ADX.Minus(1), ADX.Minus(2))) {
-         if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit))
-            return true;
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < 99) {
+      if(ADX.Minus(0) > ADXSubCri && ADX.Minus(0) > ADX.Plus(0)) {
+         if(isBetween(ADX.Minus(0), ADX.Minus(1), ADX.Minus(2))) {
+            if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit))
+               return true;
+         }
       }
+   }
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) > 60){
+      double aaa = 111;
    }
    return false;
 }

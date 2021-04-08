@@ -49,7 +49,7 @@ double atrCri = 0;
 double HalfStopCri = 0;
 double CoreTP = 0.8;
 double HalfTP = 2.8;
-input double RangeCri;
+double RangeCri = 2.5;
 double SLHalf = MathPow(2, slHalf);
 double SLCore = MathPow(2, slCore);
 //+------------------------------------------------------------------+
@@ -69,7 +69,7 @@ CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 CiADX ADX;
 CiATR ATR;
-double Range = MathPow(2,RangeCri)*pipsToPrice;
+double Range = MathPow(2, RangeCri) * pipsToPrice;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
@@ -82,11 +82,9 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 double PriceUnit;
-void OnTick() {
-   IsCurrentTradable = true;
-   Signal = NULL;
+void OnTimer() {
    Check();
-   if(!IsCurrentTradable || !IsTradable) return;
+   if(!IsTradable) return;
 
    ATR.Refresh();
    PriceUnit = ATR.Main(0);
@@ -141,10 +139,12 @@ void OnTick() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool isAbleToBuy() {
-   if(ADX.Plus(0) > ADXSubCri && ADX.Plus(0) > ADX.Minus(0)) {
-      if(isBetween(ADX.Plus(0), ADX.Plus(1), ADX.Plus(2))) {
-         if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit))
-            return true;
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < 10) {
+      if(ADX.Plus(0) > ADXSubCri && ADX.Plus(0) > ADX.Minus(0)) {
+         if(isBetween(ADX.Plus(0), ADX.Plus(1), ADX.Plus(2))) {
+            if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit))
+               return true;
+         }
       }
    }
    return false;
@@ -153,10 +153,12 @@ bool isAbleToBuy() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool isAbleToSell() {
-   if(ADX.Minus(0) > ADXSubCri && ADX.Minus(0) > ADX.Plus(0)) {
-      if(isBetween(ADX.Minus(0), ADX.Minus(1), ADX.Minus(2))) {
-         if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit))
-            return true;
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < 10) {
+      if(ADX.Minus(0) > ADXSubCri && ADX.Minus(0) > ADX.Plus(0)) {
+         if(isBetween(ADX.Minus(0), ADX.Minus(1), ADX.Minus(2))) {
+            if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit))
+               return true;
+         }
       }
    }
    return false;
