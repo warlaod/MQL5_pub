@@ -32,26 +32,23 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-mis_MarcosTMP timeFrame = _H8;
-mis_MarcosTMP atrTimeframe = _M30;
+input mis_MarcosTMP timeFrame = _H8;
+input mis_MarcosTMP atrTimeframe = _M30;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
 bool tradable = false;
 
-int ADXPeriod = 2;
-int PriceCount = 4;
-double CoreCri = 0.06;
-int ADXMainCri = 6;
-int ADXSubCri = 12;
-double slHalf = 8;
-double slCore = 3.25;
-double atrCri = 0;
-double HalfStopCri = 0;
-double CoreTP = 0.8;
-double HalfTP = 2.8;
-double RangeCri = 2.5;
-double SLHalf = MathPow(2, slHalf);
-double SLCore = MathPow(2, slCore);
+input int PriceCount = 4;
+input double CoreCri = 0.06;
+input int ADXMainCri = 6;
+input double slHalf = 8;
+input double slCore = 3.25;
+input double HalfStopCri = 0;
+input double CoreTP = 0.8;
+input double HalfTP = 2.8;
+input double RangeCri = 2.5;
+double SLHalf = 0.1*MathPow(2, slHalf);
+double SLCore = 0.1*MathPow(2, slCore);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -73,7 +70,7 @@ double Range = MathPow(2, RangeCri) * pipsToPrice;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
-   ADX.Create(_Symbol, Timeframe, ADXPeriod);
+   ADX.Create(_Symbol, Timeframe, 14);
    ATR.Create(_Symbol, ATRTimeframe, 14);
    return(INIT_SUCCEEDED);
 }
@@ -110,7 +107,7 @@ void OnTimer() {
    if(perB < 0.5 - CoreCri) {
       if(isAbleToBuy()) {
          PriceUnit = PriceUnit * HalfTP;
-         bottom = Lowest - SLHalf * pipsToPrice;
+         bottom = Lowest - SLHalf * PriceUnit;
          myTrade.ForceBuy(bottom, myTrade.Ask + PriceUnit);
       }
    }
@@ -118,14 +115,14 @@ void OnTimer() {
    else if(perB > 0.5 + CoreCri) {
       if(isAbleToSell()) {
          PriceUnit = PriceUnit * HalfTP;
-         top = Highest + SLHalf * pipsToPrice;
+         top = Highest + SLHalf * PriceUnit;
          myTrade.ForceSell(top, myTrade.Bid - PriceUnit);
       }
    }
 
    else if(isBetween(0.5 + CoreCri, perB, 0.5 - CoreCri)) {
-      top = Highest - HLGap * CoreCri  + SLCore * pipsToPrice;
-      bottom = Lowest + HLGap * CoreCri - SLCore * pipsToPrice;
+      top = Highest - HLGap * CoreCri  + SLCore * PriceUnit;
+      bottom = Lowest + HLGap * CoreCri - SLCore * PriceUnit;
       PriceUnit = PriceUnit * CoreTP;
       if(isAbleToBuy())
          myTrade.ForceBuy(bottom, myTrade.Ask + PriceUnit);
@@ -139,28 +136,24 @@ void OnTimer() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool isAbleToBuy() {
-   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < 10) {
-      if(ADX.Plus(0) > ADXSubCri && ADX.Plus(0) > ADX.Minus(0)) {
+      if(ADX.Plus(0) > 20 && ADX.Plus(0) > ADX.Minus(0)) {
          if(isBetween(ADX.Plus(0), ADX.Plus(1), ADX.Plus(2))) {
             if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit))
                return true;
          }
       }
-   }
    return false;
 }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool isAbleToSell() {
-   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < 10) {
-      if(ADX.Minus(0) > ADXSubCri && ADX.Minus(0) > ADX.Plus(0)) {
+      if(ADX.Minus(0) > 20 && ADX.Minus(0) > ADX.Plus(0)) {
          if(isBetween(ADX.Minus(0), ADX.Minus(1), ADX.Minus(2))) {
             if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit))
                return true;
          }
       }
-   }
    return false;
 }
 //+------------------------------------------------------------------+
