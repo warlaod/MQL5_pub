@@ -49,10 +49,18 @@ class MyPosition: public CPositionInfo {
    }
 
    bool isPositionInRange( ENUM_POSITION_TYPE PositionType, double Range) {
-      CArrayLong Tickets = (PositionType == POSITION_TYPE_BUY) ? BuyTickets : SellTickets;
+      CArrayLong Tickets;
+      double EntryPrice;
+      if(PositionType == POSITION_TYPE_BUY) {
+         Tickets = BuyTickets;
+         EntryPrice = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
+      } else {
+         Tickets = SellTickets;
+         EntryPrice = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
+      }
       for(int i = 0; i < Tickets.Total(); i++) {
          SelectByTicket(Tickets.At(i));
-         if(MathAbs(CurrentProfit()) < Range) {
+         if(MathAbs(PriceOpen() - EntryPrice) < Range) {
             return true;
          }
       }
