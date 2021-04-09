@@ -32,21 +32,21 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-input mis_MarcosTMP timeFrame = _H8;
-input mis_MarcosTMP atrTimeframe = _M30;
+ mis_MarcosTMP timeFrame = _H8;
+ mis_MarcosTMP atrTimeframe = _M30;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES ATRTimeframe = defMarcoTiempo(atrTimeframe);
 bool tradable = false;
 
-input int PriceCount = 4;
-input double CoreCri = 0.06;
-input int ADXMainCri = 6;
-input double slHalf = 8;
-input double slCore = 3.25;
-input double HalfStopCri = 0;
-input double CoreTP = 0.8;
-input double HalfTP = 2.8;
-input double RangeCri = 2.5;
+ int PriceCount = 4;
+ double CoreCri = 0.1;
+ int ADXMainCri = 26;
+ double slHalf = 7.5;
+ double slCore = 4.75;
+ double HalfStopCri = 0.15;
+ double CoreTP = 0.4;
+ double HalfTP = 3.4;
+ double RangeCri = 1.75;
 double SLHalf = 0.1*MathPow(2, slHalf);
 double SLCore = 0.1*MathPow(2, slCore);
 //+------------------------------------------------------------------+
