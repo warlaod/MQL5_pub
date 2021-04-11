@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link      "https://www.mql5.com"
-#property version   "1.01"
+#property version   "1.03"
 // 252StopLossRangerADX
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |

@@ -200,7 +200,7 @@ class MyPosition: public CPositionInfo {
          TP = 100000;
       } else {
          Tickets = SellTickets;
-         TP = 0;
+         TP = 0.001;
       }
       for(int i = 0; i < Tickets.Total(); i++) {
          ulong ticket = Tickets.At(i);

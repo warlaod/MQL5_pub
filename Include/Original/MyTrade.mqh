@@ -46,12 +46,15 @@ class MyTrade: public CTrade {
    }
 
    bool isInvalidStopTrade(double Price, double SL, double TP) {
+      Price = NormalizeDouble(Price,_Digits);
+      TP = NormalizeDouble(TP,_Digits);
+      SL = NormalizeDouble(SL,_Digits);
       if(TP > SL) {
-         if((Price - Ask) < SA.StopsLevel) return true;
-         if((TP - Price) < SA.StopsLevel || (Price - SL) < SA.StopsLevel) return true;
+         if((Price - Ask) <= SA.StopsLevel) return true;
+         if((TP - Price) <= SA.StopsLevel || (Price - SL) <= SA.StopsLevel) return true;
       } else {
-         if((Bid - Price) < SA.StopsLevel) return true;
-         if( (Price - TP) < SA.StopsLevel  || (SL - Price) < SA.StopsLevel) return true;
+         if((Bid - Price) <= SA.StopsLevel) return true;
+         if( (Price - TP) <= SA.StopsLevel  || (SL - Price) <= SA.StopsLevel) return true;
       }
       return false;
    }

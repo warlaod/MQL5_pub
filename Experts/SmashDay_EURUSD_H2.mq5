@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link      "https://www.mql5.com"
-#property version   "1.00"
+#property version   "1.01"
 // 257HideSmashDay
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -32,25 +32,27 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-double TPCoef = 100;
-int IndPeriod = 17;
-int SLPeriod = 8;
-mis_MarcosTMP timeFrame = _H4;
-mis_MarcosTMP indTimeframe = _H2;
+ double TPCoef = 60;
+ int IndPeriod = 25;
+ int SLPeriod = 1;
+ int OrderPeriod = 18;
+ mis_MarcosTMP timeFrame = _H4;
+ mis_MarcosTMP indTimeframe = _H1;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES IndTimeframe = defMarcoTiempo(indTimeframe);
-ENUM_MA_METHOD MAMethod = MODE_SMMA;
-ENUM_APPLIED_PRICE AppliedPrice = PRICE_MEDIAN;
+ ENUM_MA_METHOD MAMethod = MODE_SMMA;
+ ENUM_APPLIED_PRICE AppliedPrice = PRICE_CLOSE;
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 MyPosition myPosition;
 MyTrade myTrade();
+MySymbolAccount SA;
 MyDate myDate(Timeframe);
 MyPrice myPrice(Timeframe);
 MyHistory myHistory(Timeframe);
-MyOrder myOrder(myDate.BarTime * 5);
+MyOrder myOrder(myDate.BarTime * OrderPeriod);
 //+------------------------------------------------------------------+
 //|                                                                  |
 
@@ -71,6 +73,7 @@ int  OnInit() {
 void OnTick() {
    IsCurrentTradable = true;
    Check();
+   myOrder.Refresh();
 
    //myPosition.CloseAllPositionsInMinute();
    myPosition.Refresh();
@@ -94,7 +97,6 @@ void OnTick() {
 
    if(Signal == -1) return;
    myTrade.Refresh();
-   myOrder.Refresh();
    if(Signal == ORDER_TYPE_BUY) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
          if(myPosition.isPositionInRange(POSITION_TYPE_BUY, MathAbs(myPrice.At(2).low - myTrade.Ask))) return;
@@ -113,6 +115,7 @@ void OnTick() {
 void OnTimer() {
    myDate.Refresh();
    IsTradable = true;
+
    if(myDate.isFridayEnd() || myDate.isYearEnd()) {
       myPosition.Refresh();
       myOrder.Refresh();
@@ -120,12 +123,10 @@ void OnTimer() {
       myOrder.CloseAllOrders();
       IsTradable = false;
    } else if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
-      myPosition.Refresh();
       myOrder.Refresh();
-      myPosition.CloseAllPositions();
       myOrder.CloseAllOrders();
-      Print("EA stopped because of lower balance or lower margin level  ");
-      ExpertRemove();
+      Print("EA stopped trading because of lower balance or lower margin level  ");
+      IsTradable = false;
    }
 }
 //+------------------------------------------------------------------+
@@ -146,6 +147,8 @@ void Check() {
       IsCurrentTradable = false;
    } else if(myHistory.wasOrderedInTheSameBar()) {
       IsCurrentTradable = false;
-   }// else if(SA.isOverSpread()) IsCurrentTradable = false;
+   } else if(SA.isOverSpread()) {
+      IsCurrentTradable = false;
+   }
 }
 //+------------------------------------------------------------------+
