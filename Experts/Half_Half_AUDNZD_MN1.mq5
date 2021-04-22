@@ -66,6 +66,7 @@ CiATR ATR;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
+   myTrade.SetExpertMagicNumber(MagicNumber);
    ADX.Create(_Symbol, Timeframe, 14);
    ATR.Create(_Symbol, ATRTimeframe, 14);
    return(INIT_SUCCEEDED);

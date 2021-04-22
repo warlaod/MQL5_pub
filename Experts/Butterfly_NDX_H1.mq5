@@ -65,6 +65,7 @@ MySymbolAccount SA;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
+   myTrade.SetExpertMagicNumber(MagicNumber);
    ADX.Create(_Symbol, Timeframe, 14);
    return(INIT_SUCCEEDED);
 }
@@ -81,8 +82,8 @@ void OnTick() {
    myPosition.Refresh();
    double TrailLowest = myTrailPrice.Lowest(0, TrailPeriod);
    double TrailHighest = myTrailPrice.Highest(0, TrailPeriod);
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest, 0);
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest, 0);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest, 40*pipsToPrice);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest, 40*pipsToPrice);
    myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest);
    myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest);
 
