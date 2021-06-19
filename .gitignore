@@ -12,6 +12,7 @@
 *.png
 *.html
 *.ex5
+!*LetsReal*
 /Scripts
 /Profiles
 /Include/*
