@@ -31,12 +31,15 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-input int ADXCri;
-input double SellLotDiv;
-input int TPCri;
-input double PriceUnitCri;
-input int PricePeriod, PDev, ADXPeriod, TrailPeriod,SLPeriod,TrailingStart;
-input mis_MarcosTMP timeFrame, trailTimeframe,slTimeframe;
+input int ADXMinusCri,ADXPlusCri;
+input double SellLotDiv = 1;
+input double PriceUnitCri = 4.25;
+input int TrailPeriod = 1;
+input int SLPeriod = 6;
+input int TrailStart = 1;
+input mis_MarcosTMP timeFrame = _H8;
+input mis_MarcosTMP trailTimeframe = _H1;
+input mis_MarcosTMP slTimeframe = _W1;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES TrailTimeframe = defMarcoTiempo(trailTimeframe);
 ENUM_TIMEFRAMES SLTimeframe = defMarcoTiempo(slTimeframe);
@@ -47,7 +50,7 @@ bool tradable = false;
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate(Timeframe);
-MyPrice myPrice(PERIOD_MN1), myTrailPrice(TrailTimeframe),mySLPrice(SLTimeframe);
+MyPrice myPrice(PERIOD_MN1), myTrailPrice(TrailTimeframe), mySLPrice(SLTimeframe);
 MyHistory myHistory(Timeframe);
 MyOrder myOrder(myDate.BarTime);
 CurrencyStrength CS(Timeframe, 1);
@@ -66,19 +69,19 @@ int OnInit() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double PriceUnit = 10*MathPow(2,PriceUnitCri);
+double PriceUnit = 10 * MathPow(2, PriceUnitCri);
 void OnTick() {
    IsCurrentTradable = true;
 
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
-   
+
 
    myPosition.Refresh();
-   double TrailLowest = myTrailPrice.Lowest(TrailingStart, TrailPeriod);
-   double TrailHighest = myTrailPrice.Highest(TrailingStart, TrailPeriod);
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest,TPCri);
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest,TPCri);
+   double TrailLowest = myTrailPrice.Lowest(TrailStart, TrailPeriod);
+   double TrailHighest = myTrailPrice.Highest(TrailStart, TrailPeriod);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest, 40 * pipsToPrice);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest, 40 * pipsToPrice);
    myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest);
    myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest);
 
@@ -92,12 +95,21 @@ void OnTick() {
    ADX.Refresh();
    if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit)) {
       if(ADX.Minus(0) > 20) {
-         if(ADX.Main(0) < ADXCri || !isRising(ADX, 1)) return;
-         myTrade.ForceSell(mySLPrice.Highest(1,SLPeriod), 0, SellLot());
+         if(ADX.Main(0) < ADXMinusCri || !isRising(ADX, 2)) return;
+         myTrade.ForceSell(mySLPrice.Highest(1, SLPeriod), 0, SellLot());
+      }
+   }
+   if(BuyLot() != 0) {
+      if(ADX.Plus(0) > 20) {
+         if(ADX.Main(0) < ADXPlusCri || !isRising(ADX, 1)) return;
+         myTrade.ForceBuy(0, 100000, BuyLot());
       }
    }
 }
 
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 void OnTimer() {
    IsTradable = true;
    if(myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
@@ -137,6 +149,25 @@ double SellLot() {
    }
    lot = NormalizeDouble(lot / SellLotDiv, SA.LotDigits);
    if(lot < SA.MinLot) lot = SA.MinLot;
+   else if(lot > SA.MaxLot) lot = SA.MaxLot;
+   return lot;
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double BuyLot() {
+   double lot = 0;
+   for(int i = 0; i < myPosition.SellTickets.Total(); i++) {
+      myPosition.SelectByTicket(myPosition.SellTickets.At(i));
+      lot += myPosition.Volume();
+   }
+   for(int i = 0; i < myPosition.BuyTickets.Total(); i++) {
+      myPosition.SelectByTicket(myPosition.BuyTickets.At(i));
+      lot -= myPosition.Volume();
+   }
+   lot = NormalizeDouble(lot / SellLotDiv, SA.LotDigits);
+   if(lot < SA.MinLot) lot = 0;
    else if(lot > SA.MaxLot) lot = SA.MaxLot;
    return lot;
 }

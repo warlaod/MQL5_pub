@@ -35,7 +35,6 @@
 int ADXCri = 32;
 double SellLotDiv = 1;
 double PriceUnitCri = 4.25;
-int PricePeriod = 5;
 int ADXPeriod = 4;
 int TrailPeriod = 1;
 int SLPeriod = 6;
