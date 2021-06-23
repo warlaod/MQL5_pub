@@ -5,8 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2020, MetaQuotes Software Corp."
 #property link      "https://www.mql5.com"
-#property version   "1.03"
-// 261NDXRiskHeadger;
+#property version   "1.00"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -32,15 +31,16 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-int ADXCri = 32;
+int ADXMinusCri = 32;
+int ADXPlusCri = 4;
 double SellLotDiv = 1;
-double PriceUnitCri = 4.25;
-int ADXPeriod = 4;
+double PriceUnitCri = 6.75;
 int TrailPeriod = 1;
-int SLPeriod = 6;
+int SLPeriod = 22;
+int TrailStart = 0;
 mis_MarcosTMP timeFrame = _H8;
 mis_MarcosTMP trailTimeframe = _H1;
-mis_MarcosTMP slTimeframe = _W1;
+mis_MarcosTMP slTimeframe = _H4;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES TrailTimeframe = defMarcoTiempo(trailTimeframe);
 ENUM_TIMEFRAMES SLTimeframe = defMarcoTiempo(slTimeframe);
@@ -64,7 +64,6 @@ MySymbolAccount SA;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
-   myTrade.SetExpertMagicNumber(MagicNumber);
    ADX.Create(_Symbol, Timeframe, 14);
    return(INIT_SUCCEEDED);
 }
@@ -74,15 +73,16 @@ int OnInit() {
 double PriceUnit = 10 * MathPow(2, PriceUnitCri);
 void OnTick() {
    IsCurrentTradable = true;
+
    //myOrder.Refresh();
    //myPosition.CloseAllPositionsInMinute();
 
 
    myPosition.Refresh();
-   double TrailLowest = myTrailPrice.Lowest(0, TrailPeriod);
-   double TrailHighest = myTrailPrice.Highest(0, TrailPeriod);
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest, 40*pipsToPrice);
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest, 40*pipsToPrice);
+   double TrailLowest = myTrailPrice.Lowest(TrailStart, TrailPeriod);
+   double TrailHighest = myTrailPrice.Highest(TrailStart, TrailPeriod);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest, 40 * pipsToPrice);
+   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest, 40 * pipsToPrice);
    myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest);
    myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest);
 
@@ -96,8 +96,14 @@ void OnTick() {
    ADX.Refresh();
    if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit)) {
       if(ADX.Minus(0) > 20) {
-         if(ADX.Main(0) < ADXCri || !isRising(ADX, 1)) return;
+         if(ADX.Main(0) < ADXMinusCri || !isRising(ADX, 2)) return;
          myTrade.ForceSell(mySLPrice.Highest(1, SLPeriod), 0, SellLot());
+      }
+   }
+   if(BuyLot() != 0) {
+      if(ADX.Plus(0) > 20) {
+         if(ADX.Main(0) < ADXPlusCri || !isRising(ADX, 1)) return;
+         myTrade.ForceBuy(0, 100000, BuyLot());
       }
    }
 }
@@ -144,6 +150,25 @@ double SellLot() {
    }
    lot = NormalizeDouble(lot / SellLotDiv, SA.LotDigits);
    if(lot < SA.MinLot) lot = SA.MinLot;
+   else if(lot > SA.MaxLot) lot = SA.MaxLot;
+   return lot;
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double BuyLot() {
+   double lot = 0;
+   for(int i = 0; i < myPosition.SellTickets.Total(); i++) {
+      myPosition.SelectByTicket(myPosition.SellTickets.At(i));
+      lot += myPosition.Volume();
+   }
+   for(int i = 0; i < myPosition.BuyTickets.Total(); i++) {
+      myPosition.SelectByTicket(myPosition.BuyTickets.At(i));
+      lot -= myPosition.Volume();
+   }
+   lot = NormalizeDouble(lot / SellLotDiv, SA.LotDigits);
+   if(lot < SA.MinLot) lot = 0;
    else if(lot > SA.MaxLot) lot = SA.MaxLot;
    return lot;
 }
