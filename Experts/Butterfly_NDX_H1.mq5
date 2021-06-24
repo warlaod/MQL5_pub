@@ -31,9 +31,9 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-int ADXMinusCri = 32;
+int ADXMinusCri = 26;
 int ADXPlusCri = 4;
-double SellLotDiv = 1;
+double SellLotDiv = 0.9;
 double PriceUnitCri = 6.75;
 int TrailPeriod = 1;
 int SLPeriod = 22;
@@ -64,7 +64,7 @@ MySymbolAccount SA;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
-   ADX.Create(_Symbol, Timeframe, 14);
+   ADX.Create(_Symbol, Timeframe, 18);
    return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+

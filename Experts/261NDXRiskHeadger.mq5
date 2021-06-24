@@ -36,6 +36,7 @@ input double SellLotDiv = 1;
 input double PriceUnitCri = 4.25;
 input int TrailPeriod = 1;
 input int SLPeriod = 6;
+input int ADXPeriod;
 input int TrailStart = 1;
 input mis_MarcosTMP timeFrame = _H8;
 input mis_MarcosTMP trailTimeframe = _H1;
@@ -63,7 +64,7 @@ MySymbolAccount SA;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
-   ADX.Create(_Symbol, Timeframe, 14);
+   ADX.Create(_Symbol, Timeframe, ADXPeriod);
    return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
