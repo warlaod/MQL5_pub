@@ -33,6 +33,7 @@
 
 input double SLCoef, TPCoef;
 input int IndPeriod, SLPeriod, TrailingTP;
+input int OrderPeriod;
 input mis_MarcosTMP timeFrame, indTimeframe;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES IndTimeframe = defMarcoTiempo(indTimeframe);
@@ -47,7 +48,7 @@ MyTrade myTrade();
 MyDate myDate(Timeframe);
 MyPrice myPrice(Timeframe);
 MyHistory myHistory(Timeframe);
-MyOrder myOrder(myDate.BarTime * 5);
+MyOrder myOrder(myDate.BarTime * OrderPeriod);
 //+------------------------------------------------------------------+
 //|                                                                  |
 
@@ -95,11 +96,13 @@ void OnTick() {
    if(Signal == ORDER_TYPE_BUY) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_BUY) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
          if(myPosition.isPositionInRange(POSITION_TYPE_BUY, MathAbs(myPrice.At(2).low - myTrade.Ask))) return;
+         myOrder.CloseAllOrders();
          myTrade.BuyStop(myPrice.At(1).high, myPrice.At(2).low, myPrice.At(1).high + TPCoef * pipsToPrice);
       }
    } else if(Signal == ORDER_TYPE_SELL) {
       if(myOrder.TotalEachOrders(ORDER_TYPE_SELL) < 1 && myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
          if(myPosition.isPositionInRange(POSITION_TYPE_SELL, MathAbs(myPrice.At(2).high - myTrade.Bid))) return;
+         myOrder.CloseAllOrders();
          myTrade.SellStop(myPrice.At(1).low, myPrice.At(2).high, myPrice.At(1).low - TPCoef * pipsToPrice);
       }
    }
