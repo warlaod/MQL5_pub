@@ -96,7 +96,7 @@ class MyTrade: public CTrade {
    void ForceBuy(double SL, double TP, double Buylot) {
       if(isInvalidTrade(SL, TP)) return;
       if(isNotEnoughMoneyToTrade(lot,Ask,ORDER_TYPE_BUY)) return;
-      Buy(Buylot, NULL, Bid, SL, TP, NULL);
+      Buy(Buylot, NULL, Ask, SL, TP, NULL);
    }
 
    void Sell(double SL, double TP) {
