@@ -64,7 +64,8 @@ MySymbolAccount SA;
 int OnInit() {
    MyUtils myutils(60 * 1);
    myutils.Init();
-   ADX.Create(_Symbol, Timeframe, ADXPeriod);
+   myTrade.SetExpertMagicNumber(MagicNumber);
+   ADX.Create(_Symbol, Timeframe, 18);
    return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
@@ -167,7 +168,7 @@ double BuyLot() {
       myPosition.SelectByTicket(myPosition.BuyTickets.At(i));
       lot -= myPosition.Volume();
    }
-   lot = NormalizeDouble(lot / SellLotDiv, SA.LotDigits);
+   lot = NormalizeDouble(lot, SA.LotDigits);
    if(lot < SA.MinLot) lot = 0;
    else if(lot > SA.MaxLot) lot = SA.MaxLot;
    return lot;
