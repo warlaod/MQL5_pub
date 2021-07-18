@@ -31,7 +31,7 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-input int StoBuyCri,StoSellCri;
+input int StoBuyCri, StoSellCri;
 input double SellLotDiv = 1;
 input double buyTP = 4.25;
 input int TrailPeriod = 1;
@@ -89,22 +89,22 @@ void OnTick()
 
    myTrade.Refresh();
 
-   //double Min;
-   //int TicketTotal = myPosition.BuyTickets.Total();
-   //for(int i = 0; i < TicketTotal; i++)
-   //  {
-   //   myPosition.SelectByTicket(myPosition.BuyTickets.At(i));
-   //   double OpenPrice = myPosition.PriceOpen();
-   //   if(i == 0)
-   //     {
-   //      Min = OpenPrice;
-   //     }
-   //   else
-   //     {
-   //      if(Min > OpenPrice)
-   //         Min = OpenPrice;
-   //     }
-   //  }
+//double Min;
+//int TicketTotal = myPosition.BuyTickets.Total();
+//for(int i = 0; i < TicketTotal; i++)
+//  {
+//   myPosition.SelectByTicket(myPosition.BuyTickets.At(i));
+//   double OpenPrice = myPosition.PriceOpen();
+//   if(i == 0)
+//     {
+//      Min = OpenPrice;
+//     }
+//   else
+//     {
+//      if(Min > OpenPrice)
+//         Min = OpenPrice;
+//     }
+//  }
 
    Sto.Refresh();
    if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, BuyTP))
@@ -115,13 +115,16 @@ void OnTick()
             myTrade.ForceBuy(0, myTrade.Ask + BuyTP);
         }
      }
-     
-     if(isDeadCross(Sto, 1))
-        {
-         if(Sto.Signal(1) > StoSellCri)
-            myTrade.ForceSell(myTrade.Bid + BuyTP, 0,SellLot());
-        }
-}
+
+   if(isDeadCross(Sto, 1))
+     {
+      if(Sto.Signal(1) > StoSellCri)
+         if(SellLot() != 0)
+           {
+            myTrade.ForceSell(myTrade.Bid + BuyTP, 0, SellLot());
+           }
+     }
+  }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
