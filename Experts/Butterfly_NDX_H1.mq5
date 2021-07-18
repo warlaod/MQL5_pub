@@ -91,6 +91,7 @@ void OnTick() {
    if(!IsCurrentTradable || !IsTradable) return;
 
    myTrade.Refresh();
+   myPosition.Refresh();
    if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit)) {
       myTrade.ForceBuy(0, 100000);
    }
@@ -101,6 +102,7 @@ void OnTick() {
          myTrade.ForceSell(mySLPrice.Highest(1, SLPeriod), 0, SellLot());
       }
    }
+   myPosition.Refresh();
    if(BuyLot() != 0) {
       if(ADX.Plus(0) > 20) {
          if(ADX.Main(0) < ADXPlusCri || !isRising(ADX, 1)) return;

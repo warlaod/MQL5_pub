@@ -35,6 +35,8 @@ class MyHistory: public CHistoryOrderInfo {
 
    bool wasOrderedInTheSameBar() {
       SelectByIndex(HistoryOrdersTotal() - 1);
+      double timedone = TimeDone();
+      int bars = Bars(_Symbol, Timeframe, TimeDone(), current) == 0;
       if( Bars(_Symbol, Timeframe, TimeDone(), current) == 0)
          return true;
       return false;

@@ -31,19 +31,16 @@
 #include <Trade\PositionInfo.mqh>
 #include <ChartObjects\ChartObjectsLines.mqh>
 
-input int ADXMinusCri, ADXPlusCri;
+input int StoBuyCri,StoSellCri;
 input double SellLotDiv = 1;
-input double PriceUnitCri = 4.25;
+input double buyTP = 4.25;
 input int TrailPeriod = 1;
-input int SLPeriod = 6;
-input int ADXPeriod;
+input int k;
 input int TrailStart = 1;
 input mis_MarcosTMP timeFrame = _H8;
 input mis_MarcosTMP trailTimeframe = _H1;
-input mis_MarcosTMP slTimeframe = _W1;
 ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
 ENUM_TIMEFRAMES TrailTimeframe = defMarcoTiempo(trailTimeframe);
-ENUM_TIMEFRAMES SLTimeframe = defMarcoTiempo(slTimeframe);
 bool tradable = false;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -51,28 +48,28 @@ bool tradable = false;
 MyPosition myPosition;
 MyTrade myTrade();
 MyDate myDate(Timeframe);
-MyPrice myPrice(PERIOD_MN1), myTrailPrice(TrailTimeframe), mySLPrice(SLTimeframe);
+MyPrice myPrice(PERIOD_MN1), myTrailPrice(TrailTimeframe);
 MyHistory myHistory(Timeframe);
 MyOrder myOrder(myDate.BarTime);
 CurrencyStrength CS(Timeframe, 1);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiADX ADX;
-MyChart Chart;
+CiStochastic Sto;
 MySymbolAccount SA;
+CArrayDouble OpenPrices;
 int OnInit()
   {
    MyUtils myutils(60 * 1);
    myutils.Init();
    myTrade.SetExpertMagicNumber(MagicNumber);
-   ADX.Create(_Symbol, Timeframe, 18);
+   Sto.Create(_Symbol, Timeframe, k, 3, 3, MODE_EMA, STO_LOWHIGH);
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double PriceUnit = 10 * MathPow(2, PriceUnitCri);
+double BuyTP = 10 * MathPow(2, buyTP);
 void OnTick()
   {
    IsCurrentTradable = true;
@@ -82,11 +79,8 @@ void OnTick()
 
 
    myPosition.Refresh();
-   double TrailLowest = myTrailPrice.Lowest(TrailStart, TrailPeriod);
    double TrailHighest = myTrailPrice.Highest(TrailStart, TrailPeriod);
-   myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_BUY, TrailLowest, 40 * pipsToPrice);
    myPosition.CheckTargetPriceProfitableForTrailings(POSITION_TYPE_SELL, TrailHighest, 40 * pipsToPrice);
-   myPosition.Trailings(POSITION_TYPE_BUY, TrailLowest);
    myPosition.Trailings(POSITION_TYPE_SELL, TrailHighest);
 
    Check();
@@ -94,30 +88,40 @@ void OnTick()
       return;
 
    myTrade.Refresh();
-   if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, PriceUnit))
+
+   //double Min;
+   //int TicketTotal = myPosition.BuyTickets.Total();
+   //for(int i = 0; i < TicketTotal; i++)
+   //  {
+   //   myPosition.SelectByTicket(myPosition.BuyTickets.At(i));
+   //   double OpenPrice = myPosition.PriceOpen();
+   //   if(i == 0)
+   //     {
+   //      Min = OpenPrice;
+   //     }
+   //   else
+   //     {
+   //      if(Min > OpenPrice)
+   //         Min = OpenPrice;
+   //     }
+   //  }
+
+   Sto.Refresh();
+   if(!myPosition.isPositionInRange(POSITION_TYPE_BUY, BuyTP))
      {
-      myTrade.ForceBuy(0, 100000);
-     }
-   ADX.Refresh();
-   if(!myPosition.isPositionInRange(POSITION_TYPE_SELL, PriceUnit))
-     {
-      if(ADX.Minus(0) > 20)
+      if(isGoldenCross(Sto, 1))
         {
-         if(ADX.Main(0) < ADXMinusCri || !isRising(ADX, 2))
-            return;
-         myTrade.ForceSell(mySLPrice.Highest(1, SLPeriod), 0, SellLot());
+         if(Sto.Signal(1) < StoBuyCri)
+            myTrade.ForceBuy(0, myTrade.Ask + BuyTP);
         }
      }
-   if(BuyLot() != 0)
-     {
-      if(ADX.Plus(0) > 20)
+     
+     if(isDeadCross(Sto, 1))
         {
-         if(ADX.Main(0) < ADXPlusCri || !isRising(ADX, 1))
-            return;
-         myTrade.ForceBuy(0, 100000, BuyLot());
+         if(Sto.Signal(1) > StoSellCri)
+            myTrade.ForceSell(myTrade.Bid + BuyTP, 0,SellLot());
         }
-     }
-  }
+}
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -151,6 +155,7 @@ void Check()
    if(myDate.isMondayStart())
       IsCurrentTradable = false;
   }
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -168,8 +173,8 @@ double SellLot()
       lot -= myPosition.Volume();
      }
    lot = NormalizeDouble(lot / SellLotDiv, SA.LotDigits);
-   if(lot < SA.MinLot)
-      lot = SA.MinLot;
+   if(lot < SA.MinLot || lot < 0.1)
+      lot = 0;
    else
       if(lot > SA.MaxLot)
          lot = SA.MaxLot;
@@ -200,6 +205,4 @@ double BuyLot()
          lot = SA.MaxLot;
    return lot;
   }
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+
