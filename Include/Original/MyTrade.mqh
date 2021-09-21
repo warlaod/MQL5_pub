@@ -119,7 +119,7 @@ class MyTrade: public CTrade {
 
    bool PositionModify(ulong ticket, double SL, double TP) {
       if(isInvalidTrade(SL, TP)) return false;
-      if(PositionModify(ticket, SL, TP)) return true;
+      if(CTrade::PositionModify(ticket, SL, TP)) return true;
       return false;
    }
 
