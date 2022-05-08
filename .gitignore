@@ -15,5 +15,6 @@
 !*LetsReal*
 /Scripts
 /Profiles
-/Include/*
+/include/*
+!/include/MyPkg
 !Original

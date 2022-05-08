@@ -28,7 +28,7 @@ class MyTrade: public CTrade {
       SetDeviationInPoints(10);
       lot = NormalizeDouble(Lot, SA.LotDigits);
       InitializeLot();
-   }
+   }.
 
    void Refresh() {
       Bid = NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
