@@ -4,7 +4,10 @@
 //|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
 #include <Trade\Trade.mqh>
-
+#include <MyPkg\Trade\TradeValidation.mqh>
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 class Trade: public CTrade {
  public:
    void Trade(ulong magicNumber) {
@@ -12,7 +15,13 @@ class Trade: public CTrade {
       SetDeviationInPoints(10);
    };
 
-   bool CheckStopLoss_TakeProfit(ENUM_ORDER_TYPE type, double openPrice, double sl, double tp) {
+   void PositionOpen( ENUM_ORDER_TYPE type, double lot, double openPrice, double sl, double tp) {
+      if(!CheckPosition_StopLoss_TakeProfit(type, openPrice, sl, tp)) return;
+      CTrade::PositionOpen(_Symbol, type, lot, openPrice, sl, tp);
+   }
+
+   // prevent invalid stoploss error;
+   bool CheckPosition_StopLoss_TakeProfit(ENUM_ORDER_TYPE type, double openPrice, double sl, double tp) {
 //--- get the SYMBOL_TRADE_STOPS_LEVEL level
       int stopLevel = (int)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL);
       bool slCheck = false, tpCheck = false;
@@ -32,7 +41,8 @@ class Trade: public CTrade {
       }
       return(slCheck && tpCheck);
    }
-
+   
+   // prevent invalid stoploss error;
    bool CheckOrder_StopLoss_TakeProfit(ENUM_ORDER_TYPE type, double bidOrAsk, double openPrice, double sl, double tp) {
       int freezeLevel = (int)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_FREEZE_LEVEL);
       bool check = false;
