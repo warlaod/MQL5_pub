@@ -10,8 +10,9 @@
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 
-#include <MyPkg\Trade.mqh>
+#include <MyPkg\Trade\Trade.mqh>
 #include <MyPkg\Price.mqh>
+#include <MyPkg\Position\PositionStore.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -21,18 +22,21 @@
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
 
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 Trade trade(magicNumber);
 Price price(PERIOD_D1);
-CiStochastic Sto;
+CiAlligator Allig;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
-   
-   Sto.Create(_Symbol,PERIOD_D1,5,3,3,MODE_LWMA,STO_LOWHIGH);
-   Sto.BufferResize(3); // How many data should be referenced and updated
-   
+
+   Allig.Create(_Symbol, PERIOD_H1, 13, 8, 8, 5, 5, 3, MODE_LWMA, PRICE_CLOSE);
+   Allig.BufferResize(3); // How many data should be referenced and updated
+
    return(INIT_SUCCEEDED);
 }
 
@@ -40,11 +44,33 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   Sto.Refresh();
-   double main = Sto.Main(1);
-   double nex = Sto.Main(2);
-  
-   
+   Allig.Refresh();
+
+   ENUM_ORDER_TYPE order = ORDER_TYPE_BUY;
+   for(int i = -3; i < -1; i++) {
+      if(!(Allig.Jaw(i) > Allig.Teeth(i) && Allig.Teeth(i) > Allig.Lips(i))) {
+         order = NULL;
+         break;
+      }
+   }
+
+   if(order == ORDER_TYPE_BUY) {
+      double ask = price.Ask();
+      tradeRequest tR = {0.1, ORDER_TYPE_BUY, ask, ask - 100 * _Point, ask + 100 * _Point};
+      trade.PositionOpen(tR);
+   }
+
+   double one = Allig.Lips(-1);
+   double two = Allig.Lips(-2);
+   double three = Allig.Lips(-3);
+
+
+   PositionStore pS(magicNumber);
+
+
+
+
+
 //---
 
 }

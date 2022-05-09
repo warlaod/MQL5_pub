@@ -5,68 +5,23 @@
 //+------------------------------------------------------------------+
 #include <Trade\Trade.mqh>
 #include <MyPkg\Trade\TradeValidation.mqh>
+#include <MyPkg\Trade\TradeRequest.mqh>
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 class Trade: public CTrade {
  public:
+   TradeValidation validation;
+   
    void Trade(ulong magicNumber) {
       this.SetExpertMagicNumber(magicNumber);
       SetDeviationInPoints(10);
    };
 
-   void PositionOpen( ENUM_ORDER_TYPE type, double lot, double openPrice, double sl, double tp) {
-      if(!CheckPosition_StopLoss_TakeProfit(type, openPrice, sl, tp)) return;
-      CTrade::PositionOpen(_Symbol, type, lot, openPrice, sl, tp);
+   void PositionOpen(tradeRequest &tR) {
+      if(!validation.Check(tR)) return;
+      CTrade::PositionOpen(_Symbol, tR.type, tR.volume, tR.openPrice, tR.sl, tR.tp);
    }
-
-   // prevent invalid stoploss error;
-   bool CheckPosition_StopLoss_TakeProfit(ENUM_ORDER_TYPE type, double openPrice, double sl, double tp) {
-//--- get the SYMBOL_TRADE_STOPS_LEVEL level
-      int stopLevel = (int)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL);
-      bool slCheck = false, tpCheck = false;
-      switch(type) {
-      //--- Buy operation
-      case ORDER_TYPE_BUY: {
-         slCheck = (openPrice - sl > stopLevel * _Point);
-         tpCheck = (tp - openPrice > stopLevel * _Point);
-         break;
-      }
-      //--- Sell operation
-      case ORDER_TYPE_SELL: {
-         slCheck = (sl - openPrice > stopLevel * _Point);
-         tpCheck = (openPrice - tp > stopLevel * _Point);
-         break;
-      }
-      }
-      return(slCheck && tpCheck);
-   }
-   
-   // prevent invalid stoploss error;
-   bool CheckOrder_StopLoss_TakeProfit(ENUM_ORDER_TYPE type, double bidOrAsk, double openPrice, double sl, double tp) {
-      int freezeLevel = (int)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_FREEZE_LEVEL);
-      bool check = false;
-      switch(type) {
-      case  ORDER_TYPE_BUY_LIMIT: {
-         //--- check the distance from the bidOrAsk to the open price
-         check = ((bidOrAsk - openPrice) > freezeLevel * _Point);
-         break;
-      }
-      case  ORDER_TYPE_SELL_LIMIT: {
-         check = ((openPrice - bidOrAsk) > freezeLevel * _Point);
-         break;
-      }
-      case  ORDER_TYPE_BUY_STOP: {
-         check = ((openPrice - bidOrAsk) > freezeLevel * _Point);
-         break;
-      }
-      case  ORDER_TYPE_SELL_STOP: {
-         check = ((bidOrAsk - openPrice) > freezeLevel * _Point);
-         break;
-      }
-      }
-      return check;
-   };
 };
 //+------------------------------------------------------------------+
 
