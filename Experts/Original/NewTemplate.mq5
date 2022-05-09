@@ -56,7 +56,7 @@ void OnTick() {
 
    if(order == ORDER_TYPE_BUY) {
       double ask = price.Ask();
-      tradeRequest tR = {0.1, ORDER_TYPE_BUY, ask, ask - 100 * _Point, ask + 100 * _Point};
+      tradeRequest tR = {magicNumber, 0.1, ORDER_TYPE_BUY, ask, ask - 100 * _Point, ask + 100 * _Point};
       trade.PositionOpen(tR);
    }
 
