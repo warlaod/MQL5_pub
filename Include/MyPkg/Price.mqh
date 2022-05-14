@@ -28,14 +28,6 @@ class Price {
       return low[ArrayMinimum(low, 0, end)];
    }
 
-   double Ask() {
-      return  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
-   }
-
-   double Bid() {
-      return NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
-   }
-
  private:
    MqlRates price[];
    double high[];

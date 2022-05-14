@@ -6,6 +6,7 @@
 #include <Trade\Trade.mqh>
 #include <MyPkg\Trade\TradeValidation.mqh>
 #include <MyPkg\Trade\TradeRequest.mqh>
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
