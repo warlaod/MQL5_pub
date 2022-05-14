@@ -44,21 +44,17 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
+   if(!CheckMarketOpen()) {
+      return;
+   }
    Allig.Refresh();
 
-   ENUM_ORDER_TYPE order = ORDER_TYPE_BUY;
-   for(int i = -3; i < -1; i++) {
-      if(!(Allig.Jaw(i) > Allig.Teeth(i) && Allig.Teeth(i) > Allig.Lips(i))) {
-         order = NULL;
-         break;
-      }
-   }
-
-   if(order == ORDER_TYPE_BUY) {
-      double ask = price.Ask();
-      tradeRequest tR = {magicNumber, 0.1, ORDER_TYPE_BUY, ask, ask - 100 * _Point, ask + 100 * _Point};
-      trade.PositionOpen(tR);
-   }
+   double ask = Ask();
+   double bid = Bid();
+   tradeRequest tR1 = {magicNumber,PERIOD_D1, 0.1, ORDER_TYPE_BUY, ask, ask - 100 * _Point, ask + 100 * _Point};
+   trade.PositionOpen(tR1);
+   tradeRequest tR2 = {magicNumber,PERIOD_D1, 0.1, ORDER_TYPE_SELL, bid, bid + 100 * _Point, bid - 100 * _Point};
+   trade.PositionOpen(tR2);
 
    double one = Allig.Lips(-1);
    double two = Allig.Lips(-2);
