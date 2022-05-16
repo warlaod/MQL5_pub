@@ -15,7 +15,7 @@ double Bid() {
    return NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
 }
 //+------------------------------------------------------------------+
-bool isNewBarOpened(ENUM_TIMEFRAMES tf) {
+bool CheckNewBarOpen(ENUM_TIMEFRAMES tf) {
    static datetime time = 0;
    if(iTime(_Symbol, tf, 0) != time) {
       time = iTime(_Symbol, tf, 0);

@@ -30,8 +30,14 @@ class Volume: public CMoneyFixedRisk {
       }
 
       double loss = -m_account.OrderProfitCheck(m_symbol.Name(), type, 1.0, tR.openPrice, tR.sl);
+      if(loss == 0){
+         return false;
+      }
       double stepvol = m_symbol.LotsStep();
       tR.volume = MathFloor(m_account.Balance() * m_percent / loss / 100.0 / stepvol) * stepvol;
+      if(tR.volume == 0){
+         return false;
+      }
 
       double maxvol = m_symbol.LotsMax();
       if(tR.volume > maxvol)
