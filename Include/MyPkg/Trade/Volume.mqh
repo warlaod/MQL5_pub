@@ -13,12 +13,8 @@ class Volume: public CMoneyFixedRisk {
    void Volume(double riskPercent) {
       m_symbol.Name(_Symbol);
       m_symbol.Refresh();
-//--- tuning for 3 or 5 digits
-      int digits_adjust = 1;
-      if(m_symbol.Digits() == 3 || m_symbol.Digits() == 5)
-         digits_adjust = 10;
 //---
-      Init(GetPointer(m_symbol), Period(), m_symbol.Point()*digits_adjust);
+      Init(GetPointer(m_symbol), Period(), m_symbol.Point()* DigitAdjust());
       Percent(riskPercent); // 1% risk
       ValidationSettings();
    }

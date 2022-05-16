@@ -34,11 +34,23 @@ bool CheckMarketOpen() {
    return false;
 }
 
-bool CheckEquityThereShold(int thereShold){
-      int equity = AccountInfoDouble(ACCOUNT_EQUITY);
-      if(equity < thereShold){
-         printf("Equity is lower than thereShold: %d", thereShold);
-         return false;
-      }
-      return true;
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CheckEquityThereShold(int thereShold) {
+   int equity = AccountInfoDouble(ACCOUNT_EQUITY);
+   if(equity < thereShold) {
+      printf("Equity is lower than thereShold: %d", thereShold);
+      return false;
    }
+   return true;
+}
+
+// convert _Point to pips
+int DigitAdjust() {
+   int digitsAdjust = 1;
+   if(_Digits == 3 || _Digits == 5)
+      digitsAdjust = 10;
+   return digitsAdjust;
+}
+//+------------------------------------------------------------------+
