@@ -24,6 +24,7 @@ int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
 input int equityThereShold = 1500;
 input int riskPercent = 5;
+input int positionTotal = 1;
 input optimizedTimeframes timeFrame;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 
@@ -33,6 +34,7 @@ ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 Trade trade(magicNumber);
 Price price(tf);
 Volume tVol(riskPercent);
+PositionStore pS(magicNumber);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -40,7 +42,7 @@ CiAlligator Allig;
 int OnInit() {
    EventSetTimer(eventTimer);
 
-   Allig.Create(_Symbol, PERIOD_H1, 13, 8, 8, 5, 5, 3, MODE_LWMA, PRICE_CLOSE);
+   Allig.Create(_Symbol, tf, 13, 8, 8, 5, 5, 3, MODE_LWMA, PRICE_CLOSE);
    Allig.BufferResize(8); // How many data should be referenced and updated
 
    return(INIT_SUCCEEDED);
@@ -63,18 +65,20 @@ void OnTick() {
    bool sellCondition = lips < teeth && teeth < jaw;
 
    tradeRequest tR;
+
+   pS.Refresh();
    if(buyCondition) {
       double ask = Ask();
-      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_BUY, ask, ask - 100 * _Point, ask + 100 * _Point};
+      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_BUY, ask, teeth, ask + 100 * _Point};
 
-      if(tVol.CalcurateVolume(tR)) {
+      if(pS.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.PositionOpen(tR);
       }
    } else if(sellCondition) {
       double bid = Bid();
-      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_SELL, bid, bid + 100 * _Point, bid - 100 * _Point};
+      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_SELL, bid, teeth, bid - 100 * _Point};
 
-      if(tVol.CalcurateVolume(tR)) {
+      if(pS.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.PositionOpen(tR);
       }
    }

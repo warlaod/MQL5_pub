@@ -11,8 +11,13 @@ class PositionStore {
 
  public:
    CArrayLong sellTickes, buyTickes;
+   ulong magicNumber;
 
    void PositionStore(ulong magicNumber) {
+      this.magicNumber = magicNumber;
+   };
+   
+   void Refresh(){
       buyTickes.Clear();
       sellTickes.Clear();
       for(int i = PositionsTotal() - 1; i >= 0; i--) {
@@ -24,6 +29,6 @@ class PositionStore {
             sellTickes.Add(ticket);
          };
       };
-   };
+   }
 };
 //+------------------------------------------------------------------+
