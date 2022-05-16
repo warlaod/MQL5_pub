@@ -33,3 +33,12 @@ bool CheckMarketOpen() {
    }
    return false;
 }
+
+bool CheckEquityThereShold(int thereShold){
+      int equity = AccountInfoDouble(ACCOUNT_EQUITY);
+      if(equity < thereShold){
+         printf("Equity is lower than thereShold: %d", thereShold);
+         return false;
+      }
+      return true;
+   }
