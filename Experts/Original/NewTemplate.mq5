@@ -9,8 +9,9 @@
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
-
+#include <MyPkg\OptimizedParameter.mqh>
 #include <MyPkg\Trade\Trade.mqh>
+#include <MyPkg\Trade\Volume.mqh>
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
 #include <Indicators\TimeSeries.mqh>
@@ -21,21 +22,26 @@
 
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
+input int equityThereShold = 1500;
+input int riskPercent = 5;
+input optimizedTimeframes timeFrame;
+ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 Trade trade(magicNumber);
-Price price(PERIOD_D1);
-CiAlligator Allig;
+Price price(tf);
+Volume tVol(riskPercent);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiAlligator Allig;
 int OnInit() {
    EventSetTimer(eventTimer);
 
    Allig.Create(_Symbol, PERIOD_H1, 13, 8, 8, 5, 5, 3, MODE_LWMA, PRICE_CLOSE);
-   Allig.BufferResize(3); // How many data should be referenced and updated
+   Allig.BufferResize(8); // How many data should be referenced and updated
 
    return(INIT_SUCCEEDED);
 }
@@ -44,30 +50,33 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   if(!CheckMarketOpen()) {
+   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || !CheckNewBarOpen(tf)) {
       return;
    }
+
    Allig.Refresh();
+   double jaw = Allig.Jaw(-3);
+   double teeth = Allig.Teeth(-3);
+   double lips = Allig.Lips(-3);
 
-   double ask = Ask();
-   double bid = Bid();
-   tradeRequest tR1 = {magicNumber,PERIOD_D1, 0.1, ORDER_TYPE_BUY, ask, ask - 100 * _Point, ask + 100 * _Point};
-   trade.PositionOpen(tR1);
-   tradeRequest tR2 = {magicNumber,PERIOD_D1, 0.1, ORDER_TYPE_SELL, bid, bid + 100 * _Point, bid - 100 * _Point};
-   trade.PositionOpen(tR2);
+   bool buyCondition = lips > teeth && teeth > jaw;
+   bool sellCondition = lips < teeth && teeth < jaw;
 
-   double one = Allig.Lips(-1);
-   double two = Allig.Lips(-2);
-   double three = Allig.Lips(-3);
+   tradeRequest tR;
+   if(buyCondition) {
+      double ask = Ask();
+      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_BUY, ask, ask - 100 * _Point, ask + 100 * _Point};
 
+      if(tVol.CalcurateVolume(tR)) {
+         trade.PositionOpen(tR);
+      }
+   } else if(sellCondition) {
+      double bid = Bid();
+      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_SELL, bid, bid + 100 * _Point, bid - 100 * _Point};
 
-   PositionStore pS(magicNumber);
-
-
-
-
-
-//---
-
+      if(tVol.CalcurateVolume(tR)) {
+         trade.PositionOpen(tR);
+      }
+   }
 }
 //+------------------------------------------------------------------+
