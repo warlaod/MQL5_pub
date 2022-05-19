@@ -14,6 +14,7 @@
 #include <MyPkg\Trade\Volume.mqh>
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
+#include <MyPkg\Position\Trailing.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -34,11 +35,12 @@ ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 Trade trade(magicNumber);
 Price price(tf);
 Volume tVol(riskPercent);
-PositionStore pS(magicNumber);
+PositionStore positionStore(magicNumber);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiAlligator Allig;
+Trailing trailing;
 int OnInit() {
    EventSetTimer(eventTimer);
 
@@ -55,6 +57,9 @@ void OnTick() {
    if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || !CheckNewBarOpen(tf)) {
       return;
    }
+   
+   positionStore.Refresh();
+   trailing.TrailShortPosition(positionStore.sellTickes,50,50);
 
    Allig.Refresh();
    double jaw = Allig.Jaw(-3);
@@ -66,19 +71,18 @@ void OnTick() {
 
    tradeRequest tR;
 
-   pS.Refresh();
    if(buyCondition) {
       double ask = Ask();
-      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_BUY, ask, teeth, ask + 100 * _Point};
+      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_BUY, ask, ask - 1000 * _Point, ask + 1000 * _Point};
 
-      if(pS.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+      if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.PositionOpen(tR);
       }
    } else if(sellCondition) {
       double bid = Bid();
-      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_SELL, bid, teeth, bid - 100 * _Point};
+      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_SELL, bid, bid + 1000 * _Point, bid - 1000 * _Point};
 
-      if(pS.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+      if(positionStore.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.PositionOpen(tR);
       }
    }
