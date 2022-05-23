@@ -7,25 +7,12 @@
 #include <Expert\Expert.mqh>
 #include <Trade\PositionInfo.mqh>
 #include <MyPkg\CommonFunc.mqh>
+#include <MyPkg\Trailing\Base.mqh>
 #include <Trade\Trade.mqh>
+
 // The class just for storing postion tickes
-class Trailing {
+class Pips: public Base {
  public:
-   CPositionInfo position;
-   CTrade trade;
-   double digitAdjust;
-
-   void Trailing() {
-      this.digitAdjust = DigitAdjust();
-   }
-
-   void TrailLongPosition(CArrayLong &buyTickets, int profitPips, int stopPips) {
-      for(int i = buyTickets.Total() - 1; i >= 0; i--) {
-         ulong ticket = buyTickets.At(i);
-         ModifyLongPosition(ticket, stopPips, profitPips);
-      }
-   }
-
    void ModifyLongPosition(ulong ticket, int profitPips, int stopPips) {
       position.SelectByTicket(ticket);
       double sl = position.StopLoss();
@@ -40,13 +27,6 @@ class Trailing {
 
       trade.PositionModify(ticket, fixedSl, fixedTp);
    };
-   
-   void TrailShortPosition(CArrayLong &sellTickets, int profitPips, int stopPips) {
-      for(int i = sellTickets.Total() - 1; i >= 0; i--) {
-         ulong ticket = sellTickets.At(i);
-         ModifyShortPosition(ticket, stopPips, profitPips);
-      }
-   }
 
    void ModifyShortPosition(ulong ticket, double stopPips, double profitPips) {
       position.SelectByTicket(ticket);
@@ -55,13 +35,27 @@ class Trailing {
       double price = Ask();
 
       double delta = stopPips * _Point * digitAdjust;
-      if(base-price <= delta) return;
+      if(base - price <= delta) return;
 
-      double fixedSl =price+delta;
+      double fixedSl = price + delta;
       double fixedTp = price - profitPips * _Point * digitAdjust;
 
       trade.PositionModify(ticket, fixedSl, fixedTp);
    };
+
+   void TrailLong(CArrayLong &buyTickets, int profitPips, int stopPips) {
+      for(int i = buyTickets.Total() - 1; i >= 0; i--) {
+         ulong ticket = buyTickets.At(i);
+         this.ModifyLongPosition(ticket, stopPips, profitPips);
+      }
+   }
+
+   void TrailShort(CArrayLong &sellTickets, int profitPips, int stopPips) {
+      for(int i = sellTickets.Total() - 1; i >= 0; i--) {
+         ulong ticket = sellTickets.At(i);
+         this.ModifyShortPosition(ticket, stopPips, profitPips);
+      }
+   }
 };
 //+------------------------------------------------------------------+
 

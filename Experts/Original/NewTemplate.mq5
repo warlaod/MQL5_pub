@@ -14,7 +14,7 @@
 #include <MyPkg\Trade\Volume.mqh>
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
-#include <MyPkg\Position\Trailing.mqh>
+#include <MyPkg\Trailing\Pips.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -40,7 +40,7 @@ PositionStore positionStore(magicNumber);
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiAlligator Allig;
-Trailing trailing;
+Pips trailing;
 int OnInit() {
    EventSetTimer(eventTimer);
 
@@ -59,7 +59,7 @@ void OnTick() {
    }
    
    positionStore.Refresh();
-   trailing.TrailShortPosition(positionStore.sellTickes,50,50);
+   trailing.TrailShort(positionStore.sellTickes,50,5);
 
    Allig.Refresh();
    double jaw = Allig.Jaw(-3);
