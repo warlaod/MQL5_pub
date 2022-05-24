@@ -15,7 +15,7 @@ class Base {
    CTrade trade;
    double digitAdjust;
 
-   void Trailing() {
+   void Base() {
       this.digitAdjust = DigitAdjust();
    }
 

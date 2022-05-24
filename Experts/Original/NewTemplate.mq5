@@ -15,6 +15,7 @@
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
 #include <MyPkg\Trailing\Pips.mqh>
+#include <MyPkg\Trailing\Indicator.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -40,12 +41,12 @@ PositionStore positionStore(magicNumber);
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiAlligator Allig;
-Pips trailing;
+Indicator trailing;
 int OnInit() {
    EventSetTimer(eventTimer);
 
    Allig.Create(_Symbol, tf, 13, 8, 8, 5, 5, 3, MODE_LWMA, PRICE_CLOSE);
-   Allig.BufferResize(8); // How many data should be referenced and updated
+   Allig.BufferResize(15); // How many data should be referenced and updated
 
    return(INIT_SUCCEEDED);
 }
@@ -58,13 +59,15 @@ void OnTick() {
       return;
    }
    
-   positionStore.Refresh();
-   trailing.TrailShort(positionStore.sellTickes,50,5);
-
    Allig.Refresh();
    double jaw = Allig.Jaw(-3);
    double teeth = Allig.Teeth(-3);
    double lips = Allig.Lips(-3);
+   
+   positionStore.Refresh();
+   trailing.TrailShort(positionStore.sellTickes,Allig.Jaw(0));
+
+   
 
    bool buyCondition = lips > teeth && teeth > jaw;
    bool sellCondition = lips < teeth && teeth < jaw;
