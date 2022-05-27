@@ -14,7 +14,7 @@
 #include <MyPkg\Trade\Volume.mqh>
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
-#include <MyPkg\Trailing\Pips.mqh>
+#include <MyPkg\Time.mqh>
 #include <MyPkg\Trailing\Indicator.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
@@ -27,26 +27,36 @@ input ulong magicNumber = 21984;
 input int equityThereShold = 1500;
 input int riskPercent = 5;
 input int positionTotal = 1;
+input int whenToCloseOnFriday = 23;
 input optimizedTimeframes timeFrame;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
-
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+int digitAdjust = DigitAdjust();
 Trade trade(magicNumber);
 Price price(tf);
 Volume tVol(riskPercent);
 PositionStore positionStore(magicNumber);
+Time time;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiAlligator Allig;
+CiATR ATR;
 Indicator trailing;
+
+input int tp,sl;
+input int atrPeriod, atrMinVal;
+
 int OnInit() {
    EventSetTimer(eventTimer);
 
-   Allig.Create(_Symbol, tf, 13, 8, 8, 5, 5, 3, MODE_LWMA, PRICE_CLOSE);
-   Allig.BufferResize(15); // How many data should be referenced and updated
+   Allig.Create(_Symbol, tf, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN);
+   Allig.BufferResize(13); // How many data should be referenced and updated
+   
+   ATR.Create(_Symbol, tf, atrPeriod);
+   ATR.BufferResize(1);
 
    return(INIT_SUCCEEDED);
 }
@@ -55,35 +65,47 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
+   time.Refresh();
+   // don't trade before 2 hours from market close
+   if(time.CheckTimeOver(FRIDAY,whenToCloseOnFriday-2)){
+      return;
+   }
+   // don't trade before 2 hours from market close
+   if(time.CheckTimeOver(FRIDAY,whenToCloseOnFriday-1)){
+      return;
+   }
+   
    if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || !CheckNewBarOpen(tf)) {
       return;
    }
    
+   
+   
+   ATR.Refresh();
+   double atr = ATR.Main(0);
+   
+   if(ATR.Main(0) < atrMinVal * _Point * digitAdjust) return;
+
    Allig.Refresh();
-   double jaw = Allig.Jaw(-3);
-   double teeth = Allig.Teeth(-3);
-   double lips = Allig.Lips(-3);
-   
-   positionStore.Refresh();
-   trailing.TrailShort(positionStore.sellTickes,Allig.Jaw(0));
+   double jaw = Allig.Jaw(-2);
+   double teeth = Allig.Teeth(-2);
+   double lips = Allig.Lips(-2);
 
-   
-
-   bool buyCondition = lips > teeth && teeth > jaw;
-   bool sellCondition = lips < teeth && teeth < jaw;
+   bool buyCondition = Allig.Lips(-1) < Allig.Teeth(-1) && Allig.Lips(-2) > Allig.Teeth(-2);
+   bool sellCondition = Allig.Lips(-1) > Allig.Teeth(-1) && Allig.Lips(-2) < Allig.Teeth(-2);
 
    tradeRequest tR;
 
    if(buyCondition) {
       double ask = Ask();
-      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_BUY, ask, ask - 1000 * _Point, ask + 1000 * _Point};
+      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_BUY, ask, ask - sl * _Point * digitAdjust, ask + tp * _Point * digitAdjust};
 
       if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.PositionOpen(tR);
       }
    } else if(sellCondition) {
       double bid = Bid();
-      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_SELL, bid, bid + 1000 * _Point, bid - 1000 * _Point};
+      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_SELL, bid, bid + sl*_Point * digitAdjust, bid - tp * _Point * digitAdjust};
 
       if(positionStore.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.PositionOpen(tR);
