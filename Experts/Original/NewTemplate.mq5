@@ -10,6 +10,7 @@
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
 #include <MyPkg\OptimizedParameter.mqh>
+#include <MyPkg\Optimization.mqh>
 #include <MyPkg\Trade\Trade.mqh>
 #include <MyPkg\Trade\Volume.mqh>
 #include <MyPkg\Price.mqh>
@@ -40,6 +41,7 @@ Price price(tf);
 Volume tVol(riskPercent);
 PositionStore positionStore(magicNumber);
 Time time;
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -119,4 +121,8 @@ void OnTick() {
       }
    }
 }
-//+------------------------------------------------------------------+
+
+double OnTester(){
+   Optimization optimization;
+   return optimization.Custom2();
+}
