@@ -11,7 +11,6 @@
 // #define MacrosHello   "Hello, world!"
 #include <Tools\DateTime.mqh>
 
-input int FridayEndHour = -1;
 class Time {
  public:
    CDateTime dt;

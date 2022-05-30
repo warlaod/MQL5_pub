@@ -26,7 +26,7 @@
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
 input int equityThereShold = 1500;
-input int riskPercent = 5;
+input int riskPercent = 2;
 input int positionTotal = 1;
 input int whenToCloseOnFriday = 23;
 input int spreadLimit = 999;
@@ -45,12 +45,13 @@ Time time;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiAlligator Allig;
-CiATR ATR;
+CiForce AUD_JPY, AUD_USD, EUR_AUD, GBP_AUD,
+        USD_JPY, EUR_USD, GBP_USD;
 Indicator trailing;
 
 input int tp, sl;
 input int atrPeriod, atrMinVal;
+input int index;
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -58,11 +59,9 @@ input int atrPeriod, atrMinVal;
 int OnInit() {
    EventSetTimer(eventTimer);
 
-   Allig.Create(_Symbol, tf, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN);
+   RSI.Create()
    Allig.BufferResize(13); // How many data should be referenced and updated
 
-   ATR.Create(_Symbol, tf, atrPeriod);
-   ATR.BufferResize(1);
 
    return(INIT_SUCCEEDED);
 }
@@ -86,22 +85,12 @@ void OnTick() {
       return;
    }
 
-   if(SymbolInfoInteger(Symbol(),SYMBOL_SPREAD) > spreadLimit){
+   if(SymbolInfoInteger(Symbol(), SYMBOL_SPREAD) > spreadLimit) {
       return;
    }
 
-   ATR.Refresh();
-   double atr = ATR.Main(0);
-
-   if(ATR.Main(0) < atrMinVal * _Point * digitAdjust) return;
-
-   Allig.Refresh();
-   double jaw = Allig.Jaw(-2);
-   double teeth = Allig.Teeth(-2);
-   double lips = Allig.Lips(-2);
-
-   bool buyCondition = Allig.Lips(-1) < Allig.Teeth(-1) && Allig.Lips(-2) > Allig.Teeth(-2);
-   bool sellCondition = Allig.Lips(-1) > Allig.Teeth(-1) && Allig.Lips(-2) < Allig.Teeth(-2);
+   bool buyCondition = Allig.Lips(index) < Allig.Teeth(index) && Allig.Lips(index - 1) > Allig.Teeth(index - 1);
+   bool sellCondition = Allig.Lips(index) > Allig.Teeth(index) && Allig.Lips(index - 1) < Allig.Teeth(index - 1);
 
    tradeRequest tR;
 
@@ -112,7 +101,9 @@ void OnTick() {
       if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
-   } else if(sellCondition) {
+   }
+
+   if(sellCondition) {
       double bid = Bid();
       tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_SELL, bid, bid + sl*_Point * digitAdjust, bid - tp * _Point * digitAdjust};
 
@@ -122,7 +113,11 @@ void OnTick() {
    }
 }
 
-double OnTester(){
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double OnTester() {
    Optimization optimization;
    return optimization.Custom2();
 }
+//+------------------------------------------------------------------+
