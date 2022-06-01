@@ -11,7 +11,7 @@
 #include <Trade\Trade.mqh>
 
 // The class just for storing postion tickes
-class Indicator: public Base {
+class Appointed: public Base {
  public:
    void ModifyLongPosition(ulong ticket, double newStop) {
       position.SelectByTicket(ticket);
