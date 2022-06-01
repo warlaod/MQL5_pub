@@ -16,7 +16,6 @@
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
 #include <MyPkg\Time.mqh>
-#include <MyPkg\Trailing\Indicator.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -47,7 +46,6 @@ Time time;
 //+------------------------------------------------------------------+
 CiAlligator Allig;
 CiATR ATR;
-Indicator trailing;
 
 input int tp, sl;
 input int atrPeriod, atrMinVal;
@@ -107,14 +105,14 @@ void OnTick() {
 
    if(buyCondition) {
       double ask = Ask();
-      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_BUY, ask, ask - sl * _Point * digitAdjust, ask + tp * _Point * digitAdjust};
+      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_BUY, ask, ask - sl * _Point * digitAdjust, ask + tp * _Point * digitAdjust};
 
       if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
       double bid = Bid();
-      tradeRequest tR = {magicNumber, PERIOD_M5, ORDER_TYPE_SELL, bid, bid + sl*_Point * digitAdjust, bid - tp * _Point * digitAdjust};
+      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_SELL, bid, bid + sl*_Point * digitAdjust, bid - tp * _Point * digitAdjust};
 
       if(positionStore.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
