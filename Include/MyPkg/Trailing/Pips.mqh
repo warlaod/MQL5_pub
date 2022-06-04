@@ -43,14 +43,14 @@ class Pips: public Base {
       trade.PositionModify(ticket, fixedSl, fixedTp);
    };
 
-   void TrailLong(CArrayLong &buyTickets, int profitPips, int stopPips) {
+   void TrailLong(CArrayLong &buyTickets, int stopPips, int profitPips = 50) {
       for(int i = buyTickets.Total() - 1; i >= 0; i--) {
          ulong ticket = buyTickets.At(i);
          this.ModifyLongPosition(ticket, stopPips, profitPips);
       }
    }
 
-   void TrailShort(CArrayLong &sellTickets, int profitPips, int stopPips) {
+   void TrailShort(CArrayLong &sellTickets, int stopPips, int profitPips = 50 ) {
       for(int i = sellTickets.Total() - 1; i >= 0; i--) {
          ulong ticket = sellTickets.At(i);
          this.ModifyShortPosition(ticket, stopPips, profitPips);

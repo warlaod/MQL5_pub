@@ -47,15 +47,14 @@ Time time;
 Pips trailing;
 input int stopPeriod;
 input int atrPeriod, atrMinVal;
-input double tpCoef;
+input int slPips;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiATR ATR;
 int OnInit() {
    EventSetTimer(eventTimer);
-   ATR.Create(_Symbol, tf, atrPeriod);
-   ATR.BufferResize(1);
+   ADX.Create(_Symbol, tf, ADXPeriod);
    return(INIT_SUCCEEDED);
 }
 
@@ -83,7 +82,7 @@ void OnTick() {
       return;
    }
 
-   ATR.Refresh();
+   ADX.Refresh();
    double atr = ATR.Main(0);
    if(ATR.Main(0) < atrMinVal * _Point * digitAdjust) return;
 
@@ -97,18 +96,14 @@ void OnTick() {
 
    if(buyCondition) {
       double ask = Ask();
-      double sl = price.At(1).low;
-      double tp = ask +  MathAbs(sl - ask) * tpCoef;
-      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
+      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_BUY, ask, ask - slPips * pips, ask + 50 * pips};
 
       if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
       double bid = Bid();
-      double sl = price.At(1).high;
-      double tp = bid - MathAbs(sl - bid) * tpCoef;
-      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
+      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_SELL, bid, bid + slPips * pips, bid - 50 * pips};
 
       if(positionStore.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);

@@ -53,4 +53,8 @@ int DigitAdjust() {
       digitsAdjust = 10;
    return digitsAdjust;
 }
+
+double Pips() {
+   return _Point * DigitAdjust();
+}
 //+------------------------------------------------------------------+
