@@ -4,15 +4,15 @@
 //|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
 enum optimizedTimeframes {
-   _M1 = PERIOD_M1,
-   _M3 = PERIOD_M3,
-   _M5 = PERIOD_M5,
-   _M10 = PERIOD_M10,
-   _M15 = PERIOD_M15,
+   _M2 = PERIOD_M2,
+   _M4 = PERIOD_M4,
+   _M6 = PERIOD_M6,
+   _M12 = PERIOD_M12,
+   _M20 = PERIOD_M20,
    _M30 = PERIOD_M30,
    _H1 = PERIOD_H1,
    _H2 = PERIOD_H2,
-   _H4 = PERIOD_H4,
+   _H3 = PERIOD_H3,
    _H6 = PERIOD_H6,
    _H12 = PERIOD_H12,
    _D1 = PERIOD_D1,
@@ -25,20 +25,20 @@ enum optimizedTimeframes {
 ENUM_TIMEFRAMES convertENUM_TIMEFRAMES(optimizedTimeframes timeFrame) {
    ENUM_TIMEFRAMES resp = _Period;
    switch(timeFrame) {
-   case _M1:
-      resp = PERIOD_M1;
+   case _M2:
+      resp = PERIOD_M2;
       break;
-   case _M3:
-      resp = PERIOD_M3;
+   case _M4:
+      resp = PERIOD_M4;
       break;
-   case _M5:
-      resp = PERIOD_M5;
+   case _M6:
+      resp = PERIOD_M6;
       break;
-   case _M10:
-      resp = PERIOD_M10;
+   case _M12:
+      resp = PERIOD_M12;
       break;
-   case _M15:
-      resp = PERIOD_M15;
+   case _M20:
+      resp = PERIOD_M20;
       break;
    case _M30:
       resp = PERIOD_M30;
@@ -49,8 +49,8 @@ ENUM_TIMEFRAMES convertENUM_TIMEFRAMES(optimizedTimeframes timeFrame) {
    case _H2:
       resp = PERIOD_H2;
       break;
-   case _H4:
-      resp = PERIOD_H4;
+   case _H3:
+      resp = PERIOD_H3;
       break;
    case _H6:
       resp = PERIOD_H6;
