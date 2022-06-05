@@ -47,7 +47,7 @@ Time time;
 Pips trailing;
 input int stopPeriod;
 input int atrPeriod, atrMinVal;
-input double tpCoef;
+input double tpPips;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -90,7 +90,7 @@ void OnTick() {
    string audStrength = AUDStrength(tf, 1);
    if(audStrength == "") return;
 
-   bool buyCondition = audStrength == "string";
+   bool buyCondition = audStrength == "strong";
    bool sellCondition = audStrength == "weak";
 
    tradeRequest tR;
@@ -98,7 +98,7 @@ void OnTick() {
    if(buyCondition) {
       double ask = Ask();
       double sl = price.At(1).low;
-      double tp = ask +  MathAbs(sl - ask) * tpCoef;
+      double tp = ask + tpPips * pips;
       tradeRequest tR = {magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
 
       if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
@@ -107,7 +107,7 @@ void OnTick() {
    } else if(sellCondition) {
       double bid = Bid();
       double sl = price.At(1).high;
-      double tp = bid - MathAbs(sl - bid) * tpCoef;
+      double tp = bid - tpPips* pips;
       tradeRequest tR = {magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
 
       if(positionStore.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
