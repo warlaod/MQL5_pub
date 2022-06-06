@@ -105,14 +105,14 @@ void OnTick() {
 
    if(buyCondition) {
       double ask = Ask();
-      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_BUY, ask, ask - sl * _Point * digitAdjust, ask + tp * _Point * digitAdjust};
+      tradeRequest tR = {_Symbol,magicNumber, tf, ORDER_TYPE_BUY, ask, ask - sl * _Point * digitAdjust, ask + tp * _Point * digitAdjust};
 
       if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
       double bid = Bid();
-      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_SELL, bid, bid + sl*_Point * digitAdjust, bid - tp * _Point * digitAdjust};
+      tradeRequest tR = {_Symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, bid + sl*_Point * digitAdjust, bid - tp * _Point * digitAdjust};
 
       if(positionStore.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);

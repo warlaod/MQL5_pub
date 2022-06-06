@@ -22,7 +22,7 @@ class Trade: public CTrade {
 
    void OpenPosition(tradeRequest &tR) {
       if(!validation.Check(tR)) return;
-      CTrade::PositionOpen(_Symbol, tR.type, tR.volume, tR.openPrice, tR.sl, tR.tp);
+      CTrade::PositionOpen(tR.symbol, tR.type, tR.volume, tR.openPrice, tR.sl, tR.tp);
    }
 
    void ClosePositions(CArrayLong &tickets) {
