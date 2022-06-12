@@ -86,7 +86,7 @@ class Optimization {
    double Custom2() {
       if(!CheckResultValid()) return -99999;
       
-      double result =  ((grossProfit - conProfitMax) - (grossLoss + conLossMax))  / (balanceDdrelPercent * 100) * MathSqrt(trades);
+      double result =  (grossProfit - (grossLoss + conLossMax))  / (balanceDdrelPercent * 100) * MathSqrt(trades);
       return result;
    }
 };

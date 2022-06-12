@@ -44,17 +44,23 @@ Volume tVol(riskPercent);
 PositionStore positionStore(magicNumber);
 Time time;
 
-Pips trailing;
-input int stopPeriod;
+input int adxMinusMin, adxPlusMin;
 input int atrPeriod, atrMinVal;
-input int slPips;
+input double slPips;
+input int adxPeriod;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiATR ATR;
+CiADX ADX;
+Pips trailing;
 int OnInit() {
    EventSetTimer(eventTimer);
-   ADX.Create(_Symbol, tf, ADXPeriod);
+   ATR.Create(_Symbol, tf, atrPeriod);
+   ATR.BufferResize(1);
+
+   ADX.Create(_Symbol, tf, adxPeriod);
+   ADX.BufferResize(1);
    return(INIT_SUCCEEDED);
 }
 
@@ -64,6 +70,9 @@ int OnInit() {
 void OnTick() {
    time.Refresh();
    positionStore.Refresh();
+
+   trailing.TrailLong(positionStore.sellTickes, 50, slPips);
+   trailing.TrailShort(positionStore.sellTickes, 50, slPips);
 
    // don't trade before 2 hours from market close
    if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 2)) {
@@ -82,28 +91,29 @@ void OnTick() {
       return;
    }
 
-   ADX.Refresh();
+   ATR.Refresh();
    double atr = ATR.Main(0);
    if(ATR.Main(0) < atrMinVal * _Point * digitAdjust) return;
 
-   string audStrength = AUDStrength(tf, 1);
-   if(audStrength == "") return;
-
-   bool buyCondition = audStrength == "string";
-   bool sellCondition = audStrength == "weak";
+   bool buyCondition = (ADX.Minus(0) > 20 && ADX.Main(0) < adxMinusMin &&  ADX.Plus(1) > ADX.Plus(2));
+   bool sellCondition = (ADX.Plus(0) > 20 && ADX.Main(0) > adxPlusMin && ADX.Minus(1) > ADX.Minus(2));
 
    tradeRequest tR;
 
    if(buyCondition) {
       double ask = Ask();
-      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_BUY, ask, ask - slPips * pips, ask + 50 * pips};
+      double sl = 0;
+      double tp = ask + 50 * pips;
+      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
 
       if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
       double bid = Bid();
-      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_SELL, bid, bid + slPips * pips, bid - 50 * pips};
+      double sl = bid + slPips * pips;
+      double tp = bid - 50 * pips;
+      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
 
       if(positionStore.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
@@ -122,35 +132,4 @@ double OnTester() {
 
 //+------------------------------------------------------------------+
 //|                                                                  |
-//+------------------------------------------------------------------+
-string AUDStrength(ENUM_TIMEFRAMES tf, int index) {
-   string AUDJPY = Trend("AUDJPY", tf, index);
-   string AUDUSD = Trend("AUDUSD", tf, index);
-   string EURAUD = Trend("EURAUD", tf, index);
-   string GBPAUD = Trend("GBPAUD", tf, index);
-
-   if( AUDJPY == "bull" && AUDUSD == "bull" && EURAUD == "bear" && GBPAUD == "bear") return "strong";
-   if(  AUDJPY == "bear" && AUDUSD == "bear" && EURAUD == "bull" && GBPAUD == "bull") return "weak";
-   return "";
-}
-
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-string Trend(string symbol, ENUM_TIMEFRAMES tf, int index) {
-   double price[];
-   ArraySetAsSeries(price, true);
-
-   CopyLow(symbol, tf, index, index + 1, price);
-   if(price[1] < price[0]) {
-      return "bull";
-   }
-   CopyHigh(symbol, tf, index, index + 1, price);
-   if(price[1] > price[0]) {
-      return "bear";
-   }
-   return "";
-}
-//+------------------------------------------------------------------+
-
 //+------------------------------------------------------------------+

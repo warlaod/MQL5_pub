@@ -13,11 +13,11 @@
 // The class just for storing postion tickes
 class Pips: public Base {
  public:
-   void ModifyLongPosition(ulong ticket, int profitPips, int stopPips) {
+   void ModifyLongPosition(ulong ticket, int profitPips, int stopPips, string symbol) {
       position.SelectByTicket(ticket);
       double sl = position.StopLoss();
       double base  = (sl == 0.0) ? position.PriceOpen() : sl;
-      double price = Bid();
+      double price = Bid(symbol);
 
       double delta = stopPips * _Point * digitAdjust;
       if(price - base <= delta) return;
@@ -28,11 +28,11 @@ class Pips: public Base {
       trade.PositionModify(ticket, fixedSl, fixedTp);
    };
 
-   void ModifyShortPosition(ulong ticket, double stopPips, double profitPips) {
+   void ModifyShortPosition(ulong ticket, double stopPips, double profitPips, string symbol) {
       position.SelectByTicket(ticket);
       double sl = position.StopLoss();
       double base  = (sl == 0.0) ? position.PriceOpen() : sl;
-      double price = Ask();
+      double price = Ask(symbol);
 
       double delta = stopPips * _Point * digitAdjust;
       if(base - price <= delta) return;

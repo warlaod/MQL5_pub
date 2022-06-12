@@ -4,21 +4,21 @@
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double Ask() {
-   return  NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_ASK), _Digits);
+double Ask(string symbol) {
+   return  NormalizeDouble(SymbolInfoDouble(symbol, SYMBOL_ASK), _Digits);
 }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double Bid() {
-   return NormalizeDouble(SymbolInfoDouble(_Symbol, SYMBOL_BID), _Digits);
+double Bid(string symbol) {
+   return NormalizeDouble(SymbolInfoDouble(symbol, SYMBOL_BID), _Digits);
 }
 //+------------------------------------------------------------------+
-bool CheckNewBarOpen(ENUM_TIMEFRAMES tf) {
+bool CheckNewBarOpen(ENUM_TIMEFRAMES tf, string symbol) {
    static datetime time = 0;
-   if(iTime(_Symbol, tf, 0) != time) {
-      time = iTime(_Symbol, tf, 0);
+   if(iTime(symbol, tf, 0) != time) {
+      time = iTime(symbol, tf, 0);
       return true;
    }
    return false;

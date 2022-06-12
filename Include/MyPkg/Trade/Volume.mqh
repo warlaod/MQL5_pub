@@ -10,8 +10,8 @@
 class Volume: public CMoneyFixedRisk {
  public:
    CSymbolInfo    m_symbol;
-   void Volume(double riskPercent) {
-      m_symbol.Name(_Symbol);
+   void Volume(double riskPercent,string symbol) {
+      m_symbol.Name(symbol);
       m_symbol.Refresh();
 //---
       Init(GetPointer(m_symbol), Period(), m_symbol.Point()* DigitAdjust());
