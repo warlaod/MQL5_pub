@@ -84,7 +84,7 @@ void OnTick() {
    MqlRates pr1 = price.At(1, _Symbol);
 
    bool buyCondition = pr2.high > base2 && pr1.low < lower;
-   bool sellCondition = pr2.low > base2 && pr1.high > upper;
+   bool sellCondition = pr2.low < base2 && pr1.high > upper;
 
    tradeRequest tR;
 

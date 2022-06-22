@@ -40,7 +40,7 @@ int digitAdjust = DigitAdjust();
 double pips = Pips();
 Trade trade(magicNumber);
 Price price(tf);
-Volume tVol(riskPercent);
+Volume tVol(riskPercent, _Symbol);
 PositionStore positionStore(magicNumber);
 Time time;
 
@@ -83,7 +83,7 @@ void OnTick() {
       return;
    }
 
-   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || !CheckNewBarOpen(tf)) {
+   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || !CheckNewBarOpen(tf, _Symbol)) {
       return;
    }
 
@@ -101,19 +101,19 @@ void OnTick() {
    tradeRequest tR;
 
    if(buyCondition) {
-      double ask = Ask();
+      double ask = Ask(_Symbol);
       double sl = 0;
       double tp = ask + 50 * pips;
-      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
+      tradeRequest tR = {_Symbol, magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
 
       if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
-      double bid = Bid();
+      double bid = Bid(_Symbol);
       double sl = bid + slPips * pips;
       double tp = bid - 50 * pips;
-      tradeRequest tR = {magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
+      tradeRequest tR = {_Symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
 
       if(positionStore.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
