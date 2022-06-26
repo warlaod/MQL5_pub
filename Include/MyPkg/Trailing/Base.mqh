@@ -13,10 +13,10 @@ class Base {
  public:
    CPositionInfo position;
    CTrade trade;
-   double digitAdjust;
+   double pips;
 
    void Base() {
-      this.digitAdjust = DigitAdjust();
+      this.pips = Pips();
    }
 
    virtual void TrailLong(CArrayLong &buyTickets, int profitPips, int stopPips) {

@@ -23,7 +23,7 @@ class Appointed: public Base {
       double level = price - stopLevel * _Point;
 
       if(newStop > base && newStop < level) {
-         trade.PositionModify(ticket, newStop, price + 300 * _Point * digitAdjust);
+         trade.PositionModify(ticket, newStop, price + 300 * pips);
       }
    };
 
@@ -44,7 +44,7 @@ class Appointed: public Base {
       double level = price + stopLevel * _Point;
 
       if(newStop < base && newStop > level) {
-         trade.PositionModify(ticket, newStop, price - 300 * _Point * digitAdjust);
+         trade.PositionModify(ticket, newStop, price - 300 * pips);
       }
    };
 

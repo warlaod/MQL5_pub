@@ -19,11 +19,11 @@ class Pips: public Base {
       double base  = (sl == 0.0) ? position.PriceOpen() : sl;
       double price = Bid(symbol);
 
-      double delta = stopPips * _Point * digitAdjust;
+      double delta = stopPips * pips;
       if(price - base <= delta) return;
 
       double fixedSl = price - delta;
-      double fixedTp = price + profitPips * _Point * digitAdjust;
+      double fixedTp = price + profitPips * pips;
 
       trade.PositionModify(ticket, fixedSl, fixedTp);
    };
@@ -34,11 +34,11 @@ class Pips: public Base {
       double base  = (sl == 0.0) ? position.PriceOpen() : sl;
       double price = Ask(symbol);
 
-      double delta = stopPips * _Point * digitAdjust;
+      double delta = stopPips * pips;
       if(base - price <= delta) return;
 
       double fixedSl = price + delta;
-      double fixedTp = price - profitPips * _Point * digitAdjust;
+      double fixedTp = price - profitPips * pips;
 
       trade.PositionModify(ticket, fixedSl, fixedTp);
    };
