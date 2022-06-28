@@ -70,7 +70,7 @@ class Optimization {
    double PROMNegative() {
       if(!CheckResultValid()) return -99999;
       
-      double AAGP = (grossProfit / profitTrades) * (profitTrades - sqrt(profitTrades)) - conProfitMax;
+      double AAGP = (grossProfit / profitTrades) * (profitTrades - sqrt(profitTrades));
       double AAGL = (grossLoss / lossTrades) * (lossTrades + sqrt(lossTrades)) + conLossMax;
       double result = (AAGP - AAGL) / deposit;
       return result;
