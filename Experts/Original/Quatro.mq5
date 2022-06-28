@@ -156,7 +156,7 @@ void OnTick() {
 //+------------------------------------------------------------------+
 double OnTester() {
    Optimization optimization;
-   return optimization.Custom2();
+   return optimization.PROMNegative();
 }
 
 //+------------------------------------------------------------------+

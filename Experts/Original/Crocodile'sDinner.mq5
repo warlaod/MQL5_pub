@@ -34,10 +34,11 @@ ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int digitAdjust = DigitAdjust();
+double pips = Pips();
+string symbol = _Symbol;
 Trade trade(magicNumber);
 Price price(tf);
-Volume tVol(riskPercent);
+Volume tVol(riskPercent,symbol);
 PositionStore positionStore(magicNumber);
 Time time;
 
@@ -56,10 +57,10 @@ input int atrPeriod, atrMinVal;
 int OnInit() {
    EventSetTimer(eventTimer);
 
-   Allig.Create(_Symbol, tf, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN);
+   Allig.Create(symbol, tf, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN);
    Allig.BufferResize(13); // How many data should be referenced and updated
 
-   ATR.Create(_Symbol, tf, atrPeriod);
+   ATR.Create(symbol, tf, atrPeriod);
    ATR.BufferResize(1);
 
    return(INIT_SUCCEEDED);
@@ -74,13 +75,13 @@ void OnTick() {
    // don't trade before 2 hours from market close
    if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 2)) {
       if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 1)) {
-         trade.ClosePositions(positionStore.buyTickes);
-         trade.ClosePositions(positionStore.sellTickes);
+         trade.ClosePositions(positionStore.buyTickets);
+         trade.ClosePositions(positionStore.sellTickets);
       }
       return;
    }
 
-   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || !CheckNewBarOpen(tf)) {
+   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || !CheckNewBarOpen(tf,symbol)) {
       return;
    }
 
@@ -91,7 +92,7 @@ void OnTick() {
    ATR.Refresh();
    double atr = ATR.Main(0);
 
-   if(ATR.Main(0) < atrMinVal * _Point * digitAdjust) return;
+   if(ATR.Main(0) < atrMinVal * pips) return;
 
    Allig.Refresh();
    double jaw = Allig.Jaw(-2);
@@ -104,17 +105,17 @@ void OnTick() {
    tradeRequest tR;
 
    if(buyCondition) {
-      double ask = Ask();
-      tradeRequest tR = {_Symbol,magicNumber, tf, ORDER_TYPE_BUY, ask, ask - sl * _Point * digitAdjust, ask + tp * _Point * digitAdjust};
+      double ask = Ask(symbol);
+      tradeRequest tR = {symbol,magicNumber, tf, ORDER_TYPE_BUY, ask, ask - sl * pips, ask + tp * pips};
 
-      if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+      if(positionStore.buyTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
-      double bid = Bid();
-      tradeRequest tR = {_Symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, bid + sl*_Point * digitAdjust, bid - tp * _Point * digitAdjust};
+      double bid = Bid(symbol);
+      tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, bid + sl*pips, bid - tp * pips};
 
-      if(positionStore.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+      if(positionStore.sellTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    }
