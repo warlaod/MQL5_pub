@@ -54,6 +54,7 @@ int DigitAdjust() {
    return digitsAdjust;
 }
 
+// convert numeric to Pips;
 double Pips() {
    return _Point * DigitAdjust();
 }

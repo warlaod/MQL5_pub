@@ -14,10 +14,12 @@
 #include <MyPkg\Trade\Trade.mqh>
 #include <MyPkg\Trade\Volume.mqh>
 #include <MyPkg\Price.mqh>
+#include <MyPkg\Position\Position.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
 #include <MyPkg\Time.mqh>
 #include <MyPkg\Trailing\Appointed.mqh>
 #include <MyPkg\Trailing\Pips.mqh>
+#include <MyPkg\Trailing\PositionStoreForTrailing.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -31,27 +33,28 @@ input int riskPercent = 2;
 input int positionTotal = 1;
 input int whenToCloseOnFriday = 23;
 input int spreadLimit = 999;
-input optimizedTimeframes timeFrame, timeFrameLong;
+input optimizedTimeframes timeFrame;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
-ENUM_TIMEFRAMES tfLong = convertENUM_TIMEFRAMES(timeFrameLong);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int digitAdjust = DigitAdjust();
 double pips = Pips();
 Trade trade(magicNumber);
-Price priceLong(tfLong), price(tf);
+Price price(tf);
 PositionStore positionStore(magicNumber);
+Position position;
 Time time;
 
 Pips trailing;
-input int shortPeriod, longPeriodCoef, stopPeriod;
-input double tpBuyPips, tpSellPips;
+PositionStoreForTrailing psTrailing;
+input int stopPeriod;
+input int trailPips;
 input int atrPeriod, atrPipsMin;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiATR audUsd;
+CiMA ma;
 int OnInit() {
    EventSetTimer(eventTimer);
    int atrIndex = 1;
@@ -68,12 +71,35 @@ int OnInit() {
 void OnTick() {
    time.Refresh();
    positionStore.Refresh();
+   psTrailing.Refresh(positionStore.sellTickets,positionStore.buyTickets);
+
+   // If current position has some profit, add list for trailing
+   for(int i = positionStore.buyTickets.Total() - 1; i >= 0; i--) {
+      ulong ticket = positionStore.buyTickets.At(i);
+      double profit = position.ProfitInPips(ticket);
+      if(profit > trailPips){
+         psTrailing.AddBuyTicket(ticket);
+      }
+   }
+   for(int i = positionStore.sellTickets.Total() - 1; i >= 0; i--) {
+      ulong ticket = positionStore.sellTickets.At(i);
+      double profit = position.ProfitInPips(ticket);
+      if(profit > trailPips){
+         psTrailing.AddSellTicket(ticket);
+      }
+   }
+   
+   // trailing
+   trailing.TrailLongs(_Symbol, psTrailing.buyTickets,trailPips);
+   trailing.TrailShorts(_Symbol, psTrailing.sellTickets,trailPips);
+
+   
 
    // don't trade before 2 hours from market close
    if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 2)) {
       if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 1)) {
-         trade.ClosePositions(positionStore.buyTickes);
-         trade.ClosePositions(positionStore.sellTickes);
+         trade.ClosePositions(positionStore.buyTickets);
+         trade.ClosePositions(positionStore.sellTickets);
       }
       return;
    }
@@ -103,22 +129,23 @@ void OnTick() {
    tradeRequest tR;
 
    Volume tVol(riskPercent, _Symbol);
+
    if(buyCondition) {
       double ask = Ask(_Symbol);
-      double sl = price.Lowest(0, stopPeriod, _Symbol);
-      double tp = ask + tpBuyPips * pips;
+      double sl = price.Lowest(0,stopPeriod,_Symbol);
+      double tp = ask + 100 * pips;
       tradeRequest tR = {_Symbol, magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
 
-      if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+      if(positionStore.buyTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
       double bid = Bid(_Symbol);
-      double sl = price.Highest(0, stopPeriod, _Symbol);
-      double tp = bid - tpSellPips * pips;
+      double sl = price.Highest(0,stopPeriod, _Symbol);
+      double tp = bid - 100 * pips;
       tradeRequest tR = {_Symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
 
-      if(positionStore.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+      if(positionStore.sellTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    }
@@ -195,43 +222,42 @@ string Trend(string symbol) {
    MqlRates pr1 = price.At(1, symbol);
    MqlRates pr2 = price.At(2, symbol);
 
-   MqlRates prLong1 = priceLong.At(1, symbol);
-   MqlRates prLong2 = priceLong.At(2, symbol);
-
    if(pr2.low < pr1.low && pr2.high < pr1.high) {
-  
+      return BULL;
    }
    if(pr2.low > pr1.low && pr2.high > pr1.high) {
- 
+      return BEAR;
    }
    return "";
+}
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-   double RefreshATR(CiATR & usdJpyATR, CiATR & eurJpyATR, CiATR & eurUsdATR, string symbol) {
-      if(symbol == "USDJPY") {
-         usdJpyATR.Refresh();
-         return usdJpyATR.Main(0);
-      } else if(symbol == "EURUSD") {
-         eurUsdATR.Refresh();
-         return eurUsdATR.Main(0);
-      } else if(symbol == "EURJPY") {
-         eurJpyATR.Refresh();
-         return eurJpyATR.Main(0);
-      }
-      return 0;
+double RefreshATR(CiATR & usdJpyATR, CiATR & eurJpyATR, CiATR & eurUsdATR, string symbol) {
+   if(symbol == "USDJPY") {
+      usdJpyATR.Refresh();
+      return usdJpyATR.Main(0);
+   } else if(symbol == "EURUSD") {
+      eurUsdATR.Refresh();
+      return eurUsdATR.Main(0);
+   } else if(symbol == "EURJPY") {
+      eurJpyATR.Refresh();
+      return eurJpyATR.Main(0);
    }
+   return 0;
+}
 
-   enum strength {
-      STRONG,
-      WEAK
-   };
+enum strength {
+   STRONG,
+   WEAK
+};
 
-   enum trend {
-      BULL,
-      BEAR
-   };
+enum trend {
+   BULL,
+   BEAR
+};
 //+------------------------------------------------------------------+
 
-   
+
+//+------------------------------------------------------------------+

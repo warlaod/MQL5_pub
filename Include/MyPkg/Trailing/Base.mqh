@@ -19,16 +19,16 @@ class Base {
       this.pips = Pips();
    }
 
-   virtual void TrailLong(CArrayLong &buyTickets, int profitPips, int stopPips) {
+   virtual void TrailLongs() {
    }
 
-   virtual void TrailShort(CArrayLong &sellTickets, int profitPips, int stopPips) {
+   virtual void TrailShorts() {
    }
 
-   virtual void ModifyLongPosition(ulong ticket, int profitPips, int stopPips) {
+   virtual void TrailLong() {
    };
 
-   virtual void ModifyShortPosition(ulong ticket, double stopPips, double profitPips) {
+   virtual void TrailShort() {
    };
 };
 //+------------------------------------------------------------------+

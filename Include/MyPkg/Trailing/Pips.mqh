@@ -13,7 +13,7 @@
 // The class just for storing postion tickes
 class Pips: public Base {
  public:
-   void ModifyLongPosition(ulong ticket, int profitPips, int stopPips, string symbol) {
+   void TrailLong(string symbol, ulong ticket, int stopPips, int profitPips ) {
       position.SelectByTicket(ticket);
       double sl = position.StopLoss();
       double base  = (sl == 0.0) ? position.PriceOpen() : sl;
@@ -28,7 +28,7 @@ class Pips: public Base {
       trade.PositionModify(ticket, fixedSl, fixedTp);
    };
 
-   void ModifyShortPosition(ulong ticket, double stopPips, double profitPips, string symbol) {
+   void TrailShort(string symbol,ulong ticket, int stopPips, int profitPips ) {
       position.SelectByTicket(ticket);
       double sl = position.StopLoss();
       double base  = (sl == 0.0) ? position.PriceOpen() : sl;
@@ -43,17 +43,17 @@ class Pips: public Base {
       trade.PositionModify(ticket, fixedSl, fixedTp);
    };
 
-   void TrailLong(CArrayLong &buyTickets, int stopPips, int profitPips = 50) {
+   void TrailLongs(string symbol, CArrayLong &buyTickets, int stopPips, int profitPips = 50) {
       for(int i = buyTickets.Total() - 1; i >= 0; i--) {
          ulong ticket = buyTickets.At(i);
-         this.ModifyLongPosition(ticket, stopPips, profitPips);
+         this.TrailLong(symbol,ticket, stopPips, profitPips);
       }
    }
 
-   void TrailShort(CArrayLong &sellTickets, int stopPips, int profitPips = 50 ) {
+   void TrailShorts(string symbol, CArrayLong &sellTickets, int stopPips, int profitPips = 50 ) {
       for(int i = sellTickets.Total() - 1; i >= 0; i--) {
          ulong ticket = sellTickets.At(i);
-         this.ModifyShortPosition(ticket, stopPips, profitPips);
+         this.TrailShort(symbol, ticket, stopPips, profitPips);
       }
    }
 };

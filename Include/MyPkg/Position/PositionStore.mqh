@@ -10,7 +10,7 @@
 class PositionStore {
 
  public:
-   CArrayLong sellTickes, buyTickes;
+   CArrayLong sellTickets, buyTickets;
    ulong magicNumber;
 
    void PositionStore(ulong magicNumber) {
@@ -18,15 +18,15 @@ class PositionStore {
    };
    
    void Refresh(){
-      buyTickes.Clear();
-      sellTickes.Clear();
+      buyTickets.Clear();
+      sellTickets.Clear();
       for(int i = PositionsTotal() - 1; i >= 0; i--) {
          ulong ticket = PositionGetTicket(i);
          if(PositionGetInteger(POSITION_MAGIC) != magicNumber) continue;
          if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY) {
-            buyTickes.Add(ticket);
+            buyTickets.Add(ticket);
          } else {
-            sellTickes.Add(ticket);
+            sellTickets.Add(ticket);
          };
       };
    }
