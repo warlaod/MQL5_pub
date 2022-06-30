@@ -55,6 +55,7 @@ input int atrPeriod, atrPipsMin;
 //+------------------------------------------------------------------+
 CiATR audUsd;
 CiMA ma;
+
 int OnInit() {
    EventSetTimer(eventTimer);
    int atrIndex = 1;
