@@ -20,6 +20,7 @@
 #include <MyPkg\Trailing\Appointed.mqh>
 #include <MyPkg\Trailing\Pips.mqh>
 #include <MyPkg\Trailing\PositionStoreForTrailing.mqh>
+#include <MyPkg\OrderHistory.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -44,6 +45,7 @@ Price price(tf);
 PositionStore positionStore(magicNumber);
 Position position;
 Time time;
+OrderHistory orderHistory(magicNumber);
 
 Pips trailing;
 PositionStoreForTrailing psTrailing;
@@ -109,7 +111,7 @@ void OnTick() {
       return;
    }
 
-   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold)) {
+   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(_Symbol,tf)) {
       return;
    }
 
