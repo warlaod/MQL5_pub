@@ -16,8 +16,7 @@
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
 #include <MyPkg\Time.mqh>
-#include <MyPkg\Trailing\Appointed.mqh>
-#include <MyPkg\Trailing\Pips.mqh>
+#include <MyPkg\OrderHistory.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -27,7 +26,7 @@
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
 input int equityThereShold = 1500;
-input int riskPercent = 2;
+input int riskPercent = 5;
 input int positionTotal = 1;
 input int whenToCloseOnFriday = 23;
 input int spreadLimit = 999;
@@ -36,31 +35,32 @@ ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int digitAdjust = DigitAdjust();
 double pips = Pips();
+string symbol = _Symbol;
 Trade trade(magicNumber);
 Price price(tf);
 Volume tVol(riskPercent, _Symbol);
 PositionStore positionStore(magicNumber);
 Time time;
+OrderHistory orderHistory(magicNumber);
 
-input int adxMinusMin, adxPlusMin;
-input int atrPeriod, atrMinVal;
-input double slPips;
-input int adxPeriod;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiATR ATR;
-CiADX ADX;
-Pips trailing;
+CiMA maLong, maShort;
+input int maPeriod, maLongPeriodCoef, slPeriod;
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
-   ATR.Create(_Symbol, tf, atrPeriod);
-   ATR.BufferResize(1);
 
-   ADX.Create(_Symbol, tf, adxPeriod);
-   ADX.BufferResize(1);
+   maLong.Create(symbol, tf,  maPeriod * maLongPeriodCoef, 0, MODE_SMA, PRICE_CLOSE);
+   maLong.BufferResize(3);
+
+   maShort.Create(symbol, tf,  maPeriod, 0, MODE_SMA, PRICE_CLOSE);
+   maShort.BufferResize(3);
+
    return(INIT_SUCCEEDED);
 }
 
@@ -70,20 +70,38 @@ int OnInit() {
 void OnTick() {
    time.Refresh();
    positionStore.Refresh();
+   psTrailing.Refresh(positionStore.sellTickets,positionStore.buyTickets);
 
-   trailing.TrailLong(positionStore.sellTickes, 50, slPips);
-   trailing.TrailShort(positionStore.sellTickes, 50, slPips);
-
+   // If current position has some profit, add list for trailing
+   for(int i = positionStore.buyTickets.Total() - 1; i >= 0; i--) {
+      ulong ticket = positionStore.buyTickets.At(i);
+      double profit = position.ProfitInPips(ticket);
+      if(profit > trailPips){
+         psTrailing.AddBuyTicket(ticket);
+      }
+   }
+   for(int i = positionStore.sellTickets.Total() - 1; i >= 0; i--) {
+      ulong ticket = positionStore.sellTickets.At(i);
+      double profit = position.ProfitInPips(ticket);
+      if(profit > trailPips){
+         psTrailing.AddSellTicket(ticket);
+      }
+   }
+   
+   // trailing
+   trailing.TrailLongs(_Symbol, psTrailing.buyTickets,trailPips);
+   trailing.TrailShorts(_Symbol, psTrailing.sellTickets,trailPips);
+   
    // don't trade before 2 hours from market close
    if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 2)) {
       if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 1)) {
-         trade.ClosePositions(positionStore.buyTickes);
-         trade.ClosePositions(positionStore.sellTickes);
+         trade.ClosePositions(positionStore.buyTickets);
+         trade.ClosePositions(positionStore.sellTickets);
       }
       return;
    }
 
-   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || !CheckNewBarOpen(tf, _Symbol)) {
+   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(symbol,tf)) {
       return;
    }
 
@@ -91,31 +109,45 @@ void OnTick() {
       return;
    }
 
-   ATR.Refresh();
-   double atr = ATR.Main(0);
-   if(ATR.Main(0) < atrMinVal * _Point * digitAdjust) return;
+   MqlRates price0 = price.At(0, symbol);
+   MqlRates price1 = price.At(1, symbol);
+   MqlRates price2 = price.At(2, symbol);
 
-   bool buyCondition = (ADX.Minus(0) > 20 && ADX.Main(0) < adxMinusMin &&  ADX.Plus(1) > ADX.Plus(2));
-   bool sellCondition = (ADX.Plus(0) > 20 && ADX.Main(0) > adxPlusMin && ADX.Minus(1) > ADX.Minus(2));
+   maShort.Refresh();
+   maLong.Refresh();
+
+   double maShort0 = maShort.Main(0);
+   double maShort1 = maShort.Main(1);
+   double maShort2 = maShort.Main(2);
+   double maLong0 = maLong.Main(0);
+   double maLong1 = maLong.Main(1);
+   double maLong2 = maLong.Main(2);
+
+   bool buyCondition = maLong0 > maShort0 && maLong1 > maShort1 && maLong2 > maShort2 &&
+                       maShort2 > price2.high && maShort1 > price1.high &&
+                       maShort0 < price0.close;
+   bool sellCondition = maLong0 < maShort0 && maLong1 < maShort1 && maLong2 < maShort2 &&
+                        maShort2 < price2.low && maShort1 < price1.low &&
+                        maShort0 > price0.close;
 
    tradeRequest tR;
 
    if(buyCondition) {
-      double ask = Ask(_Symbol);
-      double sl = 0;
-      double tp = ask + 50 * pips;
-      tradeRequest tR = {_Symbol, magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
+      double ask = Ask(symbol);
+      double sl = price.Lowest(0, slPeriod, symbol);
+      double tp = maLong0;
+      tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
 
-      if(positionStore.buyTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+      if(positionStore.buyTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
-      double bid = Bid(_Symbol);
-      double sl = bid + slPips * pips;
-      double tp = bid - 50 * pips;
-      tradeRequest tR = {_Symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
+      double bid = Bid(symbol);
+      double sl = price.Highest(0, slPeriod, symbol);
+      double tp = maLong0;
+      tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
 
-      if(positionStore.sellTickes.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+      if(positionStore.sellTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    }
@@ -128,8 +160,4 @@ double OnTester() {
    Optimization optimization;
    return optimization.Custom2();
 }
-//+------------------------------------------------------------------+
-
-//+------------------------------------------------------------------+
-//|                                                                  |
 //+------------------------------------------------------------------+

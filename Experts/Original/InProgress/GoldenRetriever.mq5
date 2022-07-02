@@ -16,6 +16,7 @@
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
 #include <MyPkg\Time.mqh>
+#include <MyPkg\OrderHistory.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -41,6 +42,7 @@ Price price(tf);
 Volume tVol(riskPercent, _Symbol);
 PositionStore positionStore(magicNumber);
 Time time;
+OrderHistory orderHistory(magicNumber);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -54,7 +56,7 @@ int OnInit() {
    EventSetTimer(eventTimer);
 
    maLong.Create(symbol, tf,  maPeriod * maLongPeriodCoef, 0, MODE_SMA, PRICE_CLOSE);
-   maLong.BufferResize(1);
+   maLong.BufferResize(3);
 
    maShort.Create(symbol, tf,  maPeriod, 0, MODE_SMA, PRICE_CLOSE);
    maShort.BufferResize(3);
@@ -77,7 +79,7 @@ void OnTick() {
       return;
    }
 
-   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || !CheckNewBarOpen(tf, symbol)) {
+   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(symbol,tf)) {
       return;
    }
 
@@ -96,15 +98,14 @@ void OnTick() {
    double maShort1 = maShort.Main(1);
    double maShort2 = maShort.Main(2);
    double maLong0 = maLong.Main(0);
+   double maLong1 = maLong.Main(1);
+   double maLong2 = maLong.Main(2);
 
-
-   bool buyCondition = maLong0 > maShort0 &&
-                       maShort2 > price2.high &&
-                       maShort1 > price1.high &&
+   bool buyCondition = maLong0 > maShort0 && maLong1 > maShort1 && maLong2 > maShort2 &&
+                       maShort2 > price2.high && maShort1 > price1.high &&
                        maShort0 < price0.close;
-   bool sellCondition = maLong0 < maShort0 &&
-                        maShort2 < price2.low &&
-                        maShort1 < price1.low &&
+   bool sellCondition = maLong0 < maShort0 && maLong1 < maShort1 && maLong2 < maShort2 &&
+                        maShort2 < price2.low && maShort1 < price1.low &&
                         maShort0 > price0.close;
 
    tradeRequest tR;
