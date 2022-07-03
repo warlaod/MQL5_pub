@@ -14,8 +14,11 @@
 #include <MyPkg\Trade\Trade.mqh>
 #include <MyPkg\Trade\Volume.mqh>
 #include <MyPkg\Price.mqh>
+#include <MyPkg\Position\Position.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
 #include <MyPkg\Time.mqh>
+#include <MyPkg\Trailing\Pips.mqh>
+#include <MyPkg\Trailing\PositionStoreForTrailing.mqh>
 #include <MyPkg\OrderHistory.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
@@ -41,25 +44,26 @@ Trade trade(magicNumber);
 Price price(tf);
 Volume tVol(riskPercent, _Symbol);
 PositionStore positionStore(magicNumber);
+Position position;
 Time time;
 OrderHistory orderHistory(magicNumber);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiMA maLong, maShort;
+Pips trailing;
+PositionStoreForTrailing psTrailing;
+CiStochastic Sto;
 input int maPeriod, maLongPeriodCoef, slPeriod;
+input int trailPips;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
 
-   maLong.Create(symbol, tf,  maPeriod * maLongPeriodCoef, 0, MODE_SMA, PRICE_CLOSE);
+   Sto.Create(symbol,tf,5,3,3,MODE_EMA,STO_LOWHIGH);
    maLong.BufferResize(3);
-
-   maShort.Create(symbol, tf,  maPeriod, 0, MODE_SMA, PRICE_CLOSE);
-   maShort.BufferResize(3);
 
    return(INIT_SUCCEEDED);
 }

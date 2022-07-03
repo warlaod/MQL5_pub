@@ -79,7 +79,7 @@ void OnTick() {
       return;
    }
 
-   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(symbol,tf)) {
+   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(symbol, tf)) {
       return;
    }
 
@@ -116,7 +116,12 @@ void OnTick() {
       double tp = maLong0;
       tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
 
+
       if(positionStore.buyTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+         double lastVol = orderHistory.consecutiveLossCount(symbol, tf, DEAL_TYPE_SELL);
+         if(lastVol != 0) {
+            tR.volume = lastVol * 2;
+         }
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
@@ -126,6 +131,10 @@ void OnTick() {
       tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
 
       if(positionStore.sellTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+         double lastVol = orderHistory.consecutiveLossCount(symbol, tf, DEAL_TYPE_BUY);
+         if(lastVol != 0) {
+            tR.volume = lastVol * 2;
+         }
          trade.OpenPosition(tR);
       }
    }

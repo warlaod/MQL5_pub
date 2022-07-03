@@ -17,7 +17,6 @@
 #include <MyPkg\Position\Position.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
 #include <MyPkg\Time.mqh>
-#include <MyPkg\Trailing\Appointed.mqh>
 #include <MyPkg\Trailing\Pips.mqh>
 #include <MyPkg\Trailing\PositionStoreForTrailing.mqh>
 #include <MyPkg\OrderHistory.mqh>
