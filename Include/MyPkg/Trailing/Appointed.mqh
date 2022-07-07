@@ -13,7 +13,7 @@
 // The class just for storing postion tickes
 class Appointed: public Base {
  public:
-   void TrailLong(ulong ticket, double newStop, string symbol) {
+   void TrailLong(string symbol, ulong ticket, double newSL, double newTP) {
       position.SelectByTicket(ticket);
       double sl = position.StopLoss();
       double base  = (sl == 0.0) ? position.PriceOpen() : sl;
@@ -22,19 +22,19 @@ class Appointed: public Base {
       int stopLevel = (int)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL);
       double level = price - stopLevel * _Point;
 
-      if(newStop > base && newStop < level) {
-         trade.PositionModify(ticket, newStop, price + 300 * pips);
+      if(newSL > base && newSL < level) {
+         trade.PositionModify(ticket, newSL, newTP);
       }
    };
 
-   void TrailLongs(CArrayLong &buyTickets, double newStop, string symbol) {
+   void TrailLongs(string symbol, CArrayLong &buyTickets, double newSL, double newTP) {
       for(int i = buyTickets.Total() - 1; i >= 0; i--) {
          ulong ticket = buyTickets.At(i);
-         this.TrailLong(symbol, ticket, newStop);
+         this.TrailLong(symbol, ticket, newSL, newTP);
       }
    }
 
-   void TrailShort(ulong ticket, double newStop, string symbol) {
+   void TrailShort(string symbol, ulong ticket, double newSL, double newTP) {
       position.SelectByTicket(ticket);
       double sl = position.StopLoss();
       double base  = (sl == 0.0) ? position.PriceOpen() : sl;
@@ -43,15 +43,15 @@ class Appointed: public Base {
       int stopLevel = (int)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL);
       double level = price + stopLevel * _Point;
 
-      if(newStop < base && newStop > level) {
-         trade.PositionModify(ticket, newStop, price - 300 * pips);
+      if(newSL < base && newSL > level) {
+         trade.PositionModify(ticket, newSL, newTP);
       }
    };
 
-   void TrailShorts(CArrayLong &sellTickets, double newStop, string symbol) {
+   void TrailShorts(string symbol, CArrayLong &sellTickets, double newSL, double newTP) {
       for(int i = sellTickets.Total() - 1; i >= 0; i--) {
          ulong ticket = sellTickets.At(i);
-         this.TrailShort(symbol,ticket, newStop);
+         this.TrailShort(symbol, ticket, newSL, newTP);
       }
    }
 };

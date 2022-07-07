@@ -13,17 +13,17 @@ class Price {
       ArraySetAsSeries(high, true);
    }
 
-   MqlRates At(uchar index, string symbol) {
+   MqlRates At(string symbol,uchar index) {
       CopyRates(symbol, timefrane, index, 1, price);
       return price[0];
    }
 
-   double Highest(uchar start, uchar end, string symbol) {
+   double Highest(string symbol, uchar start, uchar end) {
       CopyHigh(symbol, timefrane, start, end, high);
       return high[ArrayMaximum(high, 0, end)];
    }
 
-   double Lowest(uchar start, uchar end,string symbol) {
+   double Lowest(string symbol,uchar start, uchar end) {
       CopyLow(symbol, timefrane, start, end, low);
       return low[ArrayMinimum(low, 0, end)];
    }

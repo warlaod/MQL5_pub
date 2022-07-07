@@ -15,6 +15,7 @@
 #include <MyPkg\Trade\Volume.mqh>
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
+#include <MyPkg\Position\Position.mqh>
 #include <MyPkg\Time.mqh>
 #include <MyPkg\Trailing\Appointed.mqh>
 #include <MyPkg\OrderHistory.mqh>
@@ -31,50 +32,34 @@ input int riskPercent = 5;
 input int positionTotal = 1;
 input int whenToCloseOnFriday = 23;
 input int spreadLimit = 999;
-input optimizedTimeframes maTimeFrame, stoTimeFrame,forceTimeframe;
-ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(maTimeFrame);
-ENUM_TIMEFRAMES forceTf = convertENUM_TIMEFRAMES(forceTimeframe);
-ENUM_TIMEFRAMES stoTf = convertENUM_TIMEFRAMES(stoTimeFrame);
+input optimizedTimeframes timeFrame;
+ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 double pips = Pips();
 string symbol = _Symbol;
 Trade trade(magicNumber);
-Price price(tf);
+Price price(PERIOD_MN1);
 Volume tVol(riskPercent, _Symbol);
 PositionStore positionStore(magicNumber);
+Position position;
 Time time;
 OrderHistory orderHistory(magicNumber);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiMA maLong, maShort;
-CiForce force;
-CiStochastic sto;
-Appointed trailing;
-input int maPeriod;
-input int stoSignalLimit;
-input int k, d, slowD;
-input int slPips, stopPeriod;
-input int forcePeriod;
-
+CiATR atr;
+input int atrPeriod,pricePeriod,slPips;
+input double middleLimit,topLimit;
+input double tpCoef;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
-
-   maLong.Create(symbol, tf,  maPeriod, 0, MODE_EMA, PRICE_CLOSE);
-   maLong.BufferResize(1);
-
-   sto.Create(symbol, stoTf, k, k-d, 3, MODE_EMA, STO_LOWHIGH);
-   sto.BufferResize(2);
-   force.Create(symbol, forceTf, forcePeriod, MODE_EMA, VOLUME_TICK);
-   force.BufferResize(2);
-
-
+   atr.Create(symbol,tf,atrPeriod);
 
    return(INIT_SUCCEEDED);
 }
@@ -86,50 +71,33 @@ void OnTick() {
    time.Refresh();
    positionStore.Refresh();
 
-   maLong.Refresh();
-   double maLong0 = maLong.Main(0);
-   double longSL = price.Lowest(symbol, 0, stopPeriod) - slPips * pips;
-   double shortSL = price.Highest(symbol, 0, stopPeriod) + slPips * pips;
-
-   trailing.TrailLongs(symbol, positionStore.buyTickets, longSL, maLong0);
-   trailing.TrailShorts(symbol, positionStore.sellTickets, shortSL, maLong0);
-
-   // don't trade before 2 hours from market close
-   if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 2)) {
-      if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 1)) {
-         trade.ClosePositions(positionStore.buyTickets);
-         trade.ClosePositions(positionStore.sellTickets);
-      }
-      return;
-   }
-
    if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(symbol, tf)) {
       return;
    }
 
-   if(SymbolInfoInteger(Symbol(), SYMBOL_SPREAD) > spreadLimit) {
+   if(SymbolInfoInteger(symbol, SYMBOL_SPREAD) > spreadLimit) {
       return;
    }
 
-   force.Refresh();
-   sto.Refresh();
+   double top = price.Highest(symbol,0,pricePeriod);
+   double bottom = price.Lowest(symbol,0,pricePeriod);
+   double current = price.At(symbol,0).close;
+   double perB = (current - bottom) / (top - bottom);
 
-   bool buyCondition = force.Main(0) > 0 && force.Main(1) < force.Main(0)
-                       && sto.Signal(1) < stoSignalLimit
-                       && sto.Signal(1) > sto.Main(1) && sto.Signal(0) < sto.Main(0);
+   bool sellCondition = perB > 0.5+middleLimit
+   && perB < 1 - topLimit;
 
-   bool sellCondition = force.Main(0) < 0 && force.Main(1) > force.Main(0)
-                        && sto.Signal(1) > 100 - stoSignalLimit
-                        && sto.Signal(1) < sto.Main(1) && sto.Signal(0) > sto.Main(0);
-
-
-   tradeRequest tR;
-
-
+   bool buyCondition = perB < 0.5 - middleLimit
+   && perB > topLimit;
+   
+   double range = atr.Main(0) * tpCoef;
    if(buyCondition) {
       double ask = Ask(symbol);
-      double sl = longSL;
-      double tp = maLong0;
+      if(position.IsAnyPositionInRange(positionStore.buyTickets,ask,range)){
+      return;
+      }
+      double sl = bottom - slPips*pips;
+      double tp = ask + range;
       tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
 
       if(positionStore.buyTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
@@ -137,8 +105,11 @@ void OnTick() {
       }
    } else if(sellCondition) {
       double bid = Bid(symbol);
-      double sl = shortSL;
-      double tp = maLong0;
+      if(position.IsAnyPositionInRange(positionStore.sellTickets,bid,range)){
+      return;
+      }
+      double sl = top + slPips*pips;
+      double tp = bid - range;
       tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
 
       if(positionStore.sellTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {

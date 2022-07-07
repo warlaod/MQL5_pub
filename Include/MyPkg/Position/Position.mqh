@@ -6,6 +6,7 @@
 
 #include <Trade\PositionInfo.mqh>
 #include <MyPkg\CommonFunc.mqh>
+#include <Arrays\ArrayLong.mqh>
 
 class Position: public CPositionInfo {
    double pips;
@@ -23,5 +24,16 @@ class Position: public CPositionInfo {
       }
       return profit / pips;
    }
+   
+   bool IsAnyPositionInRange(CArrayLong &tickets,double askOrBid, double range) {
+      for(int i = 0; i < tickets.Total(); i++) {
+         SelectByTicket(tickets.At(i));
+         if(MathAbs(PriceOpen() - askOrBid) < range) {
+            return true;
+         }
+      }
+      return false;
+   }
+   
 };
 //+------------------------------------------------------------------+
