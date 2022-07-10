@@ -51,15 +51,17 @@ OrderHistory orderHistory(magicNumber);
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiATR atr;
-input int atrPeriod,pricePeriod,slPips;
-input double middleLimit,topLimit;
+input int atrPeriod, pricePeriod, slPips;
+input double middleLimit, topLimit;
 input double tpCoef;
+input double lot;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
-   atr.Create(symbol,tf,atrPeriod);
+   atr.Create(symbol, tf, atrPeriod);
+   atr.BufferResize(1);
 
    return(INIT_SUCCEEDED);
 }
@@ -79,40 +81,41 @@ void OnTick() {
       return;
    }
 
-   double top = price.Highest(symbol,0,pricePeriod);
-   double bottom = price.Lowest(symbol,0,pricePeriod);
-   double current = price.At(symbol,0).close;
+   double top = price.Highest(symbol, 0, pricePeriod);
+   double bottom = price.Lowest(symbol, 0, pricePeriod);
+   double current = price.At(symbol, 0).close;
    double perB = (current - bottom) / (top - bottom);
 
-   bool sellCondition = perB > 0.5+middleLimit
-   && perB < 1 - topLimit;
+   bool sellCondition = perB > 0.5 + middleLimit
+                        && perB < 1 - topLimit;
 
    bool buyCondition = perB < 0.5 - middleLimit
-   && perB > topLimit;
-   
+                       && perB > topLimit;
+
+   atr.Refresh();
    double range = atr.Main(0) * tpCoef;
    if(buyCondition) {
       double ask = Ask(symbol);
-      if(position.IsAnyPositionInRange(positionStore.buyTickets,ask,range)){
-      return;
+      if(position.IsAnyPositionInRange(positionStore.buyTickets, ask, range)) {
+         return;
       }
-      double sl = bottom - slPips*pips;
+      double sl = bottom - slPips * pips;
       double tp = ask + range;
       tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
 
-      if(positionStore.buyTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+      if(tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
       double bid = Bid(symbol);
-      if(position.IsAnyPositionInRange(positionStore.sellTickets,bid,range)){
-      return;
+      if(position.IsAnyPositionInRange(positionStore.sellTickets, bid, range)) {
+         return;
       }
-      double sl = top + slPips*pips;
+      double sl = top + slPips * pips;
       double tp = bid - range;
       tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
 
-      if(positionStore.sellTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
+      if(tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    }

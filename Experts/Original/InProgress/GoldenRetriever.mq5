@@ -35,6 +35,9 @@ input optimizedTimeframes maTimeFrame, stoTimeFrame,forceTimeframe;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(maTimeFrame);
 ENUM_TIMEFRAMES forceTf = convertENUM_TIMEFRAMES(forceTimeframe);
 ENUM_TIMEFRAMES stoTf = convertENUM_TIMEFRAMES(stoTimeFrame);
+
+input ENUM_MA_METHOD maMA, stoMA, forceMA;
+input ENUM_APPLIED_PRICE appliedPrice;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -66,12 +69,12 @@ input int forcePeriod;
 int OnInit() {
    EventSetTimer(eventTimer);
 
-   maLong.Create(symbol, tf,  maPeriod, 0, MODE_EMA, PRICE_CLOSE);
+   maLong.Create(symbol, tf,  maPeriod, 0, maMA, appliedPrice);
    maLong.BufferResize(1);
 
-   sto.Create(symbol, stoTf, k, k-d, 3, MODE_EMA, STO_LOWHIGH);
+   sto.Create(symbol, stoTf, k, 3, 3, stoMA, STO_LOWHIGH);
    sto.BufferResize(2);
-   force.Create(symbol, forceTf, forcePeriod, MODE_EMA, VOLUME_TICK);
+   force.Create(symbol, forceTf, forcePeriod, forceMA, VOLUME_TICK);
    force.BufferResize(2);
 
 
@@ -114,11 +117,11 @@ void OnTick() {
    force.Refresh();
    sto.Refresh();
 
-   bool buyCondition = force.Main(0) > 0 && force.Main(1) < force.Main(0)
+   bool buyCondition = force.Main(0) > 0
                        && sto.Signal(1) < stoSignalLimit
                        && sto.Signal(1) > sto.Main(1) && sto.Signal(0) < sto.Main(0);
 
-   bool sellCondition = force.Main(0) < 0 && force.Main(1) > force.Main(0)
+   bool sellCondition = force.Main(0) < 0
                         && sto.Signal(1) > 100 - stoSignalLimit
                         && sto.Signal(1) < sto.Main(1) && sto.Signal(0) > sto.Main(0);
 
