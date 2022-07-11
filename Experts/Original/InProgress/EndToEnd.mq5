@@ -98,6 +98,10 @@ double OnTester() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void makeTrade(string symbol, CiATR &atr) {
+   if(orderHistory.wasOrderInTheSameBar(symbol, PERIOD_M10)) {
+      return;
+   }
+
    if(SymbolInfoInteger(symbol, SYMBOL_SPREAD) > spreadLimit) {
       return;
    }
@@ -130,7 +134,7 @@ void makeTrade(string symbol, CiATR &atr) {
       }
       double sl = 0;
       double tp = ask + range;
-      tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
       if(!tVol.CalcurateVolumeByRisk(tR,risk)) {
          tR.volume = lot;
@@ -143,7 +147,7 @@ void makeTrade(string symbol, CiATR &atr) {
       }
       double sl = 999;
       double tp = bid - range;
-      tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
       if(!tVol.CalcurateVolumeByRisk(tR,risk)) {
          tR.volume = lot;
