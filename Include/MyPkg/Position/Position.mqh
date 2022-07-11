@@ -15,7 +15,7 @@ class Position: public CPositionInfo {
    void Position() {
       this.pips = Pips();
    }
-   
+
    double ProfitInPips(ulong ticket) {
       SelectByTicket(ticket);
       double profit = PriceCurrent() - PriceOpen();
@@ -24,16 +24,17 @@ class Position: public CPositionInfo {
       }
       return profit / pips;
    }
-   
-   bool IsAnyPositionInRange(CArrayLong &tickets,double askOrBid, double range) {
+
+   bool IsAnyPositionInRange(string symbol, CArrayLong &tickets, double askOrBid, double range) {
       for(int i = 0; i < tickets.Total(); i++) {
          SelectByTicket(tickets.At(i));
+         if(this.Symbol() != symbol) continue;
          if(MathAbs(PriceOpen() - askOrBid) < range) {
             return true;
          }
       }
       return false;
    }
-   
+
 };
 //+------------------------------------------------------------------+
