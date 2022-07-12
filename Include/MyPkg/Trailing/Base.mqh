@@ -15,8 +15,8 @@ class Base {
    CTrade trade;
    double pips;
 
-   void Base() {
-      this.pips = Pips();
+   void Base(string symbol) {
+      this.pips = Pips(symbol);
    }
 
    virtual void TrailLongs() {

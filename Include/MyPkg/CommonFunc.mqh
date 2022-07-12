@@ -47,15 +47,17 @@ bool CheckEquityThereShold(int thereShold) {
 }
 
 // convert _Point to pips
-int DigitAdjust() {
+int DigitAdjust(string symbol) {
    int digitsAdjust = 1;
-   if(_Digits == 3 || _Digits == 5)
+   int digit = SymbolInfoInteger(symbol,SYMBOL_DIGITS);
+   if(digit == 3 || digit == 5)
       digitsAdjust = 10;
    return digitsAdjust;
 }
 
 // convert numeric to Pips;
-double Pips() {
-   return _Point * DigitAdjust();
+double Pips(string symbol) {
+   double point = SymbolInfoDouble(symbol,SYMBOL_POINT);
+   return point * DigitAdjust(symbol);
 }
 //+------------------------------------------------------------------+

@@ -32,16 +32,15 @@ input int risk = 5;
 input int positionTotal = 1;
 input int whenToCloseOnFriday = 23;
 input int spreadLimit = 999;
-input optimizedTimeframes timeFrame;
+input optimizedTimeframes timeFrame, forceTimeframe;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
+ENUM_TIMEFRAMES ftf = convertENUM_TIMEFRAMES(forceTimeframe);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double pips = Pips();
 Trade trade(magicNumber);
 Price price(PERIOD_MN1);
 PositionStore positionStore(magicNumber);
-Position position;
 Time time;
 OrderHistory orderHistory(magicNumber);
 
@@ -49,15 +48,18 @@ OrderHistory orderHistory(magicNumber);
 //|                                                                  |
 //+------------------------------------------------------------------+
 CiATR atrEURUSD, atrUSDJPY, atrEURJPY;
+CiForce fEURUSD, fUSDJPY, fEURJPY;
 input int atrPeriod, pricePeriod, slPips;
 input double middleLimit, topLimit;
 input double tpCoef;
-input int minTPPips,maxTPPips;
-input double lot;
+input int minTPPips, maxTPPips;
+input int forcePeriod;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
+   if (minTPPips > maxTPPips)
+      return(INIT_PARAMETERS_INCORRECT);
    EventSetTimer(eventTimer);
    atrEURUSD.Create("EURUSD", tf, atrPeriod);
    atrEURUSD.BufferResize(1);
@@ -67,6 +69,15 @@ int OnInit() {
 
    atrUSDJPY.Create("USDJPY", tf, atrPeriod);
    atrUSDJPY.BufferResize(1);
+
+   fEURUSD.Create("EURUSD", ftf, forcePeriod, MODE_EMA, VOLUME_TICK);
+   fEURUSD.BufferResize(2);
+
+   fEURJPY.Create("EURJPY", ftf, forcePeriod, MODE_EMA, VOLUME_TICK);
+   fEURJPY.BufferResize(2);
+
+   fUSDJPY.Create("USDJPY", ftf, forcePeriod, MODE_EMA, VOLUME_TICK);
+   fUSDJPY.BufferResize(2);
 
    return(INIT_SUCCEEDED);
 }
@@ -80,9 +91,9 @@ void OnTick() {
 
    if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold)) return;
 
-   makeTrade("EURJPY", atrEURJPY);
-   makeTrade("USDJPY", atrUSDJPY);
-   makeTrade("EURUSD", atrEURUSD);
+   makeTrade("EURJPY", atrEURJPY, fEURJPY);
+   makeTrade("USDJPY", atrUSDJPY, fUSDJPY);
+   makeTrade("EURUSD", atrEURUSD, fEURUSD);
 }
 
 //+------------------------------------------------------------------+
@@ -97,8 +108,11 @@ double OnTester() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void makeTrade(string symbol, CiATR &atr) {
-   if(orderHistory.wasOrderInTheSameBar(symbol, PERIOD_M10)) {
+void makeTrade(string symbol, CiATR &atr, CiForce &force) {
+   double pips = Pips(symbol);
+   Position position(symbol);
+
+   if(orderHistory.wasOrderInTheSameBar(symbol, PERIOD_H1)) {
       return;
    }
 
@@ -111,48 +125,55 @@ void makeTrade(string symbol, CiATR &atr) {
    double current = price.At(symbol, 0).close;
    double perB = (current - bottom) / (top - bottom);
 
+   force.Refresh();
+   double force0 = force.Main(0);
+   double force1 = force.Main(1);
    bool sellCondition = perB > 0.5 + middleLimit
-                        && perB < 1 - topLimit;
+                        && perB < 1 - topLimit
+                        && force0 < 0
+                        && force0 < force1;
 
    bool buyCondition = perB < 0.5 - middleLimit
-                       && perB > topLimit;
+                       && perB > topLimit
+                       && force0 > 0
+                       && force0 > force1;
 
    atr.Refresh();
    Volume tVol(5, symbol);
-   double range = atr.Main(0)*tpCoef;
-   if(range/pips < minTPPips){
+   double range = atr.Main(0) * tpCoef;
+   if(range / pips < minTPPips) {
       range = minTPPips * pips;
    }
-   if(range/pips > maxTPPips){
+   if(range / pips > maxTPPips) {
       range = maxTPPips * pips;
    }
-   
+
    if(buyCondition) {
       double ask = Ask(symbol);
-      if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, ask, range)) {
+      if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
          return;
       }
       double sl = 0;
       double tp = ask + range;
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
-      if(!tVol.CalcurateVolumeByRisk(tR,risk)) {
-         tR.volume = lot;
-      }
+      tVol.CalcurateVolumeByRisk(tR, risk);
       trade.OpenPosition(tR);
+
+
    } else if(sellCondition) {
       double bid = Bid(symbol);
-      if(position.IsAnyPositionInRange(symbol, positionStore.sellTickets, bid, range)) {
+      if(position.IsAnyPositionInRange(symbol, positionStore.sellTickets, range)) {
          return;
       }
       double sl = 999;
       double tp = bid - range;
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
-      if(!tVol.CalcurateVolumeByRisk(tR,risk)) {
-         tR.volume = lot;
-      }
+      tVol.CalcurateVolumeByRisk(tR, risk);
       trade.OpenPosition(tR);
+
+
    }
 }
 //+------------------------------------------------------------------+

@@ -13,14 +13,17 @@
 // The class just for storing postion tickes
 class Appointed: public Base {
  public:
+   void Appointed(string symbol):Base(symbol) { }
+   
    void TrailLong(string symbol, ulong ticket, double newSL, double newTP) {
       position.SelectByTicket(ticket);
       double sl = position.StopLoss();
       double base  = (sl == 0.0) ? position.PriceOpen() : sl;
       double price = Bid(symbol);
 
-      int stopLevel = (int)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL);
-      double level = price - stopLevel * _Point;
+      int stopLevel = (int)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL);
+      double point = SymbolInfoDouble(symbol,SYMBOL_POINT);
+      double level = price - stopLevel * point;
 
       if(newSL > base && newSL < level) {
          trade.PositionModify(ticket, newSL, newTP);
@@ -40,8 +43,9 @@ class Appointed: public Base {
       double base  = (sl == 0.0) ? position.PriceOpen() : sl;
       double price = Ask(symbol);
 
-      int stopLevel = (int)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL);
-      double level = price + stopLevel * _Point;
+      int stopLevel = (int)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL);
+      double point = SymbolInfoDouble(symbol,SYMBOL_POINT);
+      double level = price + stopLevel * point;
 
       if(newSL < base && newSL > level) {
          trade.PositionModify(ticket, newSL, newTP);

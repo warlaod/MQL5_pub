@@ -14,7 +14,7 @@ class Volume: public CMoneyFixedRisk {
       m_symbol.Name(symbol);
       m_symbol.Refresh();
 //---
-      Init(GetPointer(m_symbol), Period(), m_symbol.Point()* DigitAdjust());
+      Init(GetPointer(m_symbol), Period(), m_symbol.Point()* DigitAdjust(symbol));
       Percent(riskPercent); // 1% risk
       ValidationSettings();
    }
