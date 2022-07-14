@@ -16,6 +16,7 @@
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
 #include <MyPkg\Time.mqh>
+#include <MyPkg\Trailing\Appointed.mqh>
 #include <MyPkg\OrderHistory.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
@@ -30,8 +31,10 @@ input int riskPercent = 5;
 input int positionTotal = 1;
 input int whenToCloseOnFriday = 23;
 input int spreadLimit = 999;
-input optimizedTimeframes timeFrame;
-ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
+input optimizedTimeframes longTimeframe, shortTimeframe, atrTimeframe;
+ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(shortTimeframe);
+ENUM_TIMEFRAMES longTf = convertENUM_TIMEFRAMES(longTimeframe);
+ENUM_TIMEFRAMES atrTf = convertENUM_TIMEFRAMES(atrTimeframe);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -40,30 +43,36 @@ string symbol = _Symbol;
 double pips = Pips(symbol);
 Trade trade(magicNumber);
 Price price(tf);
-Volume tVol(riskPercent,symbol);
+Volume tVol(riskPercent, _Symbol);
 PositionStore positionStore(magicNumber);
 Time time;
 OrderHistory orderHistory(magicNumber);
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiAlligator Allig;
-CiATR ATR;
-
-input int tp, sl;
-input int atrPeriod, atrMinVal;
+Appointed trailing(symbol);
+CiMACD macdLong,macdShort;
+CiATR atr;
+input int slPips, stopPeriod,atrPeriod;
+input double slCoef, tpCoef;
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
-
-   Allig.Create(symbol, tf, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN);
-   Allig.BufferResize(13); // How many data should be referenced and updated
-
-   ATR.Create(symbol, tf, atrPeriod);
-   ATR.BufferResize(1);
+   
+   if (longTf <= tf)
+      return(INIT_PARAMETERS_INCORRECT);
+   
+   macdLong.Create(symbol,longTf,12,26,9,PRICE_CLOSE);
+   macdLong.BufferResize(3);
+   macdShort.Create(symbol,tf,12,26,9,PRICE_CLOSE);
+   macdShort.BufferResize(3);
+   
+   atr.Create(symbol, atrTf, atrPeriod);
+   atr.BufferResize(1);
 
    return(INIT_SUCCEEDED);
 }
@@ -74,6 +83,13 @@ int OnInit() {
 void OnTick() {
    time.Refresh();
    positionStore.Refresh();
+
+   double longSL = price.Lowest(symbol, 0, stopPeriod) - slPips * pips;
+   double shortSL = price.Highest(symbol, 0, stopPeriod) + slPips * pips;
+
+   trailing.TrailLongs(symbol, positionStore.buyTickets, longSL, Ask(symbol) + 50 *pips);
+   trailing.TrailShorts(symbol, positionStore.sellTickets, shortSL, Bid(symbol) - 50 *pips);
+
    // don't trade before 2 hours from market close
    if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 2)) {
       if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 1)) {
@@ -83,39 +99,51 @@ void OnTick() {
       return;
    }
 
-   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(_Symbol,tf)) {
+   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(symbol, tf)) {
       return;
    }
 
-   if(SymbolInfoInteger(Symbol(),SYMBOL_SPREAD) > spreadLimit){
+   if(SymbolInfoInteger(Symbol(), SYMBOL_SPREAD) > spreadLimit) {
       return;
    }
 
-   ATR.Refresh();
-   double atr = ATR.Main(0);
+   macdLong.Refresh();
+   macdShort.Refresh();
+   
+   double LongHistogram[2];
+   double ShortHistogram[2];
+   for(int i=0; i<2; i++)
+     {
+      LongHistogram[i] = macdLong.Main(i) - macdShort.Signal(i);
+      ShortHistogram[i] = macdShort.Main(i) - macdShort.Signal(i);
+     }
+   bool buyCondition = LongHistogram[0] > 0 && macdLong.Main(0) > 0
+                       && ShortHistogram[1] < 0 && ShortHistogram[0] > 0 
+                       && macdShort.Main(0) < 0;
 
-   if(ATR.Main(0) < atrMinVal * pips) return;
+   bool sellCondition = LongHistogram[0] < 0 && macdLong.Main(0) < 0
+                       && ShortHistogram[1] > 0 && ShortHistogram[0] < 0 
+                       && macdShort.Main(0) > 0;
 
-   Allig.Refresh();
-   double jaw = Allig.Jaw(-2);
-   double teeth = Allig.Teeth(-2);
-   double lips = Allig.Lips(-2);
-
-   bool buyCondition = Allig.Lips(-1) < Allig.Teeth(-1) && Allig.Lips(-2) > Allig.Teeth(-2);
-   bool sellCondition = Allig.Lips(-1) > Allig.Teeth(-1) && Allig.Lips(-2) < Allig.Teeth(-2);
 
    tradeRequest tR;
 
+   atr.Refresh();
+   double atr0 = atr.Main(0);
    if(buyCondition) {
       double ask = Ask(symbol);
-      tradeRequest tR = {symbol,magicNumber, ORDER_TYPE_BUY, ask, ask - sl * pips, ask + tp * pips};
+      double sl = ask - atr0 * slCoef;
+      double tp = ask + atr0 * tpCoef;
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
       if(positionStore.buyTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
       double bid = Bid(symbol);
-      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, bid + sl*pips, bid - tp * pips};
+      double sl = bid + atr0 * slCoef;
+      double tp = bid - atr0 * tpCoef;
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
       if(positionStore.sellTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
@@ -123,7 +151,11 @@ void OnTick() {
    }
 }
 
-double OnTester(){
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double OnTester() {
    Optimization optimization;
    return optimization.Custom2();
 }
+//+------------------------------------------------------------------+

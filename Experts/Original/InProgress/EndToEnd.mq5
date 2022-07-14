@@ -46,28 +46,20 @@ OrderHistory orderHistory(magicNumber);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiATR atrEURUSD, atrUSDJPY, atrEURJPY;
+CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
-input int atrPeriod, pricePeriod, slPips;
-input double middleLimit, topLimit;
-input double tpCoef;
+input int pricePeriod;
+input double coreLimit, topLimit;
+input double tpCoef,rangeCoef;
 input int minTPPips, maxTPPips;
-input double lot;
+input int minRangePips;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
-   if (minTPPips > maxTPPips)
+   if (minTPPips > maxTPPips || topLimit + coreLimit >= 0.5)
       return(INIT_PARAMETERS_INCORRECT);
    EventSetTimer(eventTimer);
-   atrEURUSD.Create("EURUSD", tf, atrPeriod);
-   atrEURUSD.BufferResize(1);
-
-   atrEURJPY.Create("EURJPY", tf, atrPeriod);
-   atrEURJPY.BufferResize(1);
-
-   atrUSDJPY.Create("USDJPY", tf, atrPeriod);
-   atrUSDJPY.BufferResize(1);
 
    return(INIT_SUCCEEDED);
 }
@@ -81,9 +73,10 @@ void OnTick() {
 
    if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold)) return;
 
-   makeTrade("EURJPY", atrEURJPY);
-   makeTrade("USDJPY", atrUSDJPY);
-   makeTrade("EURUSD", atrEURUSD);
+   makeTrade("AUDNZD", tpCoef);
+   makeTrade("EURGBP", tpCoef);
+   makeTrade("USDCHF", tpCoef);
+   // NZDCAD
 }
 
 //+------------------------------------------------------------------+
@@ -91,14 +84,14 @@ void OnTick() {
 //+------------------------------------------------------------------+
 double OnTester() {
    Optimization optimization;
-   return optimization.Custom2();
+   return optimization.Custom();
 }
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void makeTrade(string symbol, CiATR &atr) {
+void makeTrade(string symbol, double tpCoef) {
    double pips = Pips(symbol);
    Position position(symbol);
 
@@ -115,32 +108,36 @@ void makeTrade(string symbol, CiATR &atr) {
    double current = price.At(symbol, 0).close;
    double perB = (current - bottom) / (top - bottom);
 
-   bool sellCondition = perB > 0.5 + middleLimit
+   bool sellCondition = perB > 0.5 + coreLimit
                         && perB < 1 - topLimit;
 
-   bool buyCondition = perB < 0.5 - middleLimit
+   bool buyCondition = perB < 0.5 - coreLimit
                        && perB > topLimit;
 
-   atr.Refresh();
    Volume tVol(5, symbol);
-   double range = atr.Main(0) * tpCoef;
-   if(range / pips < minTPPips) {
-      range = minTPPips * pips;
+   double distance = top-bottom;
+   double tpAdd = distance * tpCoef;
+   if(tpAdd > maxTPPips * pips){
+      tpAdd = maxTPPips * pips;
    }
-   if(range / pips > maxTPPips) {
-      range = maxTPPips * pips;
+   if(tpAdd < minTPPips * pips){
+      tpAdd = minTPPips * pips;
    }
 
+   double range = distance * rangeCoef;
+   if(range < minRangePips * pips){
+      range = minRangePips * pips;
+   }
    if(buyCondition) {
       double ask = Ask(symbol);
       if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
          return;
       }
       double sl = 0;
-      double tp = ask + range;
+      double tp = ask + tpAdd;
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
-      tVol.CalcurateVolumeByRisk(tR, risk);
+      tVol.CalcurateVolumeByRisk(tR,risk);
       trade.OpenPosition(tR);
    } else if(sellCondition) {
       double bid = Bid(symbol);
@@ -148,10 +145,10 @@ void makeTrade(string symbol, CiATR &atr) {
          return;
       }
       double sl = 999;
-      double tp = bid - range;
+      double tp = bid - tpAdd;
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
-      tVol.CalcurateVolumeByRisk(tR, risk);
+      tVol.CalcurateVolumeByRisk(tR,risk);
       trade.OpenPosition(tR);
    }
 }

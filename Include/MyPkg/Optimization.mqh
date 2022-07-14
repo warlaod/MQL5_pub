@@ -49,12 +49,7 @@ class Optimization {
    }
 
    bool CheckResultValid() {
-      if(trades < 10) return false;
-      if(balanceDd == 0 || equityDd == 0) return false;
-      if(profit <= 0) return false;
-      
-      double winRate = (lossTrades == 0) ? 1 : profitTrades / trades ;
-      if(winRate < 0.15) return false;
+      if(trades == 0) return false;
       return true;
    }
    
@@ -68,7 +63,7 @@ class Optimization {
    }
    
    double PROMNegative() {
-      if(!CheckResultValid()) return -99999;
+      if(!CheckResultValid()) return 0;
       
       double AAGP = (grossProfit / profitTrades) * (profitTrades - sqrt(profitTrades));
       double AAGL = (grossLoss / lossTrades) * (lossTrades + sqrt(lossTrades)) + conLossMax;
@@ -77,16 +72,22 @@ class Optimization {
    }
    
    double Custom() {
-      if(!CheckResultValid()) return -99999;
+      if(!CheckResultValid()) return 0;
       
-      double result =  profit / (balanceDdrelPercent * 100) * MathSqrt(trades);
+      double profitFactor = MathSqrt(trades) / equityDdrelPercent  * minMarginLevel;
+      double result =  profit * profitFactor;
+      if(profit < 0){
+       result = profit / profitFactor;
+      }
+      
+      
       return result;
    }
    
    double Custom2() {
       if(!CheckResultValid()) return -99999;
       
-      double result =  (grossProfit - (grossLoss + conLossMax))  / (balanceDdrelPercent * 100) * MathSqrt(trades);
+      double result =  profit / (equityDdrelPercent * 100) * MathSqrt(trades);
       return result;
    }
 };

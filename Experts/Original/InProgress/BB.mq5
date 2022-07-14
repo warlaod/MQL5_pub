@@ -15,7 +15,9 @@
 #include <MyPkg\Trade\Volume.mqh>
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
+#include <MyPkg\Position\Position.mqh>
 #include <MyPkg\Time.mqh>
+#include <MyPkg\Trailing\Appointed.mqh>
 #include <MyPkg\OrderHistory.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
@@ -26,44 +28,45 @@
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
 input int equityThereShold = 1500;
-input int riskPercent = 5;
+input int riskPercent = 2;
 input int positionTotal = 1;
 input int whenToCloseOnFriday = 23;
 input int spreadLimit = 999;
-input optimizedTimeframes timeFrame;
-ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-
 string symbol = _Symbol;
-double pips = Pips(symbol);
 Trade trade(magicNumber);
-Price price(tf);
-Volume tVol(riskPercent,symbol);
+Price price(PERIOD_MN1);
 PositionStore positionStore(magicNumber);
+Position position(symbol);
 Time time;
 OrderHistory orderHistory(magicNumber);
+Volume tVol(riskPercent, symbol);
+double pips = Pips(symbol);
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiAlligator Allig;
-CiATR ATR;
+CiBands bLong, bShort;
+Appointed trailing(symbol);
 
-input int tp, sl;
-input int atrPeriod, atrMinVal;
 
+input optimizedTimeframes timeFrame, longTimeframe;
+input int longBandPeriod, longDeviation,shortDeviation;
+input int rangePips;
+ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
+ENUM_TIMEFRAMES longTf = convertENUM_TIMEFRAMES(timeFrame);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
-
-   Allig.Create(symbol, tf, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN);
-   Allig.BufferResize(13); // How many data should be referenced and updated
-
-   ATR.Create(symbol, tf, atrPeriod);
-   ATR.BufferResize(1);
+   bLong.Create(symbol, longTf, 20, 0, longDeviation, PRICE_TYPICAL);
+   bLong.BufferResize(3);
+   bShort.Create(symbol, tf, 20, 0, shortDeviation, PRICE_TYPICAL);
+   bShort.BufferResize(3);
 
    return(INIT_SUCCEEDED);
 }
@@ -74,6 +77,13 @@ int OnInit() {
 void OnTick() {
    time.Refresh();
    positionStore.Refresh();
+
+   bLong.Refresh();
+   bShort.Refresh();
+   double base = bLong.Base(0);
+
+
+
    // don't trade before 2 hours from market close
    if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 2)) {
       if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 1)) {
@@ -83,39 +93,47 @@ void OnTick() {
       return;
    }
 
-   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(_Symbol,tf)) {
+   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(_Symbol, tf)) {
       return;
    }
 
-   if(SymbolInfoInteger(Symbol(),SYMBOL_SPREAD) > spreadLimit){
+   if(SymbolInfoInteger(Symbol(), SYMBOL_SPREAD) > spreadLimit) {
       return;
    }
 
-   ATR.Refresh();
-   double atr = ATR.Main(0);
+   for(int i = 0; i < 3; i++) {
+      bool shortInLong = bLong.Upper(i) > bShort.Upper(i)
+                         && bLong.Lower(i) < bShort.Lower(i);
+      if(!shortInLong) return;
+   }
 
-   if(ATR.Main(0) < atrMinVal * pips) return;
-
-   Allig.Refresh();
-   double jaw = Allig.Jaw(-2);
-   double teeth = Allig.Teeth(-2);
-   double lips = Allig.Lips(-2);
-
-   bool buyCondition = Allig.Lips(-1) < Allig.Teeth(-1) && Allig.Lips(-2) > Allig.Teeth(-2);
-   bool sellCondition = Allig.Lips(-1) > Allig.Teeth(-1) && Allig.Lips(-2) < Allig.Teeth(-2);
+   MqlRates price0 = price.At(symbol, 0);
+   bool buyCondition = price0.close > base;
+   bool sellCondition = price0.close < base;
 
    tradeRequest tR;
 
+   double tp = base;
+   double range = rangePips * pips;
    if(buyCondition) {
+      if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
+         return;
+      }
+
       double ask = Ask(symbol);
-      tradeRequest tR = {symbol,magicNumber, ORDER_TYPE_BUY, ask, ask - sl * pips, ask + tp * pips};
+      double sl = bLong.Lower(0);
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
       if(positionStore.buyTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
+      if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
+         return;
+      }
       double bid = Bid(symbol);
-      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, bid + sl*pips, bid - tp * pips};
+      double sl = bLong.Upper(0);
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
       if(positionStore.sellTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
@@ -123,7 +141,11 @@ void OnTick() {
    }
 }
 
-double OnTester(){
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double OnTester() {
    Optimization optimization;
    return optimization.Custom2();
 }
+//+------------------------------------------------------------------+

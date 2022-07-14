@@ -42,12 +42,16 @@ class Volume: public CMoneyFixedRisk {
       return true;
    }
    
-   bool CalcurateVolumeByRisk(tradeRequest &tR, int risk){
+   bool CalcurateVolumeByRisk(tradeRequest &tR, double risk){
       double stepvol = m_symbol.LotsStep();
-      tR.volume = MathFloor(m_account.Balance() / risk / stepvol) * stepvol;
+      tR.volume = MathFloor(m_account.Equity() / risk  / stepvol) * stepvol;
       if(tR.volume == 0){
          return false;
       }
+      
+      double minVol = m_symbol.LotsMin();
+      if(tR.volume < minVol)
+         tR.volume = minVol;
 
       double maxvol = m_symbol.LotsMax();
       if(tR.volume > maxvol)
