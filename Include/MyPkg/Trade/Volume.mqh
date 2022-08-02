@@ -44,7 +44,7 @@ class Volume: public CMoneyFixedRisk {
    
    bool CalcurateVolumeByRisk(tradeRequest &tR, double risk){
       double stepvol = m_symbol.LotsStep();
-      tR.volume = MathFloor(m_account.Equity() / risk  / stepvol) * stepvol;
+      tR.volume = MathFloor(m_account.Balance() / risk  / stepvol) * stepvol;
       if(tR.volume == 0){
          return false;
       }
