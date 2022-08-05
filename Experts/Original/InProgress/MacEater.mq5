@@ -52,9 +52,9 @@ OrderHistory orderHistory(magicNumber);
 //|                                                                  |
 //+------------------------------------------------------------------+
 Appointed trailing(symbol);
-CiMACD macdLong,macdShort;
+CiMACD macdLong, macdShort;
 CiATR atr;
-input int slPips, stopPeriod,atrPeriod;
+input int slPips, stopPeriod, atrPeriod;
 input double slCoef, tpCoef;
 
 //+------------------------------------------------------------------+
@@ -62,15 +62,15 @@ input double slCoef, tpCoef;
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
-   
+
    if (longTf <= tf)
       return(INIT_PARAMETERS_INCORRECT);
-   
-   macdLong.Create(symbol,longTf,12,26,9,PRICE_CLOSE);
+
+   macdLong.Create(symbol, longTf, 12, 26, 9, PRICE_CLOSE);
    macdLong.BufferResize(3);
-   macdShort.Create(symbol,tf,12,26,9,PRICE_CLOSE);
+   macdShort.Create(symbol, tf, 12, 26, 9, PRICE_CLOSE);
    macdShort.BufferResize(3);
-   
+
    atr.Create(symbol, atrTf, atrPeriod);
    atr.BufferResize(1);
 
@@ -87,8 +87,8 @@ void OnTick() {
    double longSL = price.Lowest(symbol, 0, stopPeriod) - slPips * pips;
    double shortSL = price.Highest(symbol, 0, stopPeriod) + slPips * pips;
 
-   trailing.TrailLongs(symbol, positionStore.buyTickets, longSL, Ask(symbol) + 50 *pips);
-   trailing.TrailShorts(symbol, positionStore.sellTickets, shortSL, Bid(symbol) - 50 *pips);
+   trailing.TrailLongs(symbol, positionStore.buyTickets, longSL, Ask(symbol) + 50 * pips);
+   trailing.TrailShorts(symbol, positionStore.sellTickets, shortSL, Bid(symbol) - 50 * pips);
 
    // don't trade before 2 hours from market close
    if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 2)) {
@@ -109,21 +109,20 @@ void OnTick() {
 
    macdLong.Refresh();
    macdShort.Refresh();
-   
+
    double LongHistogram[2];
    double ShortHistogram[2];
-   for(int i=0; i<2; i++)
-     {
+   for(int i = 0; i < 2; i++) {
       LongHistogram[i] = macdLong.Main(i) - macdShort.Signal(i);
       ShortHistogram[i] = macdShort.Main(i) - macdShort.Signal(i);
-     }
+   }
    bool buyCondition = LongHistogram[0] > 0 && macdLong.Main(0) > 0
-                       && ShortHistogram[1] < 0 && ShortHistogram[0] > 0 
+                       && ShortHistogram[1] < 0 && ShortHistogram[0] > 0
                        && macdShort.Main(0) < 0;
 
    bool sellCondition = LongHistogram[0] < 0 && macdLong.Main(0) < 0
-                       && ShortHistogram[1] > 0 && ShortHistogram[0] < 0 
-                       && macdShort.Main(0) > 0;
+                        && ShortHistogram[1] > 0 && ShortHistogram[0] < 0
+                        && macdShort.Main(0) > 0;
 
 
    tradeRequest tR;
@@ -139,7 +138,8 @@ void OnTick() {
       if(positionStore.buyTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
-   } else if(sellCondition) {
+   }
+   if(sellCondition) {
       double bid = Bid(symbol);
       double sl = bid + atr0 * slCoef;
       double tp = bid - atr0 * tpCoef;
