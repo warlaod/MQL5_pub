@@ -7,7 +7,7 @@
 #include <Expert\Money\MoneyFixedRisk.mqh>
 #include <MyPkg\CommonFunc.mqh>
 
-class Volume: public CMoneyFixedRisk {
+class VolumeByRisk: public CMoneyFixedRisk {
  public:
    CSymbolInfo    m_symbol;
    void Volume(double riskPercent,string symbol) {
@@ -34,24 +34,6 @@ class Volume: public CMoneyFixedRisk {
       if(tR.volume == 0){
          return false;
       }
-
-      double maxvol = m_symbol.LotsMax();
-      if(tR.volume > maxvol)
-         tR.volume = maxvol;
-//--- return trading volume
-      return true;
-   }
-   
-   bool CalcurateVolumeByRisk(tradeRequest &tR, double risk){
-      double stepvol = m_symbol.LotsStep();
-      tR.volume = MathFloor(m_account.Balance() / risk  / stepvol) * stepvol;
-      if(tR.volume == 0){
-         return false;
-      }
-      
-      double minVol = m_symbol.LotsMin();
-      if(tR.volume < minVol)
-         tR.volume = minVol;
 
       double maxvol = m_symbol.LotsMax();
       if(tR.volume > maxvol)
