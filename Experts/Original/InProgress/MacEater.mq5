@@ -56,15 +56,13 @@ CiMACD macdLong, macdShort;
 CiATR atr;
 input int slPips, stopPeriod, atrPeriod;
 input double slCoef, tpCoef;
+input bool longOnly;
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
-
-   if (longTf <= tf)
-      return(INIT_PARAMETERS_INCORRECT);
 
    macdLong.Create(symbol, longTf, 12, 26, 9, PRICE_CLOSE);
    macdLong.BufferResize(3);
@@ -81,14 +79,11 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
+   if (longTf <= tf)
+      return;
+      
    time.Refresh();
    positionStore.Refresh();
-
-   double longSL = price.Lowest(symbol, 0, stopPeriod) - slPips * pips;
-   double shortSL = price.Highest(symbol, 0, stopPeriod) + slPips * pips;
-
-   trailing.TrailLongs(symbol, positionStore.buyTickets, longSL, Ask(symbol) + 50 * pips);
-   trailing.TrailShorts(symbol, positionStore.sellTickets, shortSL, Bid(symbol) - 50 * pips);
 
    // don't trade before 2 hours from market close
    if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 2)) {
@@ -129,7 +124,7 @@ void OnTick() {
 
    atr.Refresh();
    double atr0 = atr.Main(0);
-   if(buyCondition) {
+   if(buyCondition && longOnly) {
       double ask = Ask(symbol);
       double sl = ask - atr0 * slCoef;
       double tp = ask + atr0 * tpCoef;
@@ -139,7 +134,7 @@ void OnTick() {
          trade.OpenPosition(tR);
       }
    }
-   if(sellCondition) {
+   if(sellCondition || !longOnly) {
       double bid = Bid(symbol);
       double sl = bid + atr0 * slCoef;
       double tp = bid - atr0 * tpCoef;
