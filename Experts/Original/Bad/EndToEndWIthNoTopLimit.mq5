@@ -45,12 +45,14 @@ OrderHistory orderHistory(magicNumber);
 CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
 input int pricePeriod;
-input double coreRange;
-input double tpHalfCoef, tpRangeCoef, distanceRangeCoef, distanceHalfCoef;
+input double coreLimit;
+input double tpCoef, rangeCoef;
 input int minTPPips, maxTPPips;
 input int minRangePips, maxRangePips;
 
-string symbol1 = _Symbol;
+input string symbol1 = "AUDNZD";
+input string symbol2 = "EURGBP";
+input string symbol3 = "USDCHF";
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -69,8 +71,10 @@ void OnTick() {
 
    if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold)) return;
 
-   makeTrade(symbol1);
-// NZDCAD
+   makeTrade(symbol1, tpCoef);
+   makeTrade(symbol2, tpCoef);
+   makeTrade(symbol3, tpCoef);
+   // NZDCAD
 }
 
 //+------------------------------------------------------------------+
@@ -85,7 +89,11 @@ double OnTester() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void makeTrade(string symbol) {
+void makeTrade(string symbol, double tpCoef) {
+   if(symbol == "") {
+      return;
+   }
+
    PositionStore positionStore(magicNumber, symbol);
    positionStore.Refresh();
 
@@ -104,21 +112,14 @@ void makeTrade(string symbol) {
    double bottom = price.Lowest(symbol, 0, pricePeriod);
    double current = price.At(symbol, 0).close;
    double perB = (current - bottom) / (top - bottom);
-   double gap = top - bottom;
 
-   bool sellCondition = perB < 0.5 + coreRange;
-   bool buyCondition = perB > 0.5 - coreRange;
+   bool sellCondition = perB > 0.5 + coreLimit;
 
-   double tpAdd, distance;
-   if(0.5 - coreRange < perB && 0.5 + coreRange > perB) {
-      tpAdd = gap * tpRangeCoef;
-      distance = gap * distanceRangeCoef;
-   } else {
-      tpAdd = gap * tpHalfCoef;
-      distance = gap * distanceHalfCoef;
-   }
+   bool buyCondition = perB < 0.5 - coreLimit;
 
-
+   VolumeByMargin tVol(risk, symbol);
+   double distance = top - bottom;
+   double tpAdd = distance * tpCoef;
    if(tpAdd > maxTPPips * pips) {
       tpAdd = maxTPPips * pips;
    }
@@ -126,19 +127,16 @@ void makeTrade(string symbol) {
       tpAdd = minTPPips * pips;
    }
 
-   if(distance < minRangePips * pips) {
-      distance = minRangePips * pips;
+   double range = distance * rangeCoef;
+   if(range < minRangePips * pips) {
+      range = minRangePips * pips;
    }
-   if(distance > maxRangePips * pips) {
-      distance = maxRangePips * pips;
+   if(range > maxRangePips * pips) {
+      range = maxRangePips * pips;
    }
-
-
-
-   VolumeByMargin tVol(risk, symbol);
    if(buyCondition) {
       double ask = Ask(symbol);
-      if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, distance)) {
+      if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
          return;
       }
       double sl = 0;
@@ -149,7 +147,7 @@ void makeTrade(string symbol) {
       trade.OpenPosition(tR);
    } else if(sellCondition) {
       double bid = Bid(symbol);
-      if(position.IsAnyPositionInRange(symbol, positionStore.sellTickets, distance)) {
+      if(position.IsAnyPositionInRange(symbol, positionStore.sellTickets, range)) {
          return;
       }
       double sl = 999;
