@@ -75,9 +75,10 @@ class Optimization {
       if(!CheckResultValid()) return 0;
       
       double profitFactor = 1 / equityDdrelPercent  * minMarginLevel * sqrt(trades);
-      double result =  profit / deposit * profitFactor;
+      double base = profit /deposit;
+      double result =  base * profitFactor;
       if(profit < 0){
-       result = profit / profitFactor;
+       result = base / profitFactor;
       }
       
       

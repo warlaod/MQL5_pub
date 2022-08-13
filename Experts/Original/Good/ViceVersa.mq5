@@ -31,8 +31,6 @@ input int equityThereShold = 1500;
 input double risk = 5;
 input int pricePeriod;
 input int spreadLimit = 999;
-input optimizedTimeframes timeFrame;
-ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -98,7 +96,7 @@ void makeTrade(string symbol, double tpPips, PositionStore &positionStore) {
       return;
    }
 
-   if(SymbolInfoInteger(symbol, SYMBOL_SPREAD) > spreadLimit) {
+   if(Spread(symbol) > spreadLimit * pips) {
       return;
    }
 
@@ -125,7 +123,13 @@ void makeTrade(string symbol, double tpPips, PositionStore &positionStore) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
       tVol.CalcurateVolume(tR);
-      trade.OpenPosition(tR);
+
+      double maxVol = SymbolInfoDouble(tR.symbol, SYMBOL_VOLUME_MAX);
+      while(tR.volume > 0) {
+         trade.OpenPosition(tR);
+         tR.volume -= maxVol;
+      }
+
    }
 }
 //+------------------------------------------------------------------+

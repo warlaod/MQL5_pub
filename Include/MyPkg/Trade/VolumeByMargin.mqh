@@ -53,10 +53,7 @@ class VolumeByMargin: public CMoneyFixedMargin {
       double minvol = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
       if(volume < minvol)
          volume = minvol;
-//---
-      double maxvol = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
-      if(volume > maxvol)
-         volume = maxvol;
+         
 //--- return volume
       return(volume);
    }

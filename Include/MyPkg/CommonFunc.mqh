@@ -49,7 +49,7 @@ bool CheckEquityThereShold(int thereShold) {
 // convert _Point to pips
 int DigitAdjust(string symbol) {
    int digitsAdjust = 1;
-   int digit = SymbolInfoInteger(symbol,SYMBOL_DIGITS);
+   int digit = SymbolInfoInteger(symbol, SYMBOL_DIGITS);
    if(digit == 3 || digit == 5)
       digitsAdjust = 10;
    return digitsAdjust;
@@ -57,7 +57,10 @@ int DigitAdjust(string symbol) {
 
 // convert numeric to Pips;
 double Pips(string symbol) {
-   double point = SymbolInfoDouble(symbol,SYMBOL_POINT);
+   double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
    return point * DigitAdjust(symbol);
 }
-//+------------------------------------------------------------------+
+
+double Spread(string symbol) {
+   return SymbolInfoInteger(symbol, SYMBOL_SPREAD)* SymbolInfoDouble(symbol, SYMBOL_POINT);
+}
