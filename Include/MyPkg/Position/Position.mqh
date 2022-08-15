@@ -16,13 +16,22 @@ class Position: public CPositionInfo {
       this.pips = Pips(symbol);
    }
 
-   double ProfitInPips(ulong ticket) {
+   double Profit(ulong ticket) {
       SelectByTicket(ticket);
       double profit = PriceCurrent() - PriceOpen();
       if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL) {
          profit = - profit;
       }
       return profit / pips;
+   }
+   
+   double ProfitOnNextStopLoss(ulong ticket,double stopLoss) {
+      SelectByTicket(ticket);
+      double profit = stopLoss - PriceOpen();
+      if(PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL) {
+         profit = - profit;
+      }
+      return profit;
    }
 
    bool IsAnyPositionInRange(string symbol, CArrayLong &tickets, double range) {

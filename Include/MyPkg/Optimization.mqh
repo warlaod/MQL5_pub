@@ -75,7 +75,7 @@ class Optimization {
       if(!CheckResultValid()) return 0;
       
       double profitFactor = 1 / equityDdrelPercent  * minMarginLevel * sqrt(trades);
-      double base = profit /deposit;
+      double base = profit;
       double result =  base * profitFactor;
       if(profit < 0){
        result = base / profitFactor;
@@ -88,12 +88,12 @@ class Optimization {
    double ViceVersa() {
       if(!CheckResultValid()) return 0;
       
-      double profitFactor = 1 / equityDdrelPercent  * sqrt(trades);
-      double result =  profit / deposit * profitFactor;
+      double profitFactor = 1 / equityDdrelPercent;
+      double base = profit;
+      double result =  base * profitFactor;
       if(profit < 0){
-       result = profit / profitFactor;
+       result = base / profitFactor;
       }
-      
       
       return result;
    }

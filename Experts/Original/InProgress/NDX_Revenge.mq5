@@ -12,12 +12,12 @@
 #include <MyPkg\OptimizedParameter.mqh>
 #include <MyPkg\Optimization.mqh>
 #include <MyPkg\Trade\Trade.mqh>
-#include <MyPkg\Trade\Volume.mqh>
+#include <MyPkg\Trade\VolumeByMargin.mqh>
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\Position.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
 #include <MyPkg\Time.mqh>
-#include <MyPkg\Trailing\Pips.mqh>
+#include <MyPkg\Trailing\Appointed.mqh>
 #include <MyPkg\Trailing\PositionStoreForTrailing.mqh>
 #include <MyPkg\OrderHistory.mqh>
 #include <Indicators\TimeSeries.mqh>
@@ -29,41 +29,47 @@
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
 input int equityThereShold = 1500;
-input int riskPercent = 5;
+input double riskPercent = 5;
 input int positionTotal = 1;
 input int whenToCloseOnFriday = 23;
 input int spreadLimit = 999;
-input optimizedTimeframes timeFrame;
+input optimizedTimeframes timeFrame, trailTimeframe, atrTimeframe;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
+ENUM_TIMEFRAMES trailTf = convertENUM_TIMEFRAMES(trailTimeframe);
+ENUM_TIMEFRAMES atrTf = convertENUM_TIMEFRAMES(atrTimeframe);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double pips = Pips();
 string symbol = _Symbol;
+double pips = Pips(symbol);
 Trade trade(magicNumber);
 Price price(tf);
-Volume tVol(riskPercent, _Symbol);
-PositionStore positionStore(magicNumber);
-Position position;
+Price trailPrice(trailTf);
+VolumeByMargin tVol(riskPercent, symbol);
+PositionStore positionStore(magicNumber, symbol);
+Position position(symbol);
 Time time;
 OrderHistory orderHistory(magicNumber);
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Pips trailing;
+Appointed trailing(symbol);
 PositionStoreForTrailing psTrailing;
-CiStochastic Sto;
-input int maPeriod, maLongPeriodCoef, slPeriod;
-input int trailPips;
+CiADX adx;
+input int slPeriod;
+input int trailPeriod;
+input int adxPlusLimit, adxMinusLimit;
+input int pricePeriod;
+input double rangeCoef;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
 
-   Sto.Create(symbol,tf,5,3,3,MODE_EMA,STO_LOWHIGH);
-   maLong.BufferResize(3);
+   adx.Create(symbol, atrTf, 18);
+   adx.BufferResize(3);
 
    return(INIT_SUCCEEDED);
 }
@@ -74,29 +80,33 @@ int OnInit() {
 void OnTick() {
    time.Refresh();
    positionStore.Refresh();
-   psTrailing.Refresh(positionStore.sellTickets,positionStore.buyTickets);
+   psTrailing.Refresh(positionStore.sellTickets, positionStore.buyTickets);
+   
+   double nextBuyStop = trailPrice.Lowest(symbol, 1, trailPeriod);
+   double nextSellStop = trailPrice.Highest(symbol, 1, trailPeriod);
 
-   // If current position has some profit, add list for trailing
+// If current position has some profit, add list for trailing
    for(int i = positionStore.buyTickets.Total() - 1; i >= 0; i--) {
       ulong ticket = positionStore.buyTickets.At(i);
-      double profit = position.ProfitInPips(ticket);
-      if(profit > trailPips){
+      double nextProfit = position.ProfitOnNextStopLoss(ticket,nextBuyStop);
+      if(nextProfit > 0) {
          psTrailing.AddBuyTicket(ticket);
       }
    }
    for(int i = positionStore.sellTickets.Total() - 1; i >= 0; i--) {
       ulong ticket = positionStore.sellTickets.At(i);
-      double profit = position.ProfitInPips(ticket);
-      if(profit > trailPips){
+      double nextProfit = position.ProfitOnNextStopLoss(ticket,nextSellStop);
+      if(nextProfit > 0) {
          psTrailing.AddSellTicket(ticket);
       }
    }
-   
-   // trailing
-   trailing.TrailLongs(_Symbol, psTrailing.buyTickets,trailPips);
-   trailing.TrailShorts(_Symbol, psTrailing.sellTickets,trailPips);
-   
-   // don't trade before 2 hours from market close
+
+// trailing
+
+   trailing.TrailLongs(symbol, psTrailing.buyTickets, nextBuyStop, Ask(symbol) + 4000);
+   trailing.TrailShorts(symbol, psTrailing.sellTickets, nextSellStop, Bid(symbol) - 4000);
+
+// don't trade before 2 hours from market close
    if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 2)) {
       if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 1)) {
          trade.ClosePositions(positionStore.buyTickets);
@@ -105,55 +115,47 @@ void OnTick() {
       return;
    }
 
-   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(symbol,tf)) {
+   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(symbol, PERIOD_M2)) {
       return;
    }
 
-   if(SymbolInfoInteger(Symbol(), SYMBOL_SPREAD) > spreadLimit) {
+   if(Spread(symbol) > spreadLimit * pips) {
       return;
    }
 
-   MqlRates price0 = price.At(0, symbol);
-   MqlRates price1 = price.At(1, symbol);
-   MqlRates price2 = price.At(2, symbol);
-
-   maShort.Refresh();
-   maLong.Refresh();
-
-   double maShort0 = maShort.Main(0);
-   double maShort1 = maShort.Main(1);
-   double maShort2 = maShort.Main(2);
-   double maLong0 = maLong.Main(0);
-   double maLong1 = maLong.Main(1);
-   double maLong2 = maLong.Main(2);
-
-   bool buyCondition = maLong0 > maShort0 && maLong1 > maShort1 && maLong2 > maShort2 &&
-                       maShort2 > price2.high && maShort1 > price1.high &&
-                       maShort0 < price0.close;
-   bool sellCondition = maLong0 < maShort0 && maLong1 < maShort1 && maLong2 < maShort2 &&
-                        maShort2 < price2.low && maShort1 < price1.low &&
-                        maShort0 > price0.close;
+   adx.Refresh();
+   
+   bool buyCondition = adx.Plus(0) > 20 &&
+                       adx.Main(0) > adxPlusLimit &&
+                       adx.Main(1) > adx.Main(2);
+   bool sellCondition = adx.Minus(0) > 20 &&
+                        adx.Main(0) > adxMinusLimit &&
+                        adx.Main(1) > adx.Main(2);
 
    tradeRequest tR;
 
-   if(buyCondition) {
+   double range = (price.Highest(symbol, 0, pricePeriod) - price.Lowest(symbol, 0, pricePeriod)) * rangeCoef;
+
+   if(buyCondition && !position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
       double ask = Ask(symbol);
-      double sl = price.Lowest(0, slPeriod, symbol);
-      double tp = maLong0;
-      tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_BUY, ask, sl, tp};
+      double sl = 0;
+      double tp = 999999;
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
-      if(positionStore.buyTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
-         trade.OpenPosition(tR);
-      }
-   } else if(sellCondition) {
+      tVol.CalcurateVolume(tR);
+      trade.OpenPosition(tR);
+
+   }
+
+   if(sellCondition && !position.IsAnyPositionInRange(symbol, positionStore.sellTickets, range)) {
       double bid = Bid(symbol);
-      double sl = price.Highest(0, slPeriod, symbol);
-      double tp = maLong0;
-      tradeRequest tR = {symbol, magicNumber, tf, ORDER_TYPE_SELL, bid, sl, tp};
+      double sl = trailPrice.Highest(0, slPeriod, symbol);
+      double tp = 0;
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
-      if(positionStore.sellTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
-         trade.OpenPosition(tR);
-      }
+      tR.volume = SellLot();
+      trade.OpenPosition(tR);
+
    }
 }
 
@@ -162,6 +164,33 @@ void OnTick() {
 //+------------------------------------------------------------------+
 double OnTester() {
    Optimization optimization;
-   return optimization.Custom2();
+
+   if(!optimization.CheckResultValid()) return 0;
+   
+   double profitFactor = 1 / optimization.equityDdrelPercent;
+   double base = optimization.profit;
+   double result =  base * profitFactor;
+   if(optimization.profit < 0) {
+      result = base / profitFactor;
+   }
+
+   return result;
+}
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double SellLot() {
+   double lot = 0;
+   for(int i = 0; i < positionStore.buyTickets.Total(); i++) {
+      position.SelectByTicket(positionStore.buyTickets.At(i));
+      lot += position.Volume();
+   }
+   for(int i = 0; i < positionStore.sellTickets.Total(); i++) {
+      position.SelectByTicket(positionStore.sellTickets.At(i));
+      lot -= position.Volume();
+   }
+   return lot;
 }
 //+------------------------------------------------------------------+

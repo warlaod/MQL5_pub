@@ -10,7 +10,7 @@
 class VolumeByRisk: public CMoneyFixedRisk {
  public:
    CSymbolInfo    m_symbol;
-   void Volume(double riskPercent,string symbol) {
+   void VolumeByRisk(double riskPercent,string symbol) {
       m_symbol.Name(symbol);
       m_symbol.Refresh();
 //---

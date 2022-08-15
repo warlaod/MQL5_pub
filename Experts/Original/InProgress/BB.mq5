@@ -12,7 +12,7 @@
 #include <MyPkg\OptimizedParameter.mqh>
 #include <MyPkg\Optimization.mqh>
 #include <MyPkg\Trade\Trade.mqh>
-#include <MyPkg\Trade\Volume.mqh>
+#include <MyPkg\Trade\VolumeByRisk.mqh>
 #include <MyPkg\Price.mqh>
 #include <MyPkg\Position\PositionStore.mqh>
 #include <MyPkg\Position\Position.mqh>
@@ -39,11 +39,11 @@ input int spreadLimit = 999;
 string symbol = _Symbol;
 Trade trade(magicNumber);
 Price price(PERIOD_MN1);
-PositionStore positionStore(magicNumber);
+PositionStore positionStore(magicNumber,symbol);
 Position position(symbol);
 Time time;
 OrderHistory orderHistory(magicNumber);
-Volume tVol(riskPercent, symbol);
+VolumeByRisk tVol(riskPercent, symbol);
 double pips = Pips(symbol);
 
 //+------------------------------------------------------------------+
@@ -54,7 +54,7 @@ Appointed trailing(symbol);
 
 
 input optimizedTimeframes timeFrame, longTimeframe;
-input int longBandPeriod, longDeviation,shortDeviation;
+input int longDeviation,shortDeviation;
 input int rangePips;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 ENUM_TIMEFRAMES longTf = convertENUM_TIMEFRAMES(timeFrame);

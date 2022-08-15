@@ -125,10 +125,15 @@ void makeTrade(string symbol, double tpPips, PositionStore &positionStore) {
       tVol.CalcurateVolume(tR);
 
       double maxVol = SymbolInfoDouble(tR.symbol, SYMBOL_VOLUME_MAX);
-      while(tR.volume > 0) {
-         trade.OpenPosition(tR);
+
+      while(tR.volume > maxVol) {
+         tradeRequest maxTr = tR;
+         maxTr.volume = maxVol;
+         trade.OpenPosition(maxTr);
          tR.volume -= maxVol;
       }
+
+      trade.OpenPosition(tR);
 
    }
 }
