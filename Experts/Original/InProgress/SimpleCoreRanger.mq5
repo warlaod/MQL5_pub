@@ -46,9 +46,8 @@ CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
 input int pricePeriod;
 input double coreRange;
-input double tpHalfCoef, tpRangeCoef, distanceRangeCoef, distanceHalfCoef;
-input int minTPPips, maxTPPips;
-input int minRangePips, maxRangePips;
+input int tpRange, tpHalf;
+input double distanceCoef;
 
 string symbol1 = _Symbol;
 //+------------------------------------------------------------------+
@@ -64,8 +63,6 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   if (minTPPips > maxTPPips || minRangePips > maxRangePips)
-      return;
 
    if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold)) return;
 
@@ -78,7 +75,15 @@ void OnTick() {
 //+------------------------------------------------------------------+
 double OnTester() {
    Optimization optimization;
-   return optimization.Custom();
+   if(!optimization.CheckResultValid()) return 0;
+
+   double profitFactor = 1 / optimization.equityDdrelPercent;
+   double base = optimization.profit;
+   double result =  base * profitFactor;
+   if(optimization.profit < 0) {
+      result = base / profitFactor;
+   }
+   return result;
 }
 //+------------------------------------------------------------------+
 
@@ -111,29 +116,12 @@ void makeTrade(string symbol) {
 
    double tpAdd, distance;
    if(0.5 - coreRange < perB && 0.5 + coreRange > perB) {
-      tpAdd = gap * tpRangeCoef;
-      distance = gap * distanceRangeCoef;
+      tpAdd = tpRange *pips;
    } else {
-      tpAdd = gap * tpHalfCoef;
-      distance = gap * distanceHalfCoef;
+      tpAdd = tpHalf;
    }
 
-
-   if(tpAdd > maxTPPips * pips) {
-      tpAdd = maxTPPips * pips;
-   }
-   if(tpAdd < minTPPips * pips) {
-      tpAdd = minTPPips * pips;
-   }
-
-   if(distance < minRangePips * pips) {
-      distance = minRangePips * pips;
-   }
-   if(distance > maxRangePips * pips) {
-      distance = maxRangePips * pips;
-   }
-
-
+   distance = tpAdd * distanceCoef;
 
    VolumeByMargin tVol(risk, symbol);
    if(buyCondition) {
