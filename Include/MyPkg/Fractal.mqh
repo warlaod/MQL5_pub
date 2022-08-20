@@ -77,8 +77,8 @@ class Fractal: public CiFractals {
          if(FractalMaximum(SUpperIndex, STotal - 3, 3) == STotal - 2 && fractal(Short, Up, STotal - 2) > fractal(Short, Up, 0))
             MUpperIndex.Add(SUpperIndex.At(STotal - 2));
       }
-      //myChart.HLine(fractal(Middle, Up, 0), 0, "MiddleUpper", clrAqua);
-      //myChart.HLine(fractal(Short, Up, 0), 0, "ShortUpper", clrAntiqueWhite);
+      myChart.HLine(fractal(Middle, Up, 0), 0, "MiddleUpper", clrAqua);
+      myChart.HLine(fractal(Short, Up, 0), 0, "ShortUpper", clrAntiqueWhite);
    }
 
    void SearchMLowerIndex(int total = 1) {
@@ -89,8 +89,8 @@ class Fractal: public CiFractals {
          if(FractalMinimum(SLowerIndex, STotal - 3, 3) == STotal - 2 && fractal(Short, Low, STotal - 2) < fractal(Short, Low, 0))
             MLowerIndex.Add(SLowerIndex.At(STotal - 2));
       }
-      //myChart.HLine(fractal(Middle, Low, 0), 0, "MiddleLower", clrAqua);
-      //myChart.HLine(fractal(Short, Low, 0), 0, "ShortLower", clrAntiqueWhite);
+      myChart.HLine(fractal(Middle, Low, 0), 0, "MiddleLower", clrAqua);
+      myChart.HLine(fractal(Short, Low, 0), 0, "ShortLower", clrAntiqueWhite);
    }
 
    void SearchLUpperIndex() {
@@ -101,9 +101,9 @@ class Fractal: public CiFractals {
          if(FractalMaximum(MUpperIndex, MTotal - 3, 3) == MTotal - 2 && MUpperIndex.At(MTotal - 2) > MUpperIndex.At(0))
             LUpperIndex.Add(MUpperIndex.At(MTotal - 2));
       }
-      //myChart.HLine(fractal(Long, Up, 0), 0, "LongUpper", clrRed);
-      //myChart.HLine(fractal(Middle, Up, 0), 0, "MiddleUpper", clrAqua);
-      //myChart.HLine(fractal(Short, Up, 0), 0, "ShortUpper", clrAntiqueWhite);
+      myChart.HLine(fractal(Long, Up, 0), 0, "LongUpper", clrRed);
+      myChart.HLine(fractal(Middle, Up, 0), 0, "MiddleUpper", clrAqua);
+      myChart.HLine(fractal(Short, Up, 0), 0, "ShortUpper", clrAntiqueWhite);
    }
 
    void SearchLLowerIndex() {

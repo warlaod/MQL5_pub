@@ -134,9 +134,7 @@ double OnTester() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void Check() {
-   if(SA.isOverSpread()) IsCurrentTradable = false;
    myDate.Refresh();
-   if(myDate.isMondayStart()) IsCurrentTradable = false;
 }
 
 //+------------------------------------------------------------------+

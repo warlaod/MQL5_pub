@@ -19,26 +19,25 @@
 double ExtUpperBuffer[];
 double ExtLowerBuffer[];
 //--- 10 pixels upper from high price
-int    ExtArrowShift=-10;
+int    ExtArrowShift = -10;
 //+------------------------------------------------------------------+
 //| Custom indicator initialization function                         |
 //+------------------------------------------------------------------+
-void OnInit()
-  {
+void OnInit() {
 //--- indicator buffers mapping
-   SetIndexBuffer(0,ExtUpperBuffer,INDICATOR_DATA);
-   SetIndexBuffer(1,ExtLowerBuffer,INDICATOR_DATA);
-   IndicatorSetInteger(INDICATOR_DIGITS,_Digits);
+   SetIndexBuffer(0, ExtUpperBuffer, INDICATOR_DATA);
+   SetIndexBuffer(1, ExtLowerBuffer, INDICATOR_DATA);
+   IndicatorSetInteger(INDICATOR_DIGITS, _Digits);
 //--- sets first bar from what index will be drawn
-   PlotIndexSetInteger(0,PLOT_ARROW,217);
-   PlotIndexSetInteger(1,PLOT_ARROW,218);
+   PlotIndexSetInteger(0, PLOT_ARROW, 217);
+   PlotIndexSetInteger(1, PLOT_ARROW, 218);
 //--- arrow shifts when drawing
-   PlotIndexSetInteger(0,PLOT_ARROW_SHIFT,ExtArrowShift);
-   PlotIndexSetInteger(1,PLOT_ARROW_SHIFT,-ExtArrowShift);
+   PlotIndexSetInteger(0, PLOT_ARROW_SHIFT, ExtArrowShift);
+   PlotIndexSetInteger(1, PLOT_ARROW_SHIFT, -ExtArrowShift);
 //--- sets drawing line empty value--
-   PlotIndexSetDouble(0,PLOT_EMPTY_VALUE,EMPTY_VALUE);
-   PlotIndexSetDouble(1,PLOT_EMPTY_VALUE,EMPTY_VALUE);
-  }
+   PlotIndexSetDouble(0, PLOT_EMPTY_VALUE, EMPTY_VALUE);
+   PlotIndexSetDouble(1, PLOT_EMPTY_VALUE, EMPTY_VALUE);
+}
 //+------------------------------------------------------------------+
 //|  Fractals on 5 bars                                              |
 //+------------------------------------------------------------------+
@@ -51,38 +50,37 @@ int OnCalculate(const int rates_total,
                 const double &close[],
                 const long &tick_volume[],
                 const long &volume[],
-                const int &spread[])
-  {
-   if(rates_total<5)
+                const int &spread[]) {
+
+   int limit = prev_calculated == 0 ? 0 : prev_calculated - 1;
+   
+   if(rates_total < 5)
       return(0);
 
    int start;
 //--- clean up arrays
-   if(prev_calculated<7)
-     {
-      start=2;
-      ArrayInitialize(ExtUpperBuffer,EMPTY_VALUE);
-      ArrayInitialize(ExtLowerBuffer,EMPTY_VALUE);
-     }
-   else
-      start=rates_total-5;
+   if(prev_calculated < 7) {
+      start = 2;
+      ArrayInitialize(ExtUpperBuffer, EMPTY_VALUE);
+      ArrayInitialize(ExtLowerBuffer, EMPTY_VALUE);
+   } else
+      start = rates_total - 5;
 //--- main cycle of calculations
-   for(int i=start; i<rates_total-3 && !IsStopped(); i++)
-     {
+   for(int i = start; i < rates_total - 3 && !IsStopped(); i++) {
       //--- Upper Fractal
-      if(high[i]>high[i+1] && high[i]>high[i+2] && high[i]>=high[i-1] && high[i]>=high[i-2])
-         ExtUpperBuffer[i]=high[i];
+      if(high[i] > high[i + 1] && high[i] > high[i + 2] && high[i] >= high[i - 1] && high[i] >= high[i - 2])
+         ExtUpperBuffer[i] = high[i];
       else
-         ExtUpperBuffer[i]=EMPTY_VALUE;
+         ExtUpperBuffer[i] = EMPTY_VALUE;
 
       //--- Lower Fractal
-      if(low[i]<low[i+1] && low[i]<low[i+2] && low[i]<=low[i-1] && low[i]<=low[i-2])
-         ExtLowerBuffer[i]=low[i];
+      if(low[i] < low[i + 1] && low[i] < low[i + 2] && low[i] <= low[i - 1] && low[i] <= low[i - 2])
+         ExtLowerBuffer[i] = low[i];
       else
-         ExtLowerBuffer[i]=EMPTY_VALUE;
-     }
+         ExtLowerBuffer[i] = EMPTY_VALUE;
+   }
 //--- OnCalculate done. Return new prev_calculated.
    return(rates_total);
-  }
+}
 
 //+------------------------------------------------------------------+
