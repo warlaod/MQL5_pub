@@ -35,6 +35,7 @@ class VolumeByMargin: public CMoneyFixedMargin {
          Print("CAccountInfo::MaxLotCheck invalid parameters");
          return(0.0);
       }
+      long leverage = AccountInfoInteger(ACCOUNT_LEVERAGE);
 //--- calculate margin requirements for 1 lot
       if(!OrderCalcMargin(trade_operation, symbol, 1.0, price, margin) || margin < 0.0) {
          Print("CAccountInfo::MaxLotCheck margin calculation failed");

@@ -27,8 +27,9 @@
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
 input int equityThereShold = 1500;
-input double risk = 5;
-input int spreadLimit = 999;
+input double risk = 4.5;
+input int spreadLimit = 30;
+input int positionTotal;
 optimizedTimeframes timeFrame = PERIOD_MN1;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 //+------------------------------------------------------------------+
@@ -44,12 +45,15 @@ OrderHistory orderHistory(magicNumber);
 //+------------------------------------------------------------------+
 CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
-input int pricePeriod;
-input double coreRange;
-input int tpRange, tpHalf;
-input double distanceCoef;
+input int pricePeriod = 36;
+input double coreLimit = 0.2;
+input double tpCoef = 0.008;
+input double rangeCoef = 0.074;
+input int minTp;
 
-string symbol1 = _Symbol;
+input string symbol1 = "EURGBP";
+input string symbol2 = "USDCHF";
+input string symbol3 = "AUDNZD";
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -63,10 +67,11 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-
    if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold)) return;
 
-   makeTrade(symbol1);
+   makeTrade(symbol1, tpCoef);
+   makeTrade(symbol2, tpCoef);
+   makeTrade(symbol3, tpCoef);
 // NZDCAD
 }
 
@@ -75,22 +80,18 @@ void OnTick() {
 //+------------------------------------------------------------------+
 double OnTester() {
    Optimization optimization;
-   if(!optimization.CheckResultValid()) return 0;
-
-   double profitFactor = 1 / optimization.equityDdrelPercent;
-   double base = optimization.profit;
-   double result =  base * profitFactor;
-   if(optimization.profit < 0) {
-      result = base / profitFactor;
-   }
-   return result;
+   return optimization.Custom();
 }
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void makeTrade(string symbol) {
+void makeTrade(string symbol, double tpCoef) {
+   if(symbol == "") {
+      return;
+   }
+
    PositionStore positionStore(magicNumber, symbol);
    positionStore.Refresh();
 
@@ -101,32 +102,29 @@ void makeTrade(string symbol) {
       return;
    }
 
-   if(SymbolInfoInteger(symbol, SYMBOL_SPREAD) > spreadLimit) {
+   if(Spread(symbol) > spreadLimit * pips) {
       return;
    }
 
    double top = price.Highest(symbol, 0, pricePeriod);
    double bottom = price.Lowest(symbol, 0, pricePeriod);
    double current = price.At(symbol, 0).close;
-   double perB = (current - bottom) / (top - bottom);
    double gap = top - bottom;
+   double perB = (current - bottom) / gap;
 
-   bool sellCondition = perB < 0.5 + coreRange;
-   bool buyCondition = perB > 0.5 - coreRange;
 
-   double tpAdd, distance;
-   if(0.5 - coreRange < perB && 0.5 + coreRange > perB) {
-      tpAdd = tpRange *pips;
-   } else {
-      tpAdd = tpHalf;
-   }
+   bool sellCondition = perB > 0.5 + coreLimit;
+   bool buyCondition = perB < 0.5 - coreLimit;
 
-   distance = tpAdd * distanceCoef;
-
+   double tpAdd = gap * (1 - coreLimit * 2)  / positionTotal;
+   if(tpAdd < minTp * pips) tpAdd = minTp * pips;
+   
+   double range = tpAdd * rangeCoef;
+   
    VolumeByMargin tVol(risk, symbol);
    if(buyCondition) {
       double ask = Ask(symbol);
-      if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, distance)) {
+      if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
          return;
       }
       double sl = 0;
@@ -137,7 +135,7 @@ void makeTrade(string symbol) {
       trade.OpenPosition(tR);
    } else if(sellCondition) {
       double bid = Bid(symbol);
-      if(position.IsAnyPositionInRange(symbol, positionStore.sellTickets, distance)) {
+      if(position.IsAnyPositionInRange(symbol, positionStore.sellTickets, range)) {
          return;
       }
       double sl = 999;
