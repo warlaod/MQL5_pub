@@ -27,9 +27,8 @@
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
 input int equityThereShold = 1500;
-input double risk = 4.5;
-input int spreadLimit = 30;
-input double lot = 0;
+input double risk = 5;
+input int spreadLimit = 999;
 optimizedTimeframes timeFrame = PERIOD_MN1;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 //+------------------------------------------------------------------+
@@ -45,17 +44,13 @@ OrderHistory orderHistory(magicNumber);
 //+------------------------------------------------------------------+
 CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
-input int pricePeriod = 36;
-input double coreRange = 0.2;
-input int positionHalf;
+input int pricePeriod;
+input double coreRange;
+input int positionHalf, positionCore;
 input int minTP, maxTP;
 
-input string symbol1 = "EURGBP";
-input string symbol2 = "USDCHF";
-input string symbol3 = "AUDNZD";
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+string symbol1 = _Symbol;
+CiADX adx;
 int OnInit() {
    EventSetTimer(eventTimer);
 
@@ -66,15 +61,10 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   if(minTP > maxTP) {
-      return;
-   }
 
    if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold)) return;
 
    makeTrade(symbol1);
-   makeTrade(symbol2);
-   makeTrade(symbol3);
 // NZDCAD
 }
 
@@ -101,10 +91,9 @@ double OnTester() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void makeTrade(string symbol) {
-   if(symbol == "") {
+   if(minTP > maxTP) {
       return;
    }
-
    PositionStore positionStore(magicNumber, symbol);
    positionStore.Refresh();
 
@@ -115,29 +104,36 @@ void makeTrade(string symbol) {
       return;
    }
 
-   if(Spread(symbol) > spreadLimit * pips) {
+   if(SymbolInfoInteger(symbol, SYMBOL_SPREAD) > spreadLimit) {
       return;
    }
 
    double top = price.Highest(symbol, 0, pricePeriod);
    double bottom = price.Lowest(symbol, 0, pricePeriod);
    double current = price.At(symbol, 0).close;
+   double perB = (current - bottom) / (top - bottom);
    double gap = top - bottom;
-   double perB = (current - bottom) / gap;
+
+   bool sellCondition = perB < 0.5 + coreRange;
+   bool buyCondition = perB > 0.5 - coreRange;
 
 
-   bool sellCondition = perB > 0.5 + coreRange;
-   bool buyCondition = perB < 0.5 - coreRange;
+   double tpAdd;
+   if(0.5 - coreRange < perB && 0.5 + coreRange > perB && positionCore > 0) {
+      tpAdd = gap * coreRange * 2 / positionCore;
+   } else if(positionHalf > 0) {
+      tpAdd = gap * (1 - coreRange * 2)  / positionHalf;
+   }
 
-   double tpAdd = gap * (1 - coreRange * 2)  / positionHalf;
-
-   if(tpAdd < minTP * pips) tpAdd = minTP * pips;
-   if(tpAdd > maxTP * pips) tpAdd = maxTP * pips;
+   if(tpAdd < minTP * pips) {
+      tpAdd = minTP * pips;
+   }
+   if(tpAdd > maxTP * pips) {
+      tpAdd = maxTP * pips;
+   }
 
    double range = tpAdd;
-
    VolumeByMargin tVol(risk, symbol);
-   
    if(buyCondition) {
       double ask = Ask(symbol);
       if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
@@ -147,7 +143,7 @@ void makeTrade(string symbol) {
       double tp = ask + tpAdd;
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
-      lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR);
+      tVol.CalcurateVolume(tR);
       trade.OpenPosition(tR);
    } else if(sellCondition) {
       double bid = Bid(symbol);
@@ -158,8 +154,10 @@ void makeTrade(string symbol) {
       double tp = bid - tpAdd;
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
-      lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR);
+      tVol.CalcurateVolume(tR);
       trade.OpenPosition(tR);
    }
 }
+//+------------------------------------------------------------------+
+
 //+------------------------------------------------------------------+

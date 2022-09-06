@@ -31,9 +31,6 @@ input double risk = 5;
 input int spreadLimit = 999;
 optimizedTimeframes timeFrame = PERIOD_MN1;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
-
-input optimizedTimeframes indTimeframe = PERIOD_MN1;
-ENUM_TIMEFRAMES indTf = convertENUM_TIMEFRAMES(indTimeframe);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -50,15 +47,13 @@ CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 input int pricePeriod;
 input double coreRange;
 input int positionHalf, positionCore;
-input int minTP;
-input double rangeCoef;
+input int minTPCore, minTPHalf;
+input int maxTPCore, maxTPHalf;
 
 string symbol1 = _Symbol;
 CiADX adx;
 int OnInit() {
    EventSetTimer(eventTimer);
-   adx.Create(symbol1, indTf, indTimeframe);
-   adx.BufferResize(3);
 
    return(INIT_SUCCEEDED);
 }
@@ -80,8 +75,10 @@ void OnTick() {
 double OnTester() {
    Optimization optimization;
    if(!optimization.CheckResultValid()) return 0;
-
-   double profitFactor = 1 / optimization.equityDdrelPercent * MathSqrt(optimization.trades) * optimization.minMarginLevel;
+   
+   double ddPercent = optimization.equityDdrelPercent > optimization.balanceDdrelPercent ? optimization.equityDdrelPercent : optimization.balanceDdrelPercent;
+   
+   double profitFactor = 1 / ddPercent * optimization.trades * optimization.minMarginLevel;
    double base = optimization.profit;
    double result =  base * profitFactor;
    if(optimization.profit < 0) {
@@ -115,23 +112,20 @@ void makeTrade(string symbol) {
    double perB = (current - bottom) / (top - bottom);
    double gap = top - bottom;
 
-   adx.Refresh();
-
-
    bool sellCondition = perB < 0.5 + coreRange;
    bool buyCondition = perB > 0.5 - coreRange;
 
 
    double tpAdd;
-   if(0.5 - coreRange < perB && 0.5 + coreRange > perB) {
+   if(0.5 - coreRange < perB && 0.5 + coreRange > perB && positionCore > 0) {
       tpAdd = gap * coreRange * 2 / positionCore;
-   } else {
+      if(tpAdd < minTPCore*pips) tpAdd = minTPCore*pips;
+   } else if(positionHalf > 0){
       tpAdd = gap * (1 - coreRange * 2)  / positionHalf;
+      if(tpAdd < minTPHalf*pips) tpAdd = minTPHalf*pips;
    }
 
-   if(tpAdd < minTP * pips) tpAdd = minTP * pips;
-
-   double range = tpAdd * rangeCoef;
+   double range = tpAdd;
    VolumeByMargin tVol(risk, symbol);
    if(buyCondition) {
       double ask = Ask(symbol);

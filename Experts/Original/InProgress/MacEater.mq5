@@ -30,8 +30,12 @@ input int riskPercent = 5;
 input int positionTotal = 1;
 input int whenToCloseOnFriday = 23;
 input int spreadLimit = 999;
-input optimizedTimeframes timeFrame;
+input optimizedTimeframes timeFrame, macdLongTimeframe, atrTimeframe;
+input ENUM_APPLIED_PRICE appliedPrice;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
+ENUM_TIMEFRAMES atrTf = convertENUM_TIMEFRAMES(atrTimeframe);
+ENUM_TIMEFRAMES macdLongTf = convertENUM_TIMEFRAMES(macdLongTimeframe);
+input double tpCoef, slCoef;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -40,30 +44,31 @@ string symbol = _Symbol;
 double pips = Pips(symbol);
 Trade trade(magicNumber);
 Price price(tf);
-VolumeByRisk tVol(riskPercent,symbol);
-PositionStore positionStore(magicNumber,symbol);
+VolumeByRisk tVol(riskPercent, symbol);
+PositionStore positionStore(magicNumber, symbol);
 Time time;
 OrderHistory orderHistory(magicNumber);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-CiAlligator Allig;
-CiATR ATR;
-
-input int tp, sl;
-input int atrPeriod, atrMinVal;
+input int atrMinVal;
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiMACD longMacd, shortMacd;
+CiATR atr;
 int OnInit() {
    EventSetTimer(eventTimer);
 
-   Allig.Create(symbol, tf, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN);
-   Allig.BufferResize(13); // How many data should be referenced and updated
+   longMacd.Create(_Symbol, macdLongTf, 12, 26, 9, appliedPrice);
+   longMacd.BufferResize(3);
 
-   ATR.Create(symbol, tf, atrPeriod);
-   ATR.BufferResize(1);
+   shortMacd.Create(_Symbol, tf, 12, 26, 9, appliedPrice);
+   shortMacd.BufferResize(3);
+
+   atr.Create(_Symbol, atrTf, 14);
+   atr.BufferResize(1);
 
    return(INIT_SUCCEEDED);
 }
@@ -72,9 +77,10 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
+
    time.Refresh();
    positionStore.Refresh();
-   // don't trade before 2 hours from market close
+// don't trade before 2 hours from market close
    if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 2)) {
       if(time.CheckTimeOver(FRIDAY, whenToCloseOnFriday - 1)) {
          trade.ClosePositions(positionStore.buyTickets);
@@ -83,39 +89,52 @@ void OnTick() {
       return;
    }
 
-   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(_Symbol,tf)) {
+   if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold) || orderHistory.wasOrderInTheSameBar(_Symbol, tf)) {
       return;
    }
 
-   if(SymbolInfoInteger(Symbol(),SYMBOL_SPREAD) > spreadLimit){
+   if(SymbolInfoInteger(Symbol(), SYMBOL_SPREAD) > spreadLimit) {
       return;
    }
 
-   ATR.Refresh();
-   double atr = ATR.Main(0);
+   double longHistogram[2];
+   double shortHistogram[2];
+   for(int i = 0; i < 2; i++) {
+      longHistogram[i] = longMacd.Main(i) - longMacd.Signal(i);
+      shortHistogram[i] = shortMacd.Main(i) - shortMacd.Signal(i);
+   };
 
-   if(ATR.Main(0) < atrMinVal * pips) return;
+   atr.Refresh();
+   longMacd.Refresh();
+   shortMacd.Refresh();
+   
+   double atr0 = atr.Main(0);
 
-   Allig.Refresh();
-   double jaw = Allig.Jaw(-2);
-   double teeth = Allig.Teeth(-2);
-   double lips = Allig.Lips(-2);
+   if(atr0 < atrMinVal * pips) return;
 
-   bool buyCondition = Allig.Lips(-1) < Allig.Teeth(-1) && Allig.Lips(-2) > Allig.Teeth(-2);
-   bool sellCondition = Allig.Lips(-1) > Allig.Teeth(-1) && Allig.Lips(-2) < Allig.Teeth(-2);
+   bool buyCondition = longHistogram[0] > 0 && longMacd.Main(0) > 0
+                       && shortHistogram[1] < 0 && shortHistogram[0] > 0
+                       && shortMacd.Main(0) < 0;
+   bool sellCondition = longHistogram[0] < 0 && longMacd.Main(0) < 0
+                        && shortHistogram[1] > 0 && shortHistogram[0] < 0
+                        && shortMacd.Main(0) > 0;
 
    tradeRequest tR;
 
    if(buyCondition) {
       double ask = Ask(symbol);
-      tradeRequest tR = {symbol,magicNumber, ORDER_TYPE_BUY, ask, ask - sl * pips, ask + tp * pips};
+      double tp = ask + atr0 * tpCoef;
+      double sl = ask + atr0 * slCoef;
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
       if(positionStore.buyTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
       }
    } else if(sellCondition) {
       double bid = Bid(symbol);
-      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, bid + sl*pips, bid - tp * pips};
+      double tp = bid - atr0 * tpCoef;
+      double sl = bid + atr0 * slCoef;
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
       if(positionStore.sellTickets.Total() < positionTotal && tVol.CalcurateVolume(tR)) {
          trade.OpenPosition(tR);
@@ -123,7 +142,11 @@ void OnTick() {
    }
 }
 
-double OnTester(){
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+double OnTester() {
    Optimization optimization;
    return optimization.Custom2();
 }
+//+------------------------------------------------------------------+

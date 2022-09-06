@@ -26,7 +26,6 @@ class Optimization {
    double conProfitMax;
    double conLossMax;
 
-
    void Optimization() {
       deposit = TesterStatistics(STAT_INITIAL_DEPOSIT);
       profit = TesterStatistics(STAT_PROFIT);
@@ -74,7 +73,9 @@ class Optimization {
    double Custom() {
       if(!CheckResultValid()) return 0;
       
-      double profitFactor = 1 / equityDdrelPercent  * minMarginLevel * sqrt(trades);
+      double ddPercent = equityDdrelPercent > balanceDdrelPercent ? equityDdrelPercent : balanceDdrelPercent;
+      
+      double profitFactor = 1 / ddPercent  * minMarginLevel * sqrt(trades);
       double base = profit;
       double result =  base * profitFactor;
       if(profit < 0){
