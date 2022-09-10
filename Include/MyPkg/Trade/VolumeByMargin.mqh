@@ -50,10 +50,6 @@ class VolumeByMargin: public CMoneyFixedMargin {
       double stepvol = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
       if(stepvol > 0.0)
          volume = stepvol * MathFloor(volume / stepvol);
-//---
-      double minvol = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
-      if(volume < minvol)
-         volume = minvol;
          
 //--- return volume
       return(volume);

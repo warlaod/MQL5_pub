@@ -39,7 +39,7 @@ Price price(PERIOD_MN1);
 Time time;
 OrderHistory orderHistory(magicNumber);
 
-input double tpCoef, rangeCoef;
+input int positions;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -63,8 +63,8 @@ void OnTick() {
    psSymbol1.Refresh();
    psSymbol2.Refresh();
 
-   makeTrade(symbol1, tpCoef, psSymbol1);
-   makeTrade(symbol2, tpCoef, psSymbol2);
+   makeTrade(symbol1, psSymbol1);
+   makeTrade(symbol2, psSymbol2);
 
 
 
@@ -75,14 +75,24 @@ void OnTick() {
 //+------------------------------------------------------------------+
 double OnTester() {
    Optimization optimization;
-   return optimization.ViceVersa();
+   if(!optimization.CheckResultValid()) return 0;
+
+   double ddPercent = optimization.equityDdrelPercent > optimization.balanceDdrelPercent ? optimization.equityDdrelPercent : optimization.balanceDdrelPercent;
+
+   double profitFactor = 1 / ddPercent;
+   double base = optimization.profit;
+   double result =  base * profitFactor;
+   if(optimization.profit < 0) {
+      result = base / profitFactor;
+   }
+   return result;
 }
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void makeTrade(string symbol, double tpPips, PositionStore &positionStore) {
+void makeTrade(string symbol, PositionStore &positionStore) {
 
    if(symbol == "") {
       return;
@@ -106,8 +116,8 @@ void makeTrade(string symbol, double tpPips, PositionStore &positionStore) {
    double perB = (current - bottom) / (top - bottom);
 
    double distance = top - bottom;
-   double tpAdd = distance * tpCoef;
-   double range = distance * rangeCoef;
+   double tpAdd = distance / positions;
+   double range = tpAdd;
 
    bool buyCondition = true;
    VolumeByMargin tVol(risk, symbol);
