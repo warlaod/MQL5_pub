@@ -23,16 +23,15 @@
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
-#include <Indicators\Volumes.mqh>
 
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
 input int equityThereShold = 1500;
 input double risk = 5;
-input int pricePeriod;
-input double topLimit;
-input int spreadLimit1 = 999;
-input int spreadLimit2 = 999;
+input int spreadLimit = 999;
+input int additionalRange;
+optimizedTimeframes timeFrame = PERIOD_MN1;
+ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -41,10 +40,18 @@ Price price(PERIOD_MN1);
 Time time;
 OrderHistory orderHistory(magicNumber);
 
-input int positions;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
+CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
+
+input int pricePeriod;
+input double coreRange;
+input int positionHalf, positionCore;
+input int minTP, maxTP;
+
+string symbol1 = _Symbol;
+CiADX adx;
 int OnInit() {
    EventSetTimer(eventTimer);
 
@@ -54,22 +61,12 @@ int OnInit() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-double requiredMargin1, requiredMargin2;
-input string symbol1, symbol2;
-PositionStore psSymbol1(magicNumber, symbol1);
-PositionStore psSymbol2(magicNumber, symbol2);
 void OnTick() {
+
    if(!CheckMarketOpen() || !CheckEquityThereShold(equityThereShold)) return;
 
-   time.Refresh();
-   psSymbol1.Refresh();
-   psSymbol2.Refresh();
-
-   makeTrade(symbol1, psSymbol1, spreadLimit1);
-   makeTrade(symbol2, psSymbol2, spreadLimit2);
-
-
-
+   makeTrade(symbol1);
+// NZDCAD
 }
 
 //+------------------------------------------------------------------+
@@ -94,38 +91,50 @@ double OnTester() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void makeTrade(string symbol, PositionStore &positionStore, int spreadLimit) {
-
-   if(symbol == "") {
+void makeTrade(string symbol) {
+   if(minTP > maxTP) {
       return;
    }
+   PositionStore positionStore(magicNumber, symbol);
+   positionStore.Refresh();
 
    double pips = Pips(symbol);
    Position position(symbol);
-
 
    if(orderHistory.wasOrderInTheSameBar(symbol, PERIOD_H1)) {
       return;
    }
 
-   double spread= Spread(symbol);
-   if(spread > spreadLimit * pips) {
+   if(SymbolInfoInteger(symbol, SYMBOL_SPREAD) > spreadLimit) {
       return;
    }
 
-   double top = price.Highest(symbol, 0, pricePeriod);
-   double bottom = price.Lowest(symbol, 0, pricePeriod);
+   double top = price.Highest(symbol, 0, pricePeriod) + additionalRange* pips;
+   double bottom = price.Lowest(symbol, 0, pricePeriod) - additionalRange* pips;
    double current = price.At(symbol, 0).close;
    double perB = (current - bottom) / (top - bottom);
+   double gap = top - bottom;
 
-   double distance = top - bottom;
-   double tpAdd = distance / positions;
+   bool sellCondition = perB < 0.5 + coreRange;
+   bool buyCondition = perB > 0.5 - coreRange;
+
+
+   double tpAdd;
+   if(0.5 - coreRange < perB && 0.5 + coreRange > perB && positionCore > 0) {
+      tpAdd = gap * coreRange * 2 / positionCore;
+   } else if(positionHalf > 0) {
+      tpAdd = gap * (1 - coreRange * 2)  / positionHalf;
+   }
+
+   if(tpAdd < minTP * pips) {
+      tpAdd = minTP * pips;
+   }
+   if(tpAdd > maxTP * pips) {
+      tpAdd = maxTP * pips;
+   }
+
    double range = tpAdd;
-
-   bool buyCondition = perB < 1 - topLimit;
    VolumeByMargin tVol(risk, symbol);
-
-
    if(buyCondition) {
       double ask = Ask(symbol);
       if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
@@ -136,18 +145,20 @@ void makeTrade(string symbol, PositionStore &positionStore, int spreadLimit) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
       tVol.CalcurateVolume(tR);
-
-      double maxVol = SymbolInfoDouble(tR.symbol, SYMBOL_VOLUME_MAX);
-
-      while(tR.volume > maxVol) {
-         tradeRequest maxTr = tR;
-         maxTr.volume = maxVol;
-         trade.OpenPosition(maxTr);
-         tR.volume -= maxVol;
-      }
-
       trade.OpenPosition(tR);
+   } else if(sellCondition) {
+      double bid = Bid(symbol);
+      if(position.IsAnyPositionInRange(symbol, positionStore.sellTickets, range)) {
+         return;
+      }
+      double sl = 999;
+      double tp = bid - tpAdd;
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
+      tVol.CalcurateVolume(tR);
+      trade.OpenPosition(tR);
    }
 }
+//+------------------------------------------------------------------+
+
 //+------------------------------------------------------------------+
