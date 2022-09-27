@@ -110,12 +110,14 @@ void makeTrade(string symbol) {
 
    double top = price.Highest(symbol, 0, pricePeriod);
    double bottom = price.Lowest(symbol, 0, pricePeriod);
+   if(top == bottom) return;
+
    double current = price.At(symbol, 0).close;
    double perB = (current - bottom) / (top - bottom);
    double gap = top - bottom;
 
-   bool sellCondition = perB < 0.5 + coreRange;
-   bool buyCondition = perB > 0.5 - coreRange;
+   bool sellCondition = perB > 0.5 - coreRange;
+   bool buyCondition = perB < 0.5 + coreRange;
 
 
    double tpAdd;

@@ -18,12 +18,12 @@ class Price {
       return price[0];
    }
 
-   double Highest(string symbol, uchar start, uchar end) {
+   double Highest(string symbol, int start, int end) {
       CopyHigh(symbol, timefrane, start, end, high);
       return high[ArrayMaximum(high, 0, end)];
    }
 
-   double Lowest(string symbol,uchar start, uchar end) {
+   double Lowest(string symbol,int start, int end) {
       CopyLow(symbol, timefrane, start, end, low);
       return low[ArrayMinimum(low, 0, end)];
    }
