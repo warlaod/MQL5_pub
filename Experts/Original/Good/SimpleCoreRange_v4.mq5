@@ -29,6 +29,7 @@ input ulong magicNumber = 21984;
 input int equityThereShold = 1500;
 input double risk = 5;
 input int spreadLimit = 999;
+input double lot = 0;
 optimizedTimeframes timeFrame = PERIOD_MN1;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 //+------------------------------------------------------------------+
@@ -103,8 +104,9 @@ void makeTrade(string symbol) {
    if(orderHistory.wasOrderInTheSameBar(symbol, PERIOD_H1)) {
       return;
    }
-
-   if(SymbolInfoInteger(symbol, SYMBOL_SPREAD) > spreadLimit) {
+   
+   double spread = Spread(symbol);
+   if( spread > spreadLimit * pips) {
       return;
    }
 
@@ -147,7 +149,8 @@ void makeTrade(string symbol) {
 
       tVol.CalcurateVolume(tR);
       trade.OpenPosition(tR);
-   } else if(sellCondition) {
+   }
+   if(sellCondition) {
       double bid = Bid(symbol);
       if(position.IsAnyPositionInRange(symbol, positionStore.sellTickets, range)) {
          return;
@@ -156,7 +159,7 @@ void makeTrade(string symbol) {
       double tp = bid - tpAdd;
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
-      tVol.CalcurateVolume(tR);
+      lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR);
       trade.OpenPosition(tR);
    }
 }

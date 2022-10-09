@@ -115,7 +115,8 @@ void makeTrade(string symbol) {
       return;
    }
 
-   if(Spread(symbol) > spreadLimit * pips) {
+   double spread = Spread(symbol);
+   if( spread > spreadLimit * pips) {
       return;
    }
 
@@ -149,7 +150,8 @@ void makeTrade(string symbol) {
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR);
       trade.OpenPosition(tR);
-   } else if(sellCondition) {
+   }
+   if(sellCondition) {
       double bid = Bid(symbol);
       if(position.IsAnyPositionInRange(symbol, positionStore.sellTickets, range)) {
          return;
