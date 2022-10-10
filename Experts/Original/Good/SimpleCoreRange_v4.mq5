@@ -147,7 +147,7 @@ void makeTrade(string symbol) {
       double tp = ask + tpAdd;
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
-      tVol.CalcurateVolume(tR);
+      lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR);
       trade.OpenPosition(tR);
    }
    if(sellCondition) {
