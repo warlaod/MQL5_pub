@@ -122,6 +122,9 @@ void makeTrade(string symbol) {
 
    double top = price.Highest(symbol, 0, pricePeriod);
    double bottom = price.Lowest(symbol, 0, pricePeriod);
+   if(top == bottom) return;
+   if(top == EMPTY_VALUE || bottom == EMPTY_VALUE){ return; }
+   
    double current = price.At(symbol, 0).close;
    double gap = top - bottom;
    double perB = (current - bottom) / gap;

@@ -3,33 +3,45 @@
 //|                                      Copyright 2020, CompanyName |
 //|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
-#include <Trade\Trade.mqh>
-#include <MyPkg\Trade\TradeValidation.mqh>
-#include <MyPkg\Trade\TradeRequest.mqh>
-#include <Arrays\ArrayLong.mqh>
 
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-class Trade: public CTrade {
+input bool debugMode;
+class Logger {
  public:
-   TradeValidation validation;
+   string symbol;
 
-   void Trade(ulong magicNumber) {
-      this.SetExpertMagicNumber(magicNumber);
-      SetDeviationInPoints(10);
+   void Logger(string symbol) {
+      this.symbol = symbol;
    };
 
-   void OpenPosition(tradeRequest &tR, Logger &logger) {
-      if(!validation.Check(tR,logger)) return;
-      CTrade::PositionOpen(tR.symbol, tR.type, tR.volume, tR.openPrice, tR.sl, tR.tp);
-   }
+   void Log(string message, int logLevel) {
+      string level = LogLevel(logLevel);
+      string current = TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS);
+      string logBody = StringFormat("[%s][%s]:%s:", current, this.symbol,level) + message;
 
-   void ClosePositions(CArrayLong &tickets) {
-      for(int i = tickets.Total() - 1; i >= 0; i--) {
-         PositionClose(tickets.At(i));
+      if(debugMode) {
+         Print(logBody);
+      } else {
+         Comment(logBody);
       }
    }
+
+   string LogLevel(int logLevel) {
+      switch(logLevel) {
+      case 1:
+         return "Info";
+      case 2:
+         return "Warning";
+      case 3:
+         return "Error";
+      default:
+         return "Info";
+      }
+
+   }
+
 };
 //+------------------------------------------------------------------+
 

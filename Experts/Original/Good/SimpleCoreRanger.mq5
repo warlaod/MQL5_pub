@@ -95,6 +95,7 @@ void makeTrade(string symbol) {
    if(minTP > maxTP) {
       return;
    }
+   Logger logger(symbol);
    PositionStore positionStore(magicNumber, symbol);
    positionStore.Refresh();
 
@@ -110,9 +111,10 @@ void makeTrade(string symbol) {
       return;
    }
 
-   double top = price.Highest(symbol, 0, pricePeriod);
-   double bottom = price.Lowest(symbol, 0, pricePeriod);
+   double top = price.Highest(symbol, 0, pricePeriod,logger);
+   double bottom = price.Lowest(symbol, 0, pricePeriod,logger);
    if(top == bottom) return;
+   if(top == EMPTY_VALUE || bottom == EMPTY_VALUE){ return; }
 
    double current = price.At(symbol, 0).close;
    double perB = (current - bottom) / (top - bottom);
@@ -148,7 +150,7 @@ void makeTrade(string symbol) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR);
-      trade.OpenPosition(tR);
+      trade.OpenPosition(tR,logger);
    }
    if(sellCondition) {
       double bid = Bid(symbol);
@@ -160,7 +162,7 @@ void makeTrade(string symbol) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR);
-      trade.OpenPosition(tR);
+      trade.OpenPosition(tR,logger);
    }
 }
 //+------------------------------------------------------------------+

@@ -3,6 +3,8 @@
 //|                                      Copyright 2020, CompanyName |
 //|                                       http://www.companyname.net |
 //+------------------------------------------------------------------+
+#include <MyPkg\Logger.mqh>
+
 class Price {
  public:
    ENUM_TIMEFRAMES timefrane;
@@ -18,28 +20,28 @@ class Price {
       return price[0];
    }
 
-   double Highest(string symbol, int start, int end) {
+   double Highest(string symbol, int start, int end, Logger &logger) {
       if(!CopyHigh(symbol, timefrane, start, end, high)) {
-         printf("Error: Couldn't copy price.high");
+         logger.Log("Error: Couldn't copy price.high",3);
          return EMPTY_VALUE;
       }
       int size = ArraySize(high);
       if( size < end ) {
-         printf("Error: Couldn't get highest value: candles: %i, you required: %i", size, end);
+         logger.Log(StringFormat("Warning: Couldn't get highest value: candles: %i, you required: %i", size, end),3);
          return EMPTY_VALUE;
       }
       int max = ArrayMaximum(high, 0, end);
       return high[ArrayMaximum(high, 0, end)];
    }
 
-   double Lowest(string symbol, int start, int end) {
+   double Lowest(string symbol, int start, int end, Logger &logger) {
       if(!CopyLow(symbol, timefrane, start, end, low)) {
-         printf("Error: Couldn't copy price.high");
+         logger.Log("Error: Couldn't copy price.high",3);
          return EMPTY_VALUE;
       }
       int size = ArraySize(high);
       if( size < end ) {
-         printf("Error: Couldn't get highest value: candles: %i, you required: %i", size, end);
+         logger.Log(StringFormat("Warning: Couldn't get highest value: candles: %i, you required: %i", size, end),3);
          return EMPTY_VALUE;
       }
 
