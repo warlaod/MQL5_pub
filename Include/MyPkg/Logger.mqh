@@ -8,41 +8,46 @@
 //|                                                                  |
 //+------------------------------------------------------------------+
 input bool debugMode;
+enum LOG_LEVEL {
+  Info,
+  Warning,
+  Error,
+};
 class Logger {
  public:
    string symbol;
+
 
    void Logger(string symbol) {
       this.symbol = symbol;
    };
 
-   void Log(string message, int logLevel) {
-      string level = LogLevel(logLevel);
+   void Log(string message, LOG_LEVEL l) {
+      string level = LogLevel(l);
       string current = TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS);
-      string logBody = StringFormat("[%s][%s]:%s:", current, this.symbol,level) + message;
+      string logBody = StringFormat("[%s][%s]:%s:", current, this.symbol, level) + message;
 
       if(debugMode) {
          Print(logBody);
-      } else {
-         Comment(logBody);
       }
+      Comment(logBody);
    }
 
-   string LogLevel(int logLevel) {
-      switch(logLevel) {
-      case 1:
+   string LogLevel(LOG_LEVEL l) {
+      switch(l) {
+      case Info:
          return "Info";
-      case 2:
+      case Warning:
          return "Warning";
-      case 3:
+      case Error:
          return "Error";
       default:
          return "Info";
       }
-
    }
-
 };
+
+
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+

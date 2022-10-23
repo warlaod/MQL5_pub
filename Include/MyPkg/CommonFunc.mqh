@@ -1,5 +1,5 @@
 //--- Store Common functions
-
+#include <MyPkg\Logger.mqh>
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -37,10 +37,19 @@ bool CheckMarketOpen() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-bool CheckEquityThereShold(int thereShold) {
+bool CheckEquity(int thereShold, Logger &logger) {
    int equity = AccountInfoDouble(ACCOUNT_EQUITY);
    if(equity < thereShold) {
-      printf("Equity is lower than thereShold: %d", thereShold);
+      logger.Log(StringFormat("Equity is lower than thereShold: %d", thereShold),Warning);
+      return false;
+   }
+   return true;
+}
+
+bool CheckMarginLevel(int thereShold, Logger &logger) {
+   double marginLevel = AccountInfoDouble(ACCOUNT_MARGIN_LEVEL);
+   if(marginLevel < thereShold && marginLevel != 0) {
+      logger.Log(StringFormat("MarginLevel is lower than thereShold: %d", thereShold),Warning);
       return false;
    }
    return true;

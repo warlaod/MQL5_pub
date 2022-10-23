@@ -19,8 +19,8 @@ class VolumeByMargin: public CMoneyFixedMargin {
       ValidationSettings();
    }
 
-   bool CalcurateVolume(tradeRequest &tR) {
-      tR.volume = this.MaxLotCheck(tR.symbol,tR.type,tR.openPrice,m_percent);
+   bool CalcurateVolume(tradeRequest &tR, Logger &logger) {
+      tR.volume = this.MaxLotCheck(tR.symbol,tR.type,tR.openPrice,m_percent, logger);
       if(tR.volume == 0)
          return false;
 //--- return trading volume
@@ -28,17 +28,17 @@ class VolumeByMargin: public CMoneyFixedMargin {
    }
 
    double MaxLotCheck(const string symbol, const ENUM_ORDER_TYPE trade_operation,
-                      const double price, const double percent) const {
+                      const double price, const double percent, Logger &logger) const {
       double margin = 0.0;
 //--- checks
       if(symbol == "" || price <= 0.0 || percent > 100) {
-         Print("CAccountInfo::MaxLotCheck invalid parameters");
+         logger.Log("CAccountInfo::MaxLotCheck invalid parameters",Error);
          return(0.0);
       }
       long leverage = AccountInfoInteger(ACCOUNT_LEVERAGE);
 //--- calculate margin requirements for 1 lot
       if(!OrderCalcMargin(trade_operation, symbol, 1.0, price, margin) || margin < 0.0) {
-         Print("CAccountInfo::MaxLotCheck margin calculation failed");
+         logger.Log("CAccountInfo::MaxLotCheck margin calculation failed",Error);
          return(0.0);
       }
 //---

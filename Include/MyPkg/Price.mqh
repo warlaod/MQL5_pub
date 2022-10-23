@@ -22,12 +22,12 @@ class Price {
 
    double Highest(string symbol, int start, int end, Logger &logger) {
       if(!CopyHigh(symbol, timefrane, start, end, high)) {
-         logger.Log("Error: Couldn't copy price.high",3);
+         logger.Log("Error: Couldn't copy price.high",Error);
          return EMPTY_VALUE;
       }
       int size = ArraySize(high);
       if( size < end ) {
-         logger.Log(StringFormat("Warning: Couldn't get highest value: candles: %i, you required: %i", size, end),3);
+         logger.Log(StringFormat("Warning: Couldn't get highest value: candles: %i, you required: %i", size, end),Error);
          return EMPTY_VALUE;
       }
       int max = ArrayMaximum(high, 0, end);
@@ -36,12 +36,12 @@ class Price {
 
    double Lowest(string symbol, int start, int end, Logger &logger) {
       if(!CopyLow(symbol, timefrane, start, end, low)) {
-         logger.Log("Error: Couldn't copy price.high",3);
+         logger.Log("Error: Couldn't copy price.high",Error);
          return EMPTY_VALUE;
       }
       int size = ArraySize(high);
       if( size < end ) {
-         logger.Log(StringFormat("Warning: Couldn't get highest value: candles: %i, you required: %i", size, end),3);
+         logger.Log(StringFormat("Warning: Couldn't get highest value: candles: %i, you required: %i", size, end),Error);
          return EMPTY_VALUE;
       }
 
