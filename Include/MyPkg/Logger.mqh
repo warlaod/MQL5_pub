@@ -25,7 +25,7 @@ class Logger {
    void Log(string message, LOG_LEVEL l) {
       string level = LogLevel(l);
       string current = TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS);
-      string logBody = StringFormat("[%s][%s]:%s:", current, this.symbol, level) + message;
+      string logBody = StringFormat("[%s][%s][%s]:", current, this.symbol, level) + message;
 
       if(debugMode) {
          Print(logBody);

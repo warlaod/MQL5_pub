@@ -40,7 +40,7 @@ bool CheckMarketOpen() {
 bool CheckEquity(int thereShold, Logger &logger) {
    int equity = AccountInfoDouble(ACCOUNT_EQUITY);
    if(equity < thereShold) {
-      logger.Log(StringFormat("Equity is lower than thereShold: %d", thereShold),Warning);
+      logger.Log(StringFormat("Equity is lower than stopEquity: %d", thereShold),Warning);
       return false;
    }
    return true;
@@ -49,7 +49,7 @@ bool CheckEquity(int thereShold, Logger &logger) {
 bool CheckMarginLevel(int thereShold, Logger &logger) {
    double marginLevel = AccountInfoDouble(ACCOUNT_MARGIN_LEVEL);
    if(marginLevel < thereShold && marginLevel != 0) {
-      logger.Log(StringFormat("MarginLevel is lower than thereShold: %d", thereShold),Warning);
+      logger.Log(StringFormat("MarginLevel is lower than stopMarginLevel: %d", thereShold),Warning);
       return false;
    }
    return true;

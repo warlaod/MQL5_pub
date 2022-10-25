@@ -21,8 +21,12 @@ class Trade: public CTrade {
    };
 
    void OpenPosition(tradeRequest &tR, Logger &logger) {
-      if(!validation.Check(tR,logger)) return;
+      if(!validation.Check(tR, logger)) return;
       CTrade::PositionOpen(tR.symbol, tR.type, tR.volume, tR.openPrice, tR.sl, tR.tp);
+
+      int retcode = ResultRetcode();
+      if(retcode != TRADE_RETCODE_DONE)
+         logger.Log(StringFormat("trade was requested{Type:%s, Volume:%g, Price:%g, S/L:%g, T/P:%g}, but got retcode = %i", EnumToString(tR.type), tR.volume, tR.openPrice, tR.sl, tR.tp, retcode), Info);
    }
 
    void ClosePositions(CArrayLong &tickets) {
