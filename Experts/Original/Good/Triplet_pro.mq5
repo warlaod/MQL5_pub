@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "1.00"
+#property version   "1.10"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -61,6 +61,15 @@ input string symbol3 = "AUDNZD";
 int OnInit() {
    EventSetTimer(eventTimer);
 
+   if(minTP > maxTP) {
+      Alert("Do not set minTP to a value greater than maxTP");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+   if(pricePeriod <= 0) {
+      Alert("Please set a value greater than 0 for pricePeriod");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+
    return(INIT_SUCCEEDED);
 }
 
@@ -69,8 +78,8 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    Logger logger("");
-   if(!CheckMarketOpen() || !CheckEquity(stopEquity,logger) || !CheckMarginLevel(stopMarginLevel,logger)) return;
-   
+   if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger)) return;
+
    makeTrade(symbol1);
    makeTrade(symbol2);
    makeTrade(symbol3);
@@ -123,8 +132,10 @@ void makeTrade(string symbol) {
    double top = price.Highest(symbol, 0, pricePeriod, logger);
    double bottom = price.Lowest(symbol, 0, pricePeriod, logger);
    if(top == bottom) return;
-   if(top == EMPTY_VALUE || bottom == EMPTY_VALUE){ return; }
-   
+   if(top == EMPTY_VALUE || bottom == EMPTY_VALUE) {
+      return;
+   }
+
    double current = price.At(symbol, 0).close;
    double gap = top - bottom;
    double perB = (current - bottom) / gap;
@@ -141,7 +152,7 @@ void makeTrade(string symbol) {
    double range = tpAdd;
 
    VolumeByMargin tVol(risk, symbol);
-   
+
    if(buyCondition) {
       double ask = Ask(symbol);
       if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {

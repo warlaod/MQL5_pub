@@ -59,6 +59,15 @@ CiADX adx;
 int OnInit() {
    EventSetTimer(eventTimer);
 
+   if(minTP > maxTP) {
+      Alert("Do not set minTP to a value greater than maxTP");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+   if(pricePeriod <= 0) {
+      Alert("Please set a value greater than 0 for pricePeriod");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+
    return(INIT_SUCCEEDED);
 }
 
@@ -96,9 +105,6 @@ double OnTester() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void makeTrade(string symbol) {
-   if(minTP > maxTP) {
-      return;
-   }
    Logger logger(symbol);
    PositionStore positionStore(magicNumber, symbol);
    positionStore.Refresh();

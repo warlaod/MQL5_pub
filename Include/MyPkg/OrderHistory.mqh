@@ -21,6 +21,9 @@ class OrderHistory: public CHistoryOrderInfo {
          if(magicNumber != dealMagic) {
             continue;
          }
+         if(symbol != HistoryDealGetString(ticket,DEAL_SYMBOL)) {
+            continue;
+         }
          if(dealEntry == DEAL_ENTRY_IN) {
             return true;
          }

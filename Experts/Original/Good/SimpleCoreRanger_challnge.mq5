@@ -26,11 +26,11 @@
 
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
-input int stopEquity = 1500;
-input int stopMarginLevel = 200;
-input double risk = 5;
-input int spreadLimit = 999;
-input double lot = 0;
+int stopEquity = 0;
+int stopMarginLevel = 0;
+double risk = 0;
+int spreadLimit = 9999999;
+input double lot = 0.1;
 optimizedTimeframes timeFrame = PERIOD_MN1;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
 //+------------------------------------------------------------------+
@@ -46,15 +46,26 @@ OrderHistory orderHistory(magicNumber);
 //+------------------------------------------------------------------+
 CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
-input int pricePeriod;
-input double coreRange;
-input int positionHalf, positionCore;
-input int minTP, maxTP;
+input int pricePeriod = 5;
+input double coreRange = 0.2;
+input int positionHalf = 1;
+input int positionCore = 1;
+input int minTP = 0;
+input int maxTP = 100;
 
 string symbol1 = _Symbol;
 CiADX adx;
 int OnInit() {
    EventSetTimer(eventTimer);
+   
+   if(minTP > maxTP){
+      Alert("Do not set minTP to a value greater than maxTP");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+   if(pricePeriod <= 0){
+      Alert("Please set a value greater than 0 for pricePeriod");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
 
    return(INIT_SUCCEEDED);
 }
@@ -64,7 +75,7 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    Logger logger("");
-   if(!CheckMarketOpen() || !CheckEquity(stopEquity,logger) || !CheckMarginLevel(stopMarginLevel,logger)) return;
+   if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger)) return;
 
    makeTrade(symbol1);
 // NZDCAD
@@ -106,16 +117,18 @@ void makeTrade(string symbol) {
    if(orderHistory.wasOrderInTheSameBar(symbol, PERIOD_H1)) {
       return;
    }
-   
+
    double spread = Spread(symbol);
    if( spread > spreadLimit * pips) {
       return;
    }
 
-   double top = price.Highest(symbol, 0, pricePeriod,logger);
-   double bottom = price.Lowest(symbol, 0, pricePeriod,logger);
+   double top = price.Highest(symbol, 0, pricePeriod, logger);
+   double bottom = price.Lowest(symbol, 0, pricePeriod, logger);
    if(top == bottom) return;
-   if(top == EMPTY_VALUE || bottom == EMPTY_VALUE){ return; }
+   if(top == EMPTY_VALUE || bottom == EMPTY_VALUE) {
+      return;
+   }
 
    double current = price.At(symbol, 0).close;
    double perB = (current - bottom) / (top - bottom);
@@ -150,8 +163,8 @@ void makeTrade(string symbol) {
       double tp = ask + tpAdd;
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
 
-      lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR,logger);
-      trade.OpenPosition(tR,logger);
+      lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
+      trade.OpenPosition(tR, logger);
    }
    if(sellCondition) {
       double bid = Bid(symbol);
@@ -162,8 +175,8 @@ void makeTrade(string symbol) {
       double tp = bid - tpAdd;
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
-      lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR,logger);
-      trade.OpenPosition(tR,logger);
+      lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
+      trade.OpenPosition(tR, logger);
    }
 }
 //+------------------------------------------------------------------+
