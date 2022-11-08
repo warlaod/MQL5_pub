@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "1.00"
+#property version   "1.10"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -25,11 +25,11 @@
 #include <Indicators\BillWilliams.mqh>
 
 int eventTimer = 60; // The frequency of OnTimer
-input ulong magicNumber = 31446;
-input int stopEquity = 0;
-input int stopMarginLevel = 0;
-input double risk = 5;
-input int spreadLimit = 999;
+input ulong magicNumber = 21984;
+int stopEquity = 0;
+int stopMarginLevel = 0;
+double risk = 0;
+int spreadLimit = 9999999;
 input double lot = 0.1;
 optimizedTimeframes timeFrame = PERIOD_MN1;
 ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
@@ -46,25 +46,23 @@ OrderHistory orderHistory(magicNumber);
 //+------------------------------------------------------------------+
 CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
-input int pricePeriod = 1;
-input double coreRange = 0.05;
-
+input int pricePeriod = 5;
+input double coreRange = 0.2;
 input int positionHalf = 1;
 input int positionCore = 1;
 input int minTP = 0;
-
 input int maxTP = 100;
 
 string symbol1 = _Symbol;
 CiADX adx;
 int OnInit() {
    EventSetTimer(eventTimer);
-
-   if(minTP > maxTP) {
+   
+   if(minTP > maxTP){
       Alert("Do not set minTP to a value greater than maxTP");
       return (INIT_PARAMETERS_INCORRECT);
    }
-   if(pricePeriod <= 0) {
+   if(pricePeriod <= 0){
       Alert("Please set a value greater than 0 for pricePeriod");
       return (INIT_PARAMETERS_INCORRECT);
    }
@@ -106,6 +104,9 @@ double OnTester() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void makeTrade(string symbol) {
+   if(minTP > maxTP) {
+      return;
+   }
    Logger logger(symbol);
    PositionStore positionStore(magicNumber, symbol);
    positionStore.Refresh();
