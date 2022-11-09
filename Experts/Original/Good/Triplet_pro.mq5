@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "1.10"
+#property version   "1.20"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -170,7 +170,7 @@ void makeTrade(string symbol) {
       if(position.IsAnyPositionInRange(symbol, positionStore.sellTickets, range)) {
          return;
       }
-      double sl = 999;
+      double sl = 9999999;
       double tp = bid - tpAdd;
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
 
