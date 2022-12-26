@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "1.20"
+#property version   "1.21"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+

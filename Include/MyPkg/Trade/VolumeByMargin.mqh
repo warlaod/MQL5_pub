@@ -37,13 +37,10 @@ class VolumeByMargin: public CMoneyFixedMargin {
       }
       long leverage = AccountInfoInteger(ACCOUNT_LEVERAGE);
 //--- calculate margin requirements for 1 lot
-      if(!OrderCalcMargin(trade_operation, symbol, 1.0, price, margin) || margin < 0.0) {
+      if(!OrderCalcMargin(trade_operation, symbol, 1.0, price, margin) || margin <= 0.0) {
          logger.Log("CAccountInfo::MaxLotCheck margin calculation failed",Error);
          return(0.0);
       }
-//---
-      if(margin == 0.0) // for pending orders
-         return(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX));
 //--- calculate maximum volume
       double volume = NormalizeDouble(m_account.FreeMargin() * percent / 100.0 / margin, 2);
 //--- normalize and check limits
