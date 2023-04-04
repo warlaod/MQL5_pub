@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "1.21"
+#property version   "1.22"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -60,6 +60,17 @@ input string symbol3 = "AUDNZD";
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
+
+   bool isCustom;
+   if(symbol2 != "" && SymbolExist(symbol2, isCustom) == false) {
+      Alert( StringFormat("symbol2:'%s' does not exist. Please set the correct symbol name. you can check it on Market Watch.", symbol2));
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+
+   if(symbol3 != "" && SymbolExist(symbol3, isCustom) == false) {
+      Alert( StringFormat("symbol3:'%s' does not exist. Please set the correct symbol name. you can check it on Market Watch.", symbol3));
+      return (INIT_PARAMETERS_INCORRECT);
+   }
 
    if(minTP > maxTP) {
       Alert("Do not set minTP to a value greater than maxTP");
