@@ -28,6 +28,7 @@ int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 98352;
 input int stopEquity = 1500;
 input int stopMarginLevel = 200;
+input int stopDrawDownPer = 20;
 input double risk = 0;
 input int spreadLimit = 15;
 input double lot = 0.1;
@@ -80,6 +81,15 @@ int OnInit() {
       Alert("Please set a value greater than 0 for pricePeriod");
       return (INIT_PARAMETERS_INCORRECT);
    }
+   
+   if(lot > 0 && risk > 0) {
+      Alert("Please set a value greater than 0 for lot or risk");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+   if(lot > 0 && risk > 0) {
+      Alert("Please set either lot or risk");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
 
    return(INIT_SUCCEEDED);
 }
@@ -89,7 +99,7 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    Logger logger("");
-   if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger)) return;
+   if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger) || !CheckDrawDownPer(stopDrawDownPer, logger)) return;
 
    makeTrade(symbol1);
    makeTrade(symbol2);
