@@ -81,6 +81,15 @@ int OnInit() {
       return (INIT_PARAMETERS_INCORRECT);
    }
 
+   if(lot <= 0) {
+      Alert("Please set a value greater than 0 for lot or risk");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+   if(lot > 0) {
+      Alert("Please set either lot or risk");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+
    return(INIT_SUCCEEDED);
 }
 
