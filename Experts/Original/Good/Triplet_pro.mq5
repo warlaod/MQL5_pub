@@ -26,9 +26,9 @@
 
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 98352;
-input int stopEquity = 1500;
-input int stopMarginLevel = 200;
-input int stopDrawDownPer = 20;
+input int stopEquity = 0;
+input int stopMarginLevel = 0;
+input int stopDrawDownPer = 100;
 input double risk = 0;
 input int spreadLimit = 15;
 input double lot = 0.1;

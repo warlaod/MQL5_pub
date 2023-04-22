@@ -28,6 +28,7 @@ int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 31446;
 input int stopEquity = 0;
 input int stopMarginLevel = 0;
+input int stopDrawDownPer = 100;
 input double risk = 5;
 input int spreadLimit = 999;
 input double lot = 0.1;
@@ -87,7 +88,7 @@ int OnInit() {
 //+------------------------------------------------------------------+
 void OnTick() {
    Logger logger("");
-   if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger)) return;
+   if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger) || !CheckDrawDownPer(stopDrawDownPer, logger)) return;
 
    makeTrade(symbol1);
 // NZDCAD
