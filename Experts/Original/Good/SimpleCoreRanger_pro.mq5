@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "1.21"
+#property version   "1.30"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -29,7 +29,7 @@ input ulong magicNumber = 31446;
 input int stopEquity = 0;
 input int stopMarginLevel = 0;
 input int stopDrawDownPer = 100;
-input double risk = 5;
+input double risk = 0;
 input int spreadLimit = 999;
 input double lot = 0.1;
 optimizedTimeframes timeFrame = PERIOD_MN1;

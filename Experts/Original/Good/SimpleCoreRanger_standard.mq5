@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "1.21"
+#property version   "1.30"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -72,11 +72,6 @@ int OnInit() {
       Alert("Please set a value greater than 0 for lot or risk");
       return (INIT_PARAMETERS_INCORRECT);
    }
-   if(lot > 0) {
-      Alert("Please set either lot or risk");
-      return (INIT_PARAMETERS_INCORRECT);
-   }
-
 
    return(INIT_SUCCEEDED);
 }
