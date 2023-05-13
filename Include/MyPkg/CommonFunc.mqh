@@ -71,6 +71,13 @@ bool CheckDrawDownPer(int thereShold, Logger &logger) {
    return true;
 }
 
+bool IsBetween(double target, double bottom, double top){
+   if(target >= bottom && target <= top){
+      return true;
+   }
+   return false;
+}
+
 // convert _Point to pips
 int DigitAdjust(string symbol) {
    int digitsAdjust = 1;

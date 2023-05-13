@@ -33,6 +33,11 @@ class Position: public CPositionInfo {
       }
       return profit;
    }
+   
+   double LastLot(ulong ticket) {
+      SelectByTicket(ticket);
+      return Volume();
+   }
 
    bool IsAnyPositionInRange(string symbol, CArrayLong &tickets, double range) {
       for(int i = 0; i < tickets.Total(); i++) {

@@ -19,6 +19,7 @@
 #include <MyPkg\Time.mqh>
 #include <MyPkg\Trailing\Appointed.mqh>
 #include <MyPkg\OrderHistory.mqh>
+#include <MyPkg\Chart\HLine.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -55,7 +56,8 @@ input int minTP = 0;
 input int maxTP = 100;
 
 string symbol1 = _Symbol;
-CiADX adx;
+HLine hlHighst, hlLowest, hlCoreHighest, hlCoreLowest;
+Logger logger("");
 int OnInit() {
    EventSetTimer(eventTimer);
 
@@ -68,10 +70,20 @@ int OnInit() {
       return (INIT_PARAMETERS_INCORRECT);
    }
 
+   if(coreRange > 0.5) {
+      Alert("Please set a value 0.5 or less for coreRange");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+
    if(lot <= 0) {
       Alert("Please set a value greater than 0 for lot or risk");
       return (INIT_PARAMETERS_INCORRECT);
    }
+   
+   hlHighst.Create(0,"Highest",clrRed,logger);
+   hlLowest.Create(0,"Lowest",clrAqua,logger);
+   hlCoreHighest.Create(0,"coreHighest",clrMagenta,logger);
+   hlCoreLowest.Create(0,"coreLowest",clrMagenta,logger);
 
    return(INIT_SUCCEEDED);
 }
@@ -80,11 +92,8 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   Logger logger("");
    if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger) || !CheckDrawDownPer(stopDrawDownPer, logger)) return;
-
    makeTrade(symbol1);
-// NZDCAD
 }
 
 //+------------------------------------------------------------------+
@@ -129,23 +138,25 @@ void makeTrade(string symbol) {
       return;
    }
 
-   double top = price.Highest(symbol, 0, pricePeriod, logger);
-   double bottom = price.Lowest(symbol, 0, pricePeriod, logger);
-   if(top == bottom) return;
-   if(top == EMPTY_VALUE || bottom == EMPTY_VALUE) {
+   double highest = price.Highest(symbol, 0, pricePeriod, logger);
+   double lowest = price.Lowest(symbol, 0, pricePeriod, logger);
+   if(highest == lowest) return;
+   if(highest == EMPTY_VALUE || lowest == EMPTY_VALUE) {
       return;
    }
 
    double current = price.At(symbol, 0).close;
-   double perB = (current - bottom) / (top - bottom);
-   double gap = top - bottom;
-
-   bool sellCondition = perB > 0.5 - coreRange;
-   bool buyCondition = perB < 0.5 + coreRange;
-
+   double gap = highest - lowest;
+   double coreHighest = lowest + (0.5 + coreRange) * gap;
+   double coreLowest = lowest + (0.5 - coreRange) * gap;
+   
+   hlHighst.Draw(highest);
+   hlLowest.Draw(lowest);
+   hlCoreHighest.Draw(coreHighest);
+   hlCoreLowest.Draw(coreLowest);
 
    double tpAdd;
-   if(0.5 - coreRange < perB && 0.5 + coreRange > perB && positionCore > 0) {
+   if(IsBetween(current, coreLowest, coreHighest) && positionCore > 0) {
       tpAdd = gap * coreRange * 2 / positionCore;
    } else if(positionHalf > 0) {
       tpAdd = gap * (1 - coreRange * 2)  / positionHalf;
@@ -159,6 +170,8 @@ void makeTrade(string symbol) {
    }
 
    double range = tpAdd;
+   bool sellCondition = current > coreLowest;
+   bool buyCondition = current < coreHighest;
    VolumeByMargin tVol(risk, symbol);
    if(buyCondition) {
       double ask = Ask(symbol);
