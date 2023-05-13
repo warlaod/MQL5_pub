@@ -19,6 +19,7 @@
 #include <MyPkg\Time.mqh>
 #include <MyPkg\Trailing\Appointed.mqh>
 #include <MyPkg\OrderHistory.mqh>
+#include <MyPkg\Chart\HLine.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
@@ -56,9 +57,8 @@ input int maxTP = 140;
 string symbol1 = _Symbol;
 input string symbol2 = "USDCHF";
 input string symbol3 = "AUDNZD";
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
+HLine hlHighst, hlLowest, hlCoreHighest, hlCoreLowest;
+Logger logger("");
 int OnInit() {
    EventSetTimer(eventTimer);
 
@@ -77,8 +77,14 @@ int OnInit() {
       Alert("Do not set minTP to a value greater than maxTP");
       return (INIT_PARAMETERS_INCORRECT);
    }
+
    if(pricePeriod <= 0) {
       Alert("Please set a value greater than 0 for pricePeriod");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+
+   if(noTradeCoreRange > 0.5) {
+      Alert("Please set a value 0.5 or less for noTradeCoreRange");
       return (INIT_PARAMETERS_INCORRECT);
    }
 
@@ -87,6 +93,11 @@ int OnInit() {
       return (INIT_PARAMETERS_INCORRECT);
    }
 
+   hlHighst.Create(0, "Highest", clrRed, logger);
+   hlLowest.Create(0, "Lowest", clrAqua, logger);
+   hlCoreHighest.Create(0, "coreHighest", clrMagenta, logger);
+   hlCoreLowest.Create(0, "coreLowest", clrMagenta, logger);
+
    return(INIT_SUCCEEDED);
 }
 
@@ -94,7 +105,6 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   Logger logger("");
    if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger) || !CheckDrawDownPer(stopDrawDownPer, logger)) return;
 
    makeTrade(symbol1);
@@ -146,20 +156,17 @@ void makeTrade(string symbol) {
       return;
    }
 
-   double top = price.Highest(symbol, 0, pricePeriod, logger);
-   double bottom = price.Lowest(symbol, 0, pricePeriod, logger);
-   if(top == bottom) return;
-   if(top == EMPTY_VALUE || bottom == EMPTY_VALUE) {
+   double highest = price.Highest(symbol, 0, pricePeriod, logger);
+   double lowest = price.Lowest(symbol, 0, pricePeriod, logger);
+   if(highest == lowest) return;
+   if(highest == EMPTY_VALUE || lowest == EMPTY_VALUE) {
       return;
    }
 
    double current = price.At(symbol, 0).close;
-   double gap = top - bottom;
-   double perB = (current - bottom) / gap;
-
-
-   bool sellCondition = perB > 0.5 + noTradeCoreRange;
-   bool buyCondition = perB < 0.5 - noTradeCoreRange;
+   double gap = highest - lowest;
+   double coreHighest = lowest + (0.5 + noTradeCoreRange) * gap;
+   double coreLowest = lowest + (0.5 - noTradeCoreRange) * gap;
 
    double tpAdd = gap * (1 - noTradeCoreRange * 2)  / positionHalf;
 
@@ -167,9 +174,9 @@ void makeTrade(string symbol) {
    if(tpAdd > maxTP * pips) tpAdd = maxTP * pips;
 
    double range = tpAdd;
-
+   bool sellCondition = current > coreHighest;
+   bool buyCondition = current < coreLowest;
    VolumeByMargin tVol(risk, symbol);
-
    if(buyCondition) {
       double ask = Ask(symbol);
       if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
