@@ -56,7 +56,7 @@ input int minTP = 0;
 input int maxTP = 100;
 
 string symbol1 = _Symbol;
-HLine hlHighst, hlLowest, hlCoreHighest, hlCoreLowest;
+HLine hlHighest, hlLowest, hlCoreHighest, hlCoreLowest;
 Logger logger("");
 int OnInit() {
    EventSetTimer(eventTimer);
@@ -80,7 +80,7 @@ int OnInit() {
       return (INIT_PARAMETERS_INCORRECT);
    }
    
-   hlHighst.Create(0,"Highest",clrRed,logger);
+   hlHighest.Create(0,"Highest",clrRed,logger);
    hlLowest.Create(0,"Lowest",clrAqua,logger);
    hlCoreHighest.Create(0,"coreHighest",clrMagenta,logger);
    hlCoreLowest.Create(0,"coreLowest",clrMagenta,logger);
@@ -150,7 +150,7 @@ void makeTrade(string symbol) {
    double coreHighest = lowest + (0.5 + coreRange) * gap;
    double coreLowest = lowest + (0.5 - coreRange) * gap;
    
-   hlHighst.Draw(highest);
+   hlHighest.Draw(highest);
    hlLowest.Draw(lowest);
    hlCoreHighest.Draw(coreHighest);
    hlCoreLowest.Draw(coreLowest);

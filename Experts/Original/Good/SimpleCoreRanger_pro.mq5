@@ -86,10 +86,10 @@ int OnInit() {
       return (INIT_PARAMETERS_INCORRECT);
    }
    
-   hlHighst.Create(0,"Highest",clrRed,logger);
-   hlLowest.Create(0,"Lowest",clrAqua,logger);
-   hlCoreHighest.Create(0,"coreHighest",clrMagenta,logger);
-   hlCoreLowest.Create(0,"coreLowest",clrMagenta,logger);
+   hlHighst.Create(0,"Highest",clrRed,0,logger);
+   hlLowest.Create(0,"Lowest",clrAqua,0,logger);
+   hlCoreHighest.Create(0,"coreHighest",clrMagenta,0,logger);
+   hlCoreLowest.Create(0,"coreLowest",clrMagenta,0,logger);
 
    return(INIT_SUCCEEDED);
 }

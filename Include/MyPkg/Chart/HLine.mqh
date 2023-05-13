@@ -15,14 +15,14 @@ class HLine: public CChartObjectHLine  {
  public:
    string symbol;
 
-   void Create(long chartId, string name, color clr, Logger &logger) {
+   void Create(long chartId, string name, color clr,int window, Logger &logger) {
       if(!drawLine) return;
-      bool result = CChartObjectHLine::Create(chartId, name, 0, 0) &&
+      bool result = CChartObjectHLine::Create(chartId, name, window, 0) &&
                     CChartObjectHLine::Color(clr) &&
                     Style(STYLE_SOLID) &&
                     Width(2);
       if(!result) {
-         logger.Log(StringFormat("Failed to create a line on the chart: %", name), Warning);
+         logger.Log(StringFormat("Failed to create a line on the chart: %s", name), Warning);
       }
    }
 
