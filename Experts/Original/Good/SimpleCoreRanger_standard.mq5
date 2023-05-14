@@ -24,7 +24,7 @@
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
-#include <MyPkg\Indicator\SimpleCoreRanger_Indicator.mq5>
+
 
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
@@ -57,8 +57,8 @@ input int minTP = 0;
 input int maxTP = 100;
 
 string symbol1 = _Symbol;
-HLine hlHighest, hlLowest, hlCoreHighest, hlCoreLowest;
-Logger logger("");
+int scrIndicator;
+Logger logger(symbol1);
 int OnInit() {
    EventSetTimer(eventTimer);
 
@@ -66,26 +66,27 @@ int OnInit() {
       Alert("Do not set minTP to a value greater than maxTP");
       return (INIT_PARAMETERS_INCORRECT);
    }
+   
+   int barMaxCount = Bars(_Symbol, PERIOD_CURRENT);
+   if(pricePeriod > barMaxCount) {
+      Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations)", barMaxCount));
+      return(INIT_PARAMETERS_INCORRECT);
+   }
    if(pricePeriod <= 0) {
       Alert("Please set a value greater than 0 for pricePeriod");
       return (INIT_PARAMETERS_INCORRECT);
    }
-
+   
    if(coreRange > 0.5) {
       Alert("Please set a value 0.5 or less for coreRange");
       return (INIT_PARAMETERS_INCORRECT);
    }
-
    if(lot <= 0) {
       Alert("Please set a value greater than 0 for lot or risk");
       return (INIT_PARAMETERS_INCORRECT);
    }
    
-   hlHighest.Create(0,"Highest",clrRed,0,logger);
-   hlLowest.Create(0,"Lowest",clrAqua,0,logger);
-   hlCoreHighest.Create(0,"coreHighest",clrMagenta,0,logger);
-   hlCoreLowest.Create(0,"coreLowest",clrMagenta,0,logger);
-
+   scrIndicator = iCustom(symbol1,PERIOD_MN1,"SimpleCoreRanger_Indicator",coreRange,pricePeriod);
    return(INIT_SUCCEEDED);
 }
 
@@ -120,10 +121,6 @@ double OnTester() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void makeTrade(string symbol) {
-   if(minTP > maxTP) {
-      return;
-   }
-   Logger logger(symbol);
    PositionStore positionStore(magicNumber, symbol);
    positionStore.Refresh();
 
@@ -138,26 +135,18 @@ void makeTrade(string symbol) {
    if( spread > spreadLimit * pips) {
       return;
    }
-
-   double highest = price.Highest(symbol, 0, pricePeriod, logger);
-   double lowest = price.Lowest(symbol, 0, pricePeriod, logger);
-   if(highest == lowest) return;
-   if(highest == EMPTY_VALUE || lowest == EMPTY_VALUE) {
-      return;
-   }
-
-   double current = price.At(symbol, 0).close;
-   double gap = highest - lowest;
-   double coreHighest = lowest + (0.5 + coreRange) * gap;
-   double coreLowest = lowest + (0.5 - coreRange) * gap;
    
-   hlHighest.Draw(highest);
-   hlLowest.Draw(lowest);
-   hlCoreHighest.Draw(coreHighest);
-   hlCoreLowest.Draw(coreLowest);
+   double highest[],lowest[],coreHighest[],coreLowest[];
+   CopyBuffer(scrIndicator, 0, 0, 1, highest);
+   CopyBuffer(scrIndicator, 1, 0, 1, lowest);
+   CopyBuffer(scrIndicator, 2, 0, 1, coreHighest);
+   CopyBuffer(scrIndicator, 3, 0, 1, coreLowest);
+   
+   double current = price.At(symbol, 0).close;
+   double gap = highest[0] - lowest[0];
 
    double tpAdd;
-   if(IsBetween(current, coreLowest, coreHighest) && positionCore > 0) {
+   if(IsBetween(current, coreLowest[0], coreHighest[0]) && positionCore > 0) {
       tpAdd = gap * coreRange * 2 / positionCore;
    } else if(positionHalf > 0) {
       tpAdd = gap * (1 - coreRange * 2)  / positionHalf;
@@ -171,8 +160,8 @@ void makeTrade(string symbol) {
    }
 
    double range = tpAdd;
-   bool sellCondition = current > coreLowest;
-   bool buyCondition = current < coreHighest;
+   bool sellCondition = current > coreLowest[0];
+   bool buyCondition = current < coreHighest[0];
    VolumeByMargin tVol(risk, symbol);
    if(buyCondition) {
       double ask = Ask(symbol);
