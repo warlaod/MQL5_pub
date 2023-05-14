@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "1.30"
+#property version   "2.01"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -19,12 +19,11 @@
 #include <MyPkg\Time.mqh>
 #include <MyPkg\Trailing\Appointed.mqh>
 #include <MyPkg\OrderHistory.mqh>
-#include <MyPkg\Chart\HLine.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
-
+#resource "\\Indicators\\SimpleCoreRanger_Indicator.ex5" //include the indicator in your file for convenience
 
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 21984;
@@ -86,7 +85,7 @@ int OnInit() {
       return (INIT_PARAMETERS_INCORRECT);
    }
    
-   scrIndicator = iCustom(symbol1,PERIOD_MN1,"SimpleCoreRanger_Indicator",coreRange,pricePeriod);
+   scrIndicator = iCustom(symbol1,PERIOD_MN1,"::Indicators\\SimpleCoreRanger_Indicator.ex5",coreRange,pricePeriod);
    return(INIT_SUCCEEDED);
 }
 

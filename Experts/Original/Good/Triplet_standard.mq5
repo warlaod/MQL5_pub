@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "1.31"
+#property version   "2.00"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -19,11 +19,11 @@
 #include <MyPkg\Time.mqh>
 #include <MyPkg\Trailing\Appointed.mqh>
 #include <MyPkg\OrderHistory.mqh>
-#include <MyPkg\Chart\HLine.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
+#resource "\\Indicators\\SimpleCoreRanger_Indicator.ex5" //include the indicator in your file for convenience
 
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 98351;
@@ -43,11 +43,6 @@ Price price(PERIOD_MN1);
 Time time;
 OrderHistory orderHistory(magicNumber);
 
-//+------------------------------------------------------------------+
-//|                                                                  |
-//+------------------------------------------------------------------+
-CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
-
 input int pricePeriod = 10;
 input double noTradeCoreRange = 0.3;
 input int positionHalf = 31;
@@ -57,8 +52,9 @@ input int maxTP = 140;
 string symbol1 = _Symbol;
 input string symbol2 = "USDCHF";
 input string symbol3 = "AUDNZD";
-HLine hlHighst, hlLowest, hlCoreHighest, hlCoreLowest;
 Logger logger("");
+
+int symbol1Indicator, symbol2Indicator, symbol3Indicator;
 int OnInit() {
    EventSetTimer(eventTimer);
 
@@ -78,6 +74,14 @@ int OnInit() {
       return (INIT_PARAMETERS_INCORRECT);
    }
 
+   string symbols[] = {symbol1, symbol2, symbol3};
+   for (int i = 0; i < ArraySize(symbols); i++) {
+      int barMaxCount = Bars(symbols[i], PERIOD_CURRENT);
+      if(pricePeriod > barMaxCount) {
+         Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations)", barMaxCount));
+         return(INIT_PARAMETERS_INCORRECT);
+      }
+   };
    if(pricePeriod <= 0) {
       Alert("Please set a value greater than 0 for pricePeriod");
       return (INIT_PARAMETERS_INCORRECT);
@@ -93,10 +97,9 @@ int OnInit() {
       return (INIT_PARAMETERS_INCORRECT);
    }
 
-   hlHighst.Create(0, "Highest", clrRed, logger);
-   hlLowest.Create(0, "Lowest", clrAqua, logger);
-   hlCoreHighest.Create(0, "coreHighest", clrMagenta, logger);
-   hlCoreLowest.Create(0, "coreLowest", clrMagenta, logger);
+   symbol1Indicator = iCustom(symbol1, PERIOD_MN1, "::Indicators\\SimpleCoreRanger_Indicator.ex5", noTradeCoreRange, pricePeriod);
+   symbol2Indicator = iCustom(symbol2, PERIOD_MN1, "::Indicators\\SimpleCoreRanger_Indicator.ex5", noTradeCoreRange, pricePeriod);
+   symbol3Indicator = iCustom(symbol3, PERIOD_MN1, "::Indicators\\SimpleCoreRanger_Indicator.ex5", noTradeCoreRange, pricePeriod);
 
    return(INIT_SUCCEEDED);
 }
@@ -107,9 +110,9 @@ int OnInit() {
 void OnTick() {
    if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger) || !CheckDrawDownPer(stopDrawDownPer, logger)) return;
 
-   makeTrade(symbol1);
-   makeTrade(symbol2);
-   makeTrade(symbol3);
+   makeTrade(symbol1, symbol1Indicator);
+   makeTrade(symbol2, symbol2Indicator);
+   makeTrade(symbol3, symbol3Indicator);
 // NZDCAD
 }
 
@@ -135,7 +138,7 @@ double OnTester() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void makeTrade(string symbol) {
+void makeTrade(string symbol, int indicator) {
    if(symbol == "") {
       return;
    }
@@ -156,17 +159,14 @@ void makeTrade(string symbol) {
       return;
    }
 
-   double highest = price.Highest(symbol, 0, pricePeriod, logger);
-   double lowest = price.Lowest(symbol, 0, pricePeriod, logger);
-   if(highest == lowest) return;
-   if(highest == EMPTY_VALUE || lowest == EMPTY_VALUE) {
-      return;
-   }
+   double highest[], lowest[], coreHighest[], coreLowest[];
+   CopyBuffer(indicator, 0, 0, 1, highest);
+   CopyBuffer(indicator, 1, 0, 1, lowest);
+   CopyBuffer(indicator, 2, 0, 1, coreHighest);
+   CopyBuffer(indicator, 3, 0, 1, coreLowest);
 
    double current = price.At(symbol, 0).close;
-   double gap = highest - lowest;
-   double coreHighest = lowest + (0.5 + noTradeCoreRange) * gap;
-   double coreLowest = lowest + (0.5 - noTradeCoreRange) * gap;
+   double gap = highest[0] - lowest[0];
 
    double tpAdd = gap * (1 - noTradeCoreRange * 2)  / positionHalf;
 
@@ -174,8 +174,8 @@ void makeTrade(string symbol) {
    if(tpAdd > maxTP * pips) tpAdd = maxTP * pips;
 
    double range = tpAdd;
-   bool sellCondition = current > coreHighest;
-   bool buyCondition = current < coreLowest;
+   bool sellCondition = current > coreHighest[0];
+   bool buyCondition = current < coreLowest[0];
    VolumeByMargin tVol(risk, symbol);
    if(buyCondition) {
       double ask = Ask(symbol);
