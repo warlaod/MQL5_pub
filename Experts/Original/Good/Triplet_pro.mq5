@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "2.00"
+#property version   "2.02"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -32,13 +32,12 @@ input int stopDrawDownPer = 100;
 input double risk = 0;
 input int spreadLimit = 15;
 input double lot = 0.1;
-optimizedTimeframes timeFrame = PERIOD_MN1;
-ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
+ENUM_TIMEFRAMES tf = PERIOD_MN1;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 Trade trade(magicNumber);
-Price price(PERIOD_MN1);
+Price price(tf);
 Time time;
 OrderHistory orderHistory(magicNumber);
 
@@ -77,11 +76,21 @@ int OnInit() {
       Alert("Do not set minTP to a value greater than maxTP");
       return (INIT_PARAMETERS_INCORRECT);
    }
+
+   string symbols[] = {symbol1, symbol2, symbol3};
+   for (int i = 0; i < ArraySize(symbols); i++) {
+      int barMaxCount = iBars(symbols[i], tf);
+      if(pricePeriod > barMaxCount) {
+         Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations) and set timeframe Monthly", barMaxCount));
+         return(INIT_PARAMETERS_INCORRECT);
+      }
+   };
+
    if(pricePeriod <= 0) {
       Alert("Please set a value greater than 0 for pricePeriod");
       return (INIT_PARAMETERS_INCORRECT);
    }
-   
+
    if(lot <= 0 && risk <= 0) {
       Alert("Please set a value greater than 0 for lot or risk");
       return (INIT_PARAMETERS_INCORRECT);

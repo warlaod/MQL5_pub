@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "2.01"
+#property version   "2.02"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -33,13 +33,12 @@ input int stopDrawDownPer = 100;
 input double risk = 0;
 input int spreadLimit = 999;
 input double lot = 0.1;
-optimizedTimeframes timeFrame = PERIOD_MN1;
-ENUM_TIMEFRAMES tf = convertENUM_TIMEFRAMES(timeFrame);
+ENUM_TIMEFRAMES tf = PERIOD_MN1;
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 Trade trade(magicNumber);
-Price price(PERIOD_MN1);
+Price price(tf);
 Time time;
 OrderHistory orderHistory(magicNumber);
 
@@ -66,9 +65,9 @@ int OnInit() {
       return (INIT_PARAMETERS_INCORRECT);
    }
    
-   int barMaxCount = Bars(_Symbol, PERIOD_CURRENT);
+   int barMaxCount = iBars(_Symbol, tf);
    if(pricePeriod > barMaxCount) {
-      Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations)", barMaxCount));
+      Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations) and set timeframe Monthly", barMaxCount));
       return(INIT_PARAMETERS_INCORRECT);
    }
    if(pricePeriod <= 0) {
@@ -94,7 +93,7 @@ int OnInit() {
       return (INIT_PARAMETERS_INCORRECT);
    }
    
-   scrIndicator = iCustom(symbol1,PERIOD_MN1,"::Indicators\\SimpleCoreRanger_Indicator.ex5",coreRange,pricePeriod);
+   scrIndicator = iCustom(symbol1,tf,"::Indicators\\SimpleCoreRanger_Indicator.ex5",coreRange,pricePeriod);
    return(INIT_SUCCEEDED);
 }
 
