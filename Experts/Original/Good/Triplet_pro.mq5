@@ -55,6 +55,7 @@ input int maxTP = 140;
 string symbol1 = _Symbol;
 input string symbol2 = "USDCHF";
 input string symbol3 = "AUDNZD";
+Logger logger("");
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -69,11 +70,6 @@ int OnInit() {
 
    if(symbol3 != "" && SymbolExist(symbol3, isCustom) == false) {
       Alert( StringFormat("symbol3:'%s' does not exist. Please set the correct symbol name. you can check it on Market Watch.", symbol3));
-      return (INIT_PARAMETERS_INCORRECT);
-   }
-
-   if(minTP > maxTP) {
-      Alert("Do not set minTP to a value greater than maxTP");
       return (INIT_PARAMETERS_INCORRECT);
    }
 
@@ -108,7 +104,11 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
-   Logger logger("");
+   if(minTP > maxTP) {
+      Alert("Do not set minTP to a value greater than maxTP");
+      return;
+   }
+
    if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger) || !CheckDrawDownPer(stopDrawDownPer, logger)) return;
 
    makeTrade(symbol1);

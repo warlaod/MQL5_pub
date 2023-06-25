@@ -67,11 +67,6 @@ int OnInit() {
       Alert( StringFormat("symbol3:'%s' does not exist. Please set the correct symbol name. you can check it on Market Watch.", symbol3));
       return (INIT_PARAMETERS_INCORRECT);
    }
-
-   if(minTP > maxTP) {
-      Alert("Do not set minTP to a value greater than maxTP");
-      return (INIT_PARAMETERS_INCORRECT);
-   }
    
    string symbols[] = {symbol1, symbol2, symbol3};
    for (int i = 0; i < ArraySize(symbols); i++) {
@@ -107,6 +102,11 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
+   if(minTP > maxTP) {
+      Alert("Do not set minTP to a value greater than maxTP");
+      return;
+   }
+   
    if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger) || !CheckDrawDownPer(stopDrawDownPer, logger)) return;
 
    makeTrade(symbol1, symbol1Indicator);

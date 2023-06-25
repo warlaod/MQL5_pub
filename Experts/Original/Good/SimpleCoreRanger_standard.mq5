@@ -55,11 +55,6 @@ Logger logger(symbol1);
 int OnInit() {
    EventSetTimer(eventTimer);
 
-   if(minTP > maxTP) {
-      Alert("Do not set minTP to a value greater than maxTP");
-      return (INIT_PARAMETERS_INCORRECT);
-   }
-   
    int barMaxCount = iBars(_Symbol, tf);
    if(pricePeriod > barMaxCount) {
       Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations) and set timeframe Monthly", barMaxCount));
@@ -69,7 +64,7 @@ int OnInit() {
       Alert("Please set a value greater than 0 for pricePeriod");
       return (INIT_PARAMETERS_INCORRECT);
    }
-   
+
    if(coreRange > 0.5) {
       Alert("Please set a value 0.5 or less for coreRange");
       return (INIT_PARAMETERS_INCORRECT);
@@ -78,8 +73,8 @@ int OnInit() {
       Alert("Please set a value greater than 0 for lot or risk");
       return (INIT_PARAMETERS_INCORRECT);
    }
-   
-   scrIndicator = iCustom(symbol1,tf,"::Indicators\\SimpleCoreRanger_Indicator.ex5",coreRange,pricePeriod);
+
+   scrIndicator = iCustom(symbol1, tf, "::Indicators\\SimpleCoreRanger_Indicator.ex5", coreRange, pricePeriod);
    return(INIT_SUCCEEDED);
 }
 
@@ -87,6 +82,11 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
+   if(minTP > maxTP) {
+      Alert("Do not set minTP to a value greater than maxTP");
+      return;
+   }
+
    if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger) || !CheckDrawDownPer(stopDrawDownPer, logger)) return;
    makeTrade(symbol1);
 }
@@ -128,13 +128,13 @@ void makeTrade(string symbol) {
    if( spread > spreadLimit * pips) {
       return;
    }
-   
-   double highest[],lowest[],coreHighest[],coreLowest[];
+
+   double highest[], lowest[], coreHighest[], coreLowest[];
    CopyBuffer(scrIndicator, 0, 0, 1, highest);
    CopyBuffer(scrIndicator, 1, 0, 1, lowest);
    CopyBuffer(scrIndicator, 2, 0, 1, coreHighest);
    CopyBuffer(scrIndicator, 3, 0, 1, coreLowest);
-   
+
    double current = price.At(symbol, 0).close;
    double gap = highest[0] - lowest[0];
 

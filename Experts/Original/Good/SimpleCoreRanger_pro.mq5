@@ -59,11 +59,6 @@ int scrIndicator;
 Logger logger(symbol1);
 int OnInit() {
    EventSetTimer(eventTimer);
-
-   if(minTP > maxTP) {
-      Alert("Do not set minTP to a value greater than maxTP");
-      return (INIT_PARAMETERS_INCORRECT);
-   }
    
    int barMaxCount = iBars(_Symbol, tf);
    if(pricePeriod > barMaxCount) {
@@ -101,6 +96,11 @@ int OnInit() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 void OnTick() {
+   if(minTP > maxTP) {
+      Alert("Do not set minTP to a value greater than maxTP");
+      return;
+   }
+   
    if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger) || !CheckDrawDownPer(stopDrawDownPer, logger)) return;
    makeTrade(symbol1);
 }
