@@ -30,8 +30,8 @@ input ulong magicNumber = 21984;
 int stopEquity = 0;
 int stopMarginLevel = 0;
 int stopDrawDownPer = 100;
-double risk = 0;
 int spreadLimit = 99999999;
+double risk = 0;
 input double lot = 0.1;
 ENUM_TIMEFRAMES tf = PERIOD_MN1;
 //+------------------------------------------------------------------+

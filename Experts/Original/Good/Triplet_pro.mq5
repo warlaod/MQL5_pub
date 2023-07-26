@@ -29,8 +29,8 @@ input ulong magicNumber = 98352;
 input int stopEquity = 0;
 input int stopMarginLevel = 0;
 input int stopDrawDownPer = 100;
+input int spreadLimit = 99999999;
 input double risk = 0;
-input int spreadLimit = 15;
 input double lot = 0.1;
 ENUM_TIMEFRAMES tf = PERIOD_MN1;
 //+------------------------------------------------------------------+
@@ -85,6 +85,11 @@ int OnInit() {
 
    if(pricePeriod <= 0) {
       Alert("Please set a value greater than 0 for pricePeriod");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+   
+   if(noTradeCoreRange > 0.5) {
+      Alert("Please set a value 0.5 or less for noTradeCoreRange");
       return (INIT_PARAMETERS_INCORRECT);
    }
 

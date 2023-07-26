@@ -30,8 +30,8 @@ input ulong magicNumber = 98351;
 int stopEquity = 0;
 int stopMarginLevel = 0;
 int stopDrawDownPer = 100;
-double risk = 0;
 int spreadLimit = 99999999;
+double risk = 0;
 input double lot = 0.1;
 ENUM_TIMEFRAMES tf = PERIOD_MN1;
 //+------------------------------------------------------------------+
@@ -68,7 +68,7 @@ int OnInit() {
       Alert( StringFormat("symbol3:'%s' does not exist. Please set the correct symbol name. you can check it on Market Watch.", symbol3));
       return (INIT_PARAMETERS_INCORRECT);
    }
-   
+
    string symbols[] = {symbol1, symbol2, symbol3};
    for (int i = 0; i < ArraySize(symbols); i++) {
       int barMaxCount = iBars(symbols[i], tf);
@@ -107,7 +107,7 @@ void OnTick() {
       Alert("Do not set minTP to a value greater than maxTP");
       return;
    }
-   
+
    if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger) || !CheckDrawDownPer(stopDrawDownPer, logger)) return;
 
    makeTrade(symbol1, symbol1Indicator);
