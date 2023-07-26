@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "2.02"
+#property version   "2.04"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -47,6 +47,7 @@ input double noTradeCoreRange = 0.3;
 input int positionHalf = 31;
 input int minTP = 35;
 input int maxTP = 140;
+int sl = 0;
 
 string symbol1 = _Symbol;
 input string symbol2 = "USDCHF";
@@ -181,9 +182,9 @@ void makeTrade(string symbol, int indicator) {
       if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
          return;
       }
-      double sl = 0;
+      double stopLoss = sl == 0 ? 0 : ask - sl * pips;
       double tp = ask + tpAdd;
-      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, sl, tp};
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, stopLoss, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
       trade.OpenPosition(tR, logger);
@@ -193,9 +194,9 @@ void makeTrade(string symbol, int indicator) {
       if(position.IsAnyPositionInRange(symbol, positionStore.sellTickets, range)) {
          return;
       }
-      double sl = 9999999;
+      double stopLoss = sl == 0 ? 9999999 : bid + sl * pips;
       double tp = bid - tpAdd;
-      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, sl, tp};
+      tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, stopLoss, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
       trade.OpenPosition(tR, logger);
