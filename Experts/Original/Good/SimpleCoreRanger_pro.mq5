@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "2.04"
+#property version   "2.5"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -47,13 +47,13 @@ OrderHistory orderHistory(magicNumber);
 //+------------------------------------------------------------------+
 CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
-input int pricePeriod = 5;
+input uint pricePeriod = 5;
 input double coreRange = 0.2;
-input int positionHalf = 1;
-input int positionCore = 1;
-input int minTP = 0;
-input int maxTP = 100;
-input int sl = 0;
+input uint positionHalf = 1;
+input uint positionCore = 1;
+input uint minTP = 0;
+input uint maxTP = 100;
+input uint sl = 0;
 
 string symbol1 = _Symbol;
 int scrIndicator;
@@ -153,12 +153,15 @@ void makeTrade(string symbol) {
    double current = price.At(symbol, 0).close;
    double gap = highest[0] - lowest[0];
 
-   double tpAdd;
+   double tpAdd = 0;
    if(IsBetween(current, coreLowest[0], coreHighest[0]) && positionCore > 0) {
       tpAdd = gap * coreRange * 2 / positionCore;
-   } else if(positionHalf > 0) {
+   } 
+   if(!IsBetween(current, coreLowest[0], coreHighest[0]) && positionHalf > 0) {
       tpAdd = gap * (1 - coreRange * 2)  / positionHalf;
    }
+   
+   if(tpAdd == 0) return;
 
    if(tpAdd < minTP * pips) {
       tpAdd = minTP * pips;

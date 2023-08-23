@@ -42,11 +42,11 @@ Price price(tf);
 Time time;
 OrderHistory orderHistory(magicNumber);
 
-input int pricePeriod = 10;
+input uint pricePeriod = 10;
 input double noTradeCoreRange = 0.3;
-input int positionHalf = 31;
-input int minTP = 35;
-input int maxTP = 140;
+input uint positionHalf = 31;
+input uint minTP = 35;
+input uint maxTP = 140;
 int sl = 0;
 
 string symbol1 = _Symbol;

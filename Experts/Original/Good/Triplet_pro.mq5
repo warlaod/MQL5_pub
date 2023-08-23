@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "2.04"
+#property version   "2.5"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -46,12 +46,12 @@ OrderHistory orderHistory(magicNumber);
 //+------------------------------------------------------------------+
 CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
-input int pricePeriod = 10;
+input uint pricePeriod = 10;
 input double noTradeCoreRange = 0.3;
-input int positionHalf = 31;
-input int minTP = 35;
-input int maxTP = 140;
-input int sl = 0;
+input uint positionHalf = 31;
+input uint minTP = 35;
+input uint maxTP = 140;
+input uint sl = 0;
 
 string symbol1 = _Symbol;
 input string symbol2 = "USDCHF";
@@ -90,6 +90,11 @@ int OnInit() {
    
    if(noTradeCoreRange > 0.5) {
       Alert("Please set a value 0.5 or less for noTradeCoreRange");
+      return (INIT_PARAMETERS_INCORRECT);
+   }
+   
+   if(positionHalf <= 0) {
+      Alert("Please set a value greater than 0 for positionHalf");
       return (INIT_PARAMETERS_INCORRECT);
    }
 

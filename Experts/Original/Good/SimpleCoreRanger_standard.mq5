@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "2.04"
+#property version   "2.5"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -139,10 +139,11 @@ void makeTrade(string symbol) {
    double current = price.At(symbol, 0).close;
    double gap = highest[0] - lowest[0];
 
-   double tpAdd;
+   double tpAdd = 0;
    if(IsBetween(current, coreLowest[0], coreHighest[0]) && positionCore > 0) {
       tpAdd = gap * coreRange * 2 / positionCore;
-   } else if(positionHalf > 0) {
+   } 
+   if(!IsBetween(current, coreLowest[0], coreHighest[0]) && positionHalf > 0) {
       tpAdd = gap * (1 - coreRange * 2)  / positionHalf;
    }
 
