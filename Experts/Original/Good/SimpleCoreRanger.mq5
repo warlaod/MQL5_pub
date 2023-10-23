@@ -9,21 +9,21 @@
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
-#include <MyPkg\OptimizedParameter.mqh>
-#include <MyPkg\Optimization.mqh>
-#include <MyPkg\Trade\Trade.mqh>
-#include <MyPkg\Trade\VolumeByMargin.mqh>
-#include <MyPkg\Price.mqh>
-#include <MyPkg\Position\PositionStore.mqh>
-#include <MyPkg\Position\Position.mqh>
-#include <MyPkg\Time.mqh>
-#include <MyPkg\Trailing\Appointed.mqh>
-#include <MyPkg\OrderHistory.mqh>
+#include <Ramune\OptimizedParameter.mqh>
+#include <Ramune\Optimization.mqh>
+#include <Ramune\Trade\Trade.mqh>
+#include <Ramune\Trade\VolumeByMargin.mqh>
+#include <Ramune\Price.mqh>
+#include <Ramune\Position\PositionStore.mqh>
+#include <Ramune\Position\Position.mqh>
+#include <Ramune\Time.mqh>
+#include <Ramune\Trailing\Appointed.mqh>
+#include <Ramune\OrderHistory.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
 #include <Indicators\Trend.mqh>
 #include <Indicators\BillWilliams.mqh>
-#resource "\\Indicators\\SimpleCoreRanger_Indicator.ex5" //include the indicator in your file for convenience
+#resource "\\Indicators\\Ramune\\SimpleCoreRanger_Indicator.ex5" //include the indicator in your file for convenience
 
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 31446;
@@ -89,7 +89,7 @@ int OnInit() {
       return (INIT_PARAMETERS_INCORRECT);
    }
    
-   scrIndicator = iCustom(symbol1,tf,"::Indicators\\SimpleCoreRanger_Indicator.ex5",coreRange,pricePeriod);
+   scrIndicator = iCustom(symbol1,tf,"::Indicators\\Ramune\\SimpleCoreRanger_Indicator.ex5",coreRange,pricePeriod);
    return(INIT_SUCCEEDED);
 }
 
