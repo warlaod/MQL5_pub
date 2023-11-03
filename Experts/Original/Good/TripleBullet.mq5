@@ -195,6 +195,7 @@ void makeTrade(string symbol) {
 
    VolumeByMargin tVol(risk, symbol);
 
+   string commnet = "46961:TripleBullet MT5_EA";
    if(buyCondition) {
       double ask = Ask(symbol);
       if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {

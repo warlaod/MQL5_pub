@@ -174,6 +174,8 @@ void makeTrade(string symbol) {
    bool sellCondition = current > coreLowest[0];
    bool buyCondition = current < coreHighest[0];
    VolumeByMargin tVol(risk, symbol);
+   
+   string commnet = "46961:SimpleCoreRanger_EA";
    if(buyCondition) {
       double ask = Ask(symbol);
       if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
@@ -184,7 +186,7 @@ void makeTrade(string symbol) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, stopLoss, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
-      trade.OpenPosition(tR, logger);
+      trade.OpenPosition(tR, logger,commnet);
    }
    if(sellCondition) {
       double bid = Bid(symbol);
@@ -196,7 +198,7 @@ void makeTrade(string symbol) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, stopLoss, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
-      trade.OpenPosition(tR, logger);
+      trade.OpenPosition(tR, logger,commnet);
    }
 }
 //+------------------------------------------------------------------+
