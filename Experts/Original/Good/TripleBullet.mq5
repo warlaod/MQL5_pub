@@ -27,11 +27,11 @@
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 98352;
 input int stopEquity = 0;
-input int stopMarginLevel = 0;
-input int stopDrawDownPer = 100;
-input int spreadLimit = 99999999;
-input double risk = 0;
-input double lot = 0.1;
+input int stopMarginLevel = 500;
+input int stopDrawDownPer = 20;
+input int spreadLimit = 20;
+input double risk = 2.5;
+input double lot = 0;
 ENUM_TIMEFRAMES tf = PERIOD_MN1;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -46,16 +46,16 @@ OrderHistory orderHistory(magicNumber);
 //+------------------------------------------------------------------+
 CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
-input uint pricePeriod = 10;
-input double noTradeCoreRange = 0.3;
+input uint pricePeriod = 34;
+input double noTradeCoreRange = 0.16;
 input uint positionHalf = 31;
-input uint minTP = 35;
-input uint maxTP = 140;
+input uint minTP = 95;
+input uint maxTP = 271;
 input uint sl = 0;
 
 string symbol1 = _Symbol;
-input string symbol2 = "USDCHF";
-input string symbol3 = "AUDNZD";
+input string symbol2 = "USDCHF-";
+input string symbol3 = "AUDNZD-";
 Logger logger("");
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -195,7 +195,7 @@ void makeTrade(string symbol) {
 
    VolumeByMargin tVol(risk, symbol);
 
-   string commnet = "46961:TripleBullet MT5_EA";
+   string comment = "47546:TripleBullet_EA";
    if(buyCondition) {
       double ask = Ask(symbol);
       if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
@@ -206,7 +206,7 @@ void makeTrade(string symbol) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, stopLoss, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
-      trade.OpenPosition(tR, logger);
+      trade.OpenPosition(tR, logger,comment);
    }
    if(sellCondition) {
       double bid = Bid(symbol);
@@ -218,7 +218,7 @@ void makeTrade(string symbol) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, stopLoss, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
-      trade.OpenPosition(tR, logger);
+      trade.OpenPosition(tR, logger,comment);
    }
 }
 //+------------------------------------------------------------------+

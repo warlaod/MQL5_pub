@@ -28,11 +28,11 @@
 int eventTimer = 60; // The frequency of OnTimer
 input ulong magicNumber = 31446;
 input int stopEquity = 0;
-input int stopMarginLevel = 0;
-input int stopDrawDownPer = 100;
-input int spreadLimit = 99999999;
-input double risk = 0;
-input double lot = 0.1;
+input int stopMarginLevel = 500;
+input int stopDrawDownPer = 20;
+input int spreadLimit = 20;
+input double risk = 2;
+input double lot = 0;
 ENUM_TIMEFRAMES tf = PERIOD_MN1;
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -47,12 +47,12 @@ OrderHistory orderHistory(magicNumber);
 //+------------------------------------------------------------------+
 CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
-input uint pricePeriod = 5;
-input double coreRange = 0.2;
-input uint positionHalf = 1;
-input uint positionCore = 1;
-input uint minTP = 0;
-input uint maxTP = 100;
+input uint pricePeriod = 96;
+input double coreRange = 0.1;
+input uint positionHalf = 46;
+input uint positionCore = 33;
+input uint minTP = 60;
+input uint maxTP = 250;
 input uint sl = 0;
 
 string symbol1 = _Symbol;
@@ -175,7 +175,7 @@ void makeTrade(string symbol) {
    bool buyCondition = current < coreHighest[0];
    VolumeByMargin tVol(risk, symbol);
    
-   string commnet = "46961:SimpleCoreRanger_EA";
+   string comment = "46961:SimpleCoreRanger_EA";
    if(buyCondition) {
       double ask = Ask(symbol);
       if(position.IsAnyPositionInRange(symbol, positionStore.buyTickets, range)) {
@@ -186,7 +186,7 @@ void makeTrade(string symbol) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, stopLoss, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
-      trade.OpenPosition(tR, logger,commnet);
+      trade.OpenPosition(tR, logger,comment);
    }
    if(sellCondition) {
       double bid = Bid(symbol);
@@ -198,7 +198,7 @@ void makeTrade(string symbol) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, stopLoss, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
-      trade.OpenPosition(tR, logger,commnet);
+      trade.OpenPosition(tR, logger,comment);
    }
 }
 //+------------------------------------------------------------------+
