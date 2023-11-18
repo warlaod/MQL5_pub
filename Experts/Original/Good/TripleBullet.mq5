@@ -73,12 +73,17 @@ int OnInit() {
       Alert( StringFormat("symbol3:'%s' does not exist. Please set the correct symbol name. you can check it on Market Watch.", symbol3));
       return (INIT_PARAMETERS_INCORRECT);
    }
+   
+   if(_Period != PERIOD_MN1){
+      Alert("please set timeframe Monthly");
+      return(INIT_PARAMETERS_INCORRECT);
+   }
 
    string symbols[] = {symbol1, symbol2, symbol3};
    for (int i = 0; i < ArraySize(symbols); i++) {
       int barMaxCount = iBars(symbols[i], tf);
       if(pricePeriod > barMaxCount) {
-         Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations) and set timeframe Monthly", barMaxCount));
+         Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations). If you have never display %s monthly chart, display it to load monthly data ", barMaxCount,symbols[i]));
          return(INIT_PARAMETERS_INCORRECT);
       }
    };

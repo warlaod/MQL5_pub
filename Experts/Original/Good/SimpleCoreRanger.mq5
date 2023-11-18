@@ -47,12 +47,12 @@ OrderHistory orderHistory(magicNumber);
 //+------------------------------------------------------------------+
 CiATR atrEURGBP, atrAUDNZD, atrUSDCHF;
 
-input uint pricePeriod = 96;
-input double coreRange = 0.1;
-input uint positionHalf = 46;
-input uint positionCore = 33;
-input uint minTP = 60;
-input uint maxTP = 250;
+input uint pricePeriod = 20;
+input double coreRange = 0;
+input uint positionHalf = 30;
+input uint positionCore = 49;
+input uint minTP = 55;
+input uint maxTP = 271;
 input uint sl = 0;
 
 string symbol1 = _Symbol;
@@ -61,9 +61,14 @@ Logger logger(symbol1);
 int OnInit() {
    EventSetTimer(eventTimer);
    
+   if(_Period != PERIOD_MN1){
+      Alert("please set timeframe Monthly");
+      return(INIT_PARAMETERS_INCORRECT);
+   }
+   
    int barMaxCount = iBars(_Symbol, tf);
    if(pricePeriod > barMaxCount) {
-      Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations) and set timeframe Monthly", barMaxCount));
+      Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations)", barMaxCount));
       return(INIT_PARAMETERS_INCORRECT);
    }
    if(pricePeriod <= 0) {
