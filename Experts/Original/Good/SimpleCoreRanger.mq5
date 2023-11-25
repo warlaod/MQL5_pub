@@ -26,7 +26,7 @@
 #resource "\\Indicators\\Ramune\\SimpleCoreRanger_Indicator.ex5" //include the indicator in your file for convenience
 
 int eventTimer = 60; // The frequency of OnTimer
-input ulong magicNumber = 31446;
+input ulong magicNumber = 8635;
 input int stopEquity = 0;
 input int stopMarginLevel = 500;
 input int stopDrawDownPer = 20;
