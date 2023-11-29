@@ -61,6 +61,10 @@ Logger logger(symbol1);
 int OnInit() {
    EventSetTimer(eventTimer);
    
+   if(AccountInfoInteger(ACCOUNT_MARGIN_MODE) == ACCOUNT_MARGIN_MODE_RETAIL_NETTING){
+      Alert("This EA does not work on Netting Mode. Use Hedging Mode");
+   }
+   
    if(_Period != PERIOD_MN1){
       Alert("please set timeframe Monthly");
       return(INIT_PARAMETERS_INCORRECT);

@@ -62,6 +62,15 @@ Logger logger("");
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
+   
+   if(AccountInfoInteger(ACCOUNT_MARGIN_MODE) == ACCOUNT_MARGIN_MODE_RETAIL_NETTING){
+      Alert("This EA does not work on Netting Mode. Use Hedging Mode");
+   }
+     
+   if(_Period != PERIOD_MN1){
+      Alert("please set timeframe Monthly");
+      return(INIT_PARAMETERS_INCORRECT);
+   }
 
    bool isCustom;
    if(symbol2 != "" && SymbolExist(symbol2, isCustom) == false) {
@@ -73,11 +82,7 @@ int OnInit() {
       Alert( StringFormat("symbol3:'%s' does not exist. Please set the correct symbol name. you can check it on Market Watch.", symbol3));
       return (INIT_PARAMETERS_INCORRECT);
    }
-   
-   if(_Period != PERIOD_MN1){
-      Alert("please set timeframe Monthly");
-      return(INIT_PARAMETERS_INCORRECT);
-   }
+ 
 
    string symbols[] = {symbol1, symbol2, symbol3};
    for (int i = 0; i < ArraySize(symbols); i++) {
