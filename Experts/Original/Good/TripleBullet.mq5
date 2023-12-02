@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "3.0"
+#property version   "3.1"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -65,11 +65,12 @@ int OnInit() {
    
    if(AccountInfoInteger(ACCOUNT_MARGIN_MODE) == ACCOUNT_MARGIN_MODE_RETAIL_NETTING){
       Alert("This EA does not work on Netting Mode. Use Hedging Mode");
+      return(INIT_FAILED);
    }
      
    if(_Period != PERIOD_MN1){
       Alert("please set timeframe Monthly");
-      return(INIT_PARAMETERS_INCORRECT);
+      return(INIT_FAILED);
    }
 
    bool isCustom;

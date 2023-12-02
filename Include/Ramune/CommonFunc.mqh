@@ -49,7 +49,7 @@ bool CheckEquity(int thereShold, Logger &logger) {
 bool CheckMarginLevel(int thereShold, Logger &logger) {
    double marginLevel = AccountInfoDouble(ACCOUNT_MARGIN_LEVEL);
    if(marginLevel < thereShold && marginLevel != 0) {
-      logger.Log(StringFormat("Trading was stopped :: MarginLevel(current: %d) is lower than stopMarginLevel(%d)",marginLevel, thereShold),Warning);
+      logger.Log(StringFormat("Trading was stopped :: MarginLevel(current: %.2f) is lower than stopMarginLevel(%d)",marginLevel, thereShold),Warning);
       return false;
    }
    return true;
@@ -65,7 +65,7 @@ bool CheckDrawDownPer(int thereShold, Logger &logger) {
    
    double drawDownPer = (balance - equity) / balance * 100;
    if(drawDownPer > thereShold  && drawDownPer != 0) {
-      logger.Log(StringFormat("Trading was stopped :: DrawDown(current: %7.3f) is over than stopDrawDownPer(%d)", drawDownPer, thereShold),Warning);
+      logger.Log(StringFormat("Trading was stopped :: DrawDown(current: %.2f) is over than stopDrawDownPer(%d)", drawDownPer, thereShold),Warning);
       return false;
    }
    return true;
