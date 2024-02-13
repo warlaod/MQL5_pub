@@ -112,7 +112,7 @@ void OnTick() {
       return;
    }
    
-   if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckMarginLevel(stopMarginLevel, logger) || !CheckDrawDownPer(stopDrawDownPer, logger)) return;
+   if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckDrawDownPer(stopDrawDownPer, logger) || !CheckMarginLevel(stopMarginLevel, logger)) return;
    makeTrade(symbol1);
 }
 

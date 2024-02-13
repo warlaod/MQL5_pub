@@ -1,6 +1,6 @@
 //+------------------------------------------------------------------+
 //|                                               ControlsDialog.mqh |
-//|                             Copyright 2000-2023, MetaQuotes Ltd. |
+//|                             Copyright 2000-2024, MetaQuotes Ltd. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 #include <Controls\Dialog.mqh>
