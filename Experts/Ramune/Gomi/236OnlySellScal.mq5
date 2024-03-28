@@ -1,0 +1,146 @@
+//+------------------------------------------------------------------+
+//|                                            1009ScalpFractals.mq5 |
+//|                        Copyright 2020, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2020, MetaQuotes Software Corp."
+#property link      "https://www.mql5.com"
+#property version   "1.00"
+//+------------------------------------------------------------------+
+//| Expert initialization function                                   |
+//+------------------------------------------------------------------+
+#include <Original\MyUtils.mqh>
+#include <Original\MyTrade.mqh>
+#include <Original\Oyokawa.mqh>
+#include <Original\MyDate.mqh>
+#include <Original\MyCalculate.mqh>
+#include <Original\MyTest.mqh>
+#include <Original\MyPrice.mqh>
+#include <Original\MyPosition.mqh>
+#include <Original\MyOrder.mqh>
+#include <Original\MyCHart.mqh>
+#include <Original\Optimization.mqh>
+#include <Indicators\TimeSeries.mqh>
+#include <Indicators\Oscilators.mqh>
+#include <Indicators\Trend.mqh>
+#include <Indicators\BillWilliams.mqh>
+#include <Indicators\Volumes.mqh>
+#include <Trade\PositionInfo.mqh>
+
+input double SLCoef, TPCoef;
+input mis_MarcosTMP timeFrame;
+ENUM_TIMEFRAMES Timeframe = defMarcoTiempo(timeFrame);
+input int TPPeriod, SLPeriod;
+bool tradable = false;
+double PriceToPips = PriceToPips();
+double pips = PointToPips();
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+MyPosition myPosition;
+MyTrade myTrade();
+MyDate myDate();
+MyPrice myPrice(Timeframe, 3);
+MyOrder myOrder(Timeframe);
+CurrencyStrength CS(Timeframe, 1);
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+CiMA MA;
+int OnInit() {
+   MyUtils myutils(60 * 50);
+   myutils.Init();
+   MA.Create(_Symbol,Timeframe,20,0,MODE_EMA,PRICE_CLOSE);
+   return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void OnTick() {
+   Refresh();
+   Check();
+
+   myPosition.CloseAllPositionsInMinute();
+   if(!myTrade.isCurrentTradable || !myTrade.isTradable) return;
+
+   myPrice.Refresh();
+   MA.Refresh();
+   
+   double Highest = myPrice.Highest(1,SLPeriod);
+   double Lowest = myPrice.Lowest(1,SLPeriod);
+   
+   if(MathAbs(myPrice.At(2).high - myPrice.At(1).high) < 5 * _Point) {
+      if(MathAbs(Highest - myPrice.At(2).high) > 5*_Point) return;
+      if(myPrice.At(0).close < MA.Main(0)) return;
+      if(myPrice.At(0).close < myPrice.At(1).low)
+         myTrade.setSignal(ORDER_TYPE_SELL);
+   }
+
+   if(MathAbs(myPrice.At(2).low - myPrice.At(1).low) < 5 * _Point) {
+       if(MathAbs(Lowest - myPrice.At(2).low) > 5*_Point) return;
+       if(myPrice.At(0).close > MA.Main(0)) return;
+      if(myPrice.At(0).close > myPrice.At(1).high)
+         myTrade.setSignal(ORDER_TYPE_BUY);
+   }
+
+
+   double PriceUnit = pips;
+   if(myPosition.TotalEachPositions(POSITION_TYPE_BUY) < positions) {
+      myTrade.Buy(myPrice.At(1).low, MA.Main(0));
+   }
+   if(myPosition.TotalEachPositions(POSITION_TYPE_SELL) < positions) {
+      myTrade.Sell(myPrice.Highest(1, SLPeriod),  MA.Main(0));
+   }
+
+
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void OnTimer() {
+   myPosition.Refresh();
+   myTrade.Refresh();
+   myDate.Refresh();
+
+   if(myDate.isFridayEnd() || myDate.isYearEnd() || myTrade.isLowerBalance() || myTrade.isLowerMarginLevel()) {
+      myPosition.CloseAllPositions(POSITION_TYPE_BUY);
+      myPosition.CloseAllPositions(POSITION_TYPE_SELL);
+      myTrade.isTradable = false;
+   } else {
+      myTrade.isTradable = true;
+   }
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+double OnTester() {
+   MyTest myTest;
+   double result =  myTest.min_dd_and_mathsqrt_trades();
+   return  result;
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void Refresh() {
+   myPosition.Refresh();
+   myTrade.Refresh();
+}
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void Check() {
+   //myTrade.CheckSpread();
+   myDate.Refresh();
+   myOrder.Refresh();
+   if(myDate.isMondayStart()) myTrade.isCurrentTradable = false;
+   if(!myDate.isInTime("16:00","20:00")) myTrade.isCurrentTradable = false;
+   if(myOrder.wasOrderedInTheSameBar()) myTrade.isCurrentTradable = false;
+}
+//+------------------------------------------------------------------+
