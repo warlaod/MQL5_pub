@@ -54,6 +54,7 @@ input uint positionCore = 49;
 input uint minTP = 55;
 input uint maxTP = 271;
 input uint sl = 0;
+input bool buyOnly = false;
 
 string symbol1 = _Symbol;
 int scrIndicator;
@@ -181,7 +182,7 @@ void makeTrade(string symbol) {
    }
 
    double range = tpAdd;
-   bool sellCondition = current > coreLowest[0];
+   bool sellCondition = current > coreLowest[0] && !buyOnly;
    bool buyCondition = current < coreHighest[0];
    VolumeByMargin tVol(risk, symbol);
    
