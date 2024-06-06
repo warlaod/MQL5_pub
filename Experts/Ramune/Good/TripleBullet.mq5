@@ -17,7 +17,6 @@
 #include <Ramune\Position\PositionStore.mqh>
 #include <Ramune\Position\Position.mqh>
 #include <Ramune\Time.mqh>
-#include <Ramune\Trailing\Appointed.mqh>
 #include <Ramune\OrderHistory.mqh>
 #include <Indicators\TimeSeries.mqh>
 #include <Indicators\Oscilators.mqh>
