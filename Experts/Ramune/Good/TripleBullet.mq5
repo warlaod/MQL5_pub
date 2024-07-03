@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, MetaQuotes Ltd."
 #property link      "https://www.mql5.com"
-#property version   "3.1"
+#property version   "3.3"
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -174,7 +174,7 @@ void makeTrade(string symbol, double upperLimit, double lowerLimit) {
    double pips = Pips(symbol);
    Position position(symbol);
 
-   if(orderHistory.wasOrderInTheSameBar(symbol, PERIOD_H1)) {
+   if(orderHistory.wasOrderInTheSameBar(symbol, PERIOD_H12)) {
       return;
    }
 
