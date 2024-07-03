@@ -55,19 +55,21 @@ input uint sl = 0;
 string symbol1 = _Symbol;
 input string symbol2 = "USDCHF-";
 input string symbol3 = "AUDNZD-";
+input double upperLimit1, upperLimit2, upperLimit3 = 0;
+input double lowerLimit1, lowerLimit2, lowerLimit3 = 0;
 Logger logger("");
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
 int OnInit() {
    EventSetTimer(eventTimer);
-   
-   if(AccountInfoInteger(ACCOUNT_MARGIN_MODE) == ACCOUNT_MARGIN_MODE_RETAIL_NETTING){
+
+   if(AccountInfoInteger(ACCOUNT_MARGIN_MODE) == ACCOUNT_MARGIN_MODE_RETAIL_NETTING) {
       Alert("This EA does not work on Netting Mode. Use Hedging Mode");
       return(INIT_FAILED);
    }
-     
-   if(_Period != PERIOD_MN1){
+
+   if(_Period != PERIOD_MN1) {
       Alert("please set timeframe Monthly");
       return(INIT_FAILED);
    }
@@ -82,13 +84,13 @@ int OnInit() {
       Alert( StringFormat("symbol3:'%s' does not exist. Please set the correct symbol name. you can check it on Market Watch.", symbol3));
       return (INIT_PARAMETERS_INCORRECT);
    }
- 
+
 
    string symbols[] = {symbol1, symbol2, symbol3};
    for (int i = 0; i < ArraySize(symbols); i++) {
       int barMaxCount = iBars(symbols[i], tf);
       if(pricePeriod > barMaxCount) {
-         Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations). If you have never display %s monthly chart, display it to load monthly data ", barMaxCount,symbols[i]));
+         Alert( StringFormat("please set pricePeriod lower than %i(maximum number of bars for calculations). If you have never display %s monthly chart, display it to load monthly data ", barMaxCount, symbols[i]));
          return(INIT_PARAMETERS_INCORRECT);
       }
    };
@@ -97,12 +99,12 @@ int OnInit() {
       Alert("Please set a value greater than 0 for pricePeriod");
       return (INIT_PARAMETERS_INCORRECT);
    }
-   
+
    if(noTradeCoreRange > 0.5) {
       Alert("Please set a value 0.5 or less for noTradeCoreRange");
       return (INIT_PARAMETERS_INCORRECT);
    }
-   
+
    if(positionHalf <= 0) {
       Alert("Please set a value greater than 0 for positionHalf");
       return (INIT_PARAMETERS_INCORRECT);
@@ -132,9 +134,9 @@ void OnTick() {
 
    if(!CheckMarketOpen() || !CheckEquity(stopEquity, logger) || !CheckDrawDownPer(stopDrawDownPer, logger) || !CheckMarginLevel(stopMarginLevel, logger)) return;
 
-   makeTrade(symbol1);
-   makeTrade(symbol2);
-   makeTrade(symbol3);
+   makeTrade(symbol1, upperLimit1, lowerLimit1);
+   makeTrade(symbol2, upperLimit2, lowerLimit2);
+   makeTrade(symbol3, upperLimit3, lowerLimit3);
 // NZDCAD
 }
 
@@ -160,7 +162,7 @@ double OnTester() {
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-void makeTrade(string symbol) {
+void makeTrade(string symbol, double upperLimit, double lowerLimit) {
    if(symbol == "") {
       return;
    }
@@ -192,6 +194,15 @@ void makeTrade(string symbol) {
    double gap = top - bottom;
    double perB = (current - bottom) / gap;
 
+   if(current > upperLimit && upperLimit != 0 ) {
+      logger.Log(StringFormat("Trading was stopped :: current price(%f) is upper than upperLimit(%f)", current, upperLimit), Warning);
+      return;
+   }
+   if(current < lowerLimit && lowerLimit != 0) {
+      logger.Log(StringFormat("Trading was stopped :: current price(%f) is lower than lowerLimit(%f)", current, lowerLimit), Warning);
+      return;
+   }
+
 
    bool sellCondition = perB > 0.5 + noTradeCoreRange;
    bool buyCondition = perB < 0.5 - noTradeCoreRange;
@@ -216,7 +227,7 @@ void makeTrade(string symbol) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_BUY, ask, stopLoss, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
-      trade.OpenPosition(tR, logger,comment);
+      trade.OpenPosition(tR, logger, comment);
    }
    if(sellCondition) {
       double bid = Bid(symbol);
@@ -228,7 +239,7 @@ void makeTrade(string symbol) {
       tradeRequest tR = {symbol, magicNumber, ORDER_TYPE_SELL, bid, stopLoss, tp};
 
       lot > 0 ? tR.volume = lot : tVol.CalcurateVolume(tR, logger);
-      trade.OpenPosition(tR, logger,comment);
+      trade.OpenPosition(tR, logger, comment);
    }
 }
 //+------------------------------------------------------------------+
