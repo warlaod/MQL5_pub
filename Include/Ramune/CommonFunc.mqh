@@ -38,6 +38,7 @@ bool CheckMarketOpen() {
 //|                                                                  |
 //+------------------------------------------------------------------+
 bool CheckEquity(int thereShold, Logger &logger) {
+   if(thereShold == 0) return true;
    int equity = AccountInfoDouble(ACCOUNT_EQUITY);
    if(equity < thereShold) {
       logger.Log(StringFormat("Trading was stopped :: Equity(current: %d) is lower than stopEquity(%d)", equity, thereShold),Warning);
@@ -48,7 +49,9 @@ bool CheckEquity(int thereShold, Logger &logger) {
 
 bool CheckMarginLevel(int thereShold, Logger &logger) {
    double marginLevel = AccountInfoDouble(ACCOUNT_MARGIN_LEVEL);
-   if(marginLevel < thereShold && marginLevel != 0) {
+   if(thereShold == 0 || marginLevel == 0) return true;
+   
+   if(marginLevel < thereShold) {
       logger.Log(StringFormat("Trading was stopped :: MarginLevel(current: %.2f) is lower than stopMarginLevel(%d)",marginLevel, thereShold),Warning);
       return false;
    }
@@ -58,13 +61,13 @@ bool CheckMarginLevel(int thereShold, Logger &logger) {
 bool CheckDrawDownPer(int thereShold, Logger &logger) {
    double equity = AccountInfoDouble(ACCOUNT_EQUITY);
    double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+   double drawDownPer = (balance - equity) / balance * 100;
    
-   if(balance == 0 || equity == 0){
+   if(balance == 0 || equity == 0 || thereShold == 0 || drawDownPer == 0){
       return true;
    }
    
-   double drawDownPer = (balance - equity) / balance * 100;
-   if(drawDownPer > thereShold  && drawDownPer != 0) {
+   if(drawDownPer > thereShold) {
       logger.Log(StringFormat("Trading was stopped :: DrawDown(current: %.2f) is over than stopDrawDownPer(%d)", drawDownPer, thereShold),Warning);
       return false;
    }
@@ -95,4 +98,13 @@ double Pips(string symbol) {
 
 double Spread(string symbol) {
    return SymbolInfoInteger(symbol, SYMBOL_SPREAD)* SymbolInfoDouble(symbol, SYMBOL_POINT);
+}
+
+bool CheckSpread(string symbol, int thereShold){
+   if(thereShold == 0) return true;
+   double spread = Spread(symbol);
+   if(spread > thereShold*Pips(symbol)){
+      return false;
+   }
+   return true;
 }

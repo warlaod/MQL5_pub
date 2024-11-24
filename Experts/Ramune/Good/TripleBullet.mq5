@@ -174,14 +174,11 @@ void makeTrade(string symbol, double upperLimit, double lowerLimit) {
    double pips = Pips(symbol);
    Position position(symbol);
 
-   if(orderHistory.wasOrderInTheSameBar(symbol, PERIOD_H12)) {
+   if(orderHistory.wasOrderInTheSameBar(symbol, PERIOD_H1)) {
       return;
    }
 
-   double spread = Spread(symbol);
-   if( spread > spreadLimit * pips) {
-      return;
-   }
+   if(!CheckSpread(symbol,spreadLimit)) return;
 
    double top = price.Highest(symbol, 0, pricePeriod, logger);
    double bottom = price.Lowest(symbol, 0, pricePeriod, logger);
